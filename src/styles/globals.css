@@ -1,0 +1,122 @@
+/* /src/styles/globals.css */
+
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AsiSport Design System - Variables */
+@layer base {
+    :root {
+        /* ==================== */
+        /* COLORES PRIMARIOS    */
+        /* ==================== */
+        --color-primary: #FF6B35;
+        --color-background: #0A0A0A;
+        --color-surface: #1A1A1A;
+        --color-text-primary: #FFFFFF;
+        --color-text-secondary: #A0A0A0;
+
+        /* ==================== */
+        /* COLORES DE ESTADO    */
+        /* ==================== */
+        --color-success: #00D26A;
+        --color-warning: #FFB020;
+        --color-error: #FF3B30;
+        --color-info: #0A84FF;
+
+        /* ==================== */
+        /* COLORES FUNCIONALES  */
+        /* ==================== */
+        --color-border: #2D2D2D;
+        --color-border-active: #FF6B35;
+        --color-disabled: #4A4A4A;
+
+        /* ==================== */
+        /* ESPECÍFICOS ASISPORT */
+        /* ==================== */
+        --color-arquero: #9D4EDD;
+
+        /* ==================== */
+        /* ESPACIADOS           */
+        /* ==================== */
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        --spacing-2xl: 48px;
+
+        /* ==================== */
+        /* BORDES               */
+        /* ==================== */
+        --border-thin: 1px;
+        --border-regular: 2px;
+        --border-thick: 3px;
+
+        /* ==================== */
+        /* RADIOS               */
+        /* ==================== */
+        --radius-none: 0px;
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 9999px;
+
+        /* ==================== */
+        /* TIPOGRAFÍA           */
+        /* ==================== */
+        --font-size-xs: 12px;
+        --font-size-sm: 14px;
+        --font-size-base: 16px;
+        --font-size-lg: 18px;
+        --font-size-xl: 20px;
+        --font-size-2xl: 24px;
+        --font-size-3xl: 30px;
+
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+        --font-weight-black: 900;
+
+        /* ==================== */
+        /* SOMBRAS              */
+        /* ==================== */
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+
+        /* ==================== */
+        /* TRANSICIONES         */
+        /* ==================== */
+        --transition-fast: 150ms ease-in-out;
+        --transition-normal: 300ms ease-in-out;
+        --transition-slow: 500ms ease-in-out;
+    }
+
+    /* Configuración base del body */
+    body {
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+            'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+            sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Reset y estilos base */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+}
+
+/* Clases de utilidad personalizadas */
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}

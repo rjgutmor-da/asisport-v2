@@ -1,0 +1,12 @@
+[
+    {
+        "nombre": "Cancha Principal",
+        "escuela_id": "91b2a748-f956-41e7-8efe-075257a0889a",
+        "activo": true
+    },
+    {
+        "nombre": "Cancha 2",
+        "escuela_id": "91b2a748-f956-41e7-8efe-075257a0889a",
+        "activo": true
+    }
+]

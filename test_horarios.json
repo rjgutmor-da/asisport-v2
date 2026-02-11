@@ -1,0 +1,12 @@
+[
+    {
+        "hora": "16:00",
+        "escuela_id": "91b2a748-f956-41e7-8efe-075257a0889a",
+        "activo": true
+    },
+    {
+        "hora": "17:30",
+        "escuela_id": "91b2a748-f956-41e7-8efe-075257a0889a",
+        "activo": true
+    }
+]
