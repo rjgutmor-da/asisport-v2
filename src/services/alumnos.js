@@ -84,17 +84,23 @@ export const createAlumno = async (alumnoData, photoFile) => {
         fotoUrl = publicUrl;
     }
 
-    // 4. Insertar Alumno
+    // 4. Formatear teléfonos (Regla de oro: asegurar internacional para WhatsApp)
+    const formatPhone = (phone) => {
+        if (!phone) return null;
+        const clean = phone.replace(/\D/g, '');
+        return clean.length === 8 ? `591${clean}` : clean;
+    };
+
     const newAlumno = {
         nombres: alumnoData.nombres,
         apellidos: alumnoData.apellidos,
         fecha_nacimiento: alumnoData.fecha_nacimiento,
         carnet_identidad: alumnoData.carnet_identidad || null,
         nombre_padre: alumnoData.nombre_padre || null,
-        telefono_padre: alumnoData.telefono_padre || null,
+        telefono_padre: formatPhone(alumnoData.telefono_padre),
         nombre_madre: alumnoData.nombre_madre || null,
-        telefono_madre: alumnoData.telefono_madre || null,
-        telefono_deportista: alumnoData.telefono_deportista || null,
+        telefono_madre: formatPhone(alumnoData.telefono_madre),
+        telefono_deportista: formatPhone(alumnoData.telefono_deportista),
         colegio: alumnoData.colegio || null,
         direccion: alumnoData.direccion || null,
         cancha_id: alumnoData.cancha_id,

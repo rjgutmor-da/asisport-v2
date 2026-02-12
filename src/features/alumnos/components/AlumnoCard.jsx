@@ -1,6 +1,8 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 
+import { formatWhatsAppPhone } from '../utils/phoneUtils';
+
 /**
  * Componente de tarjeta para mostrar información de un alumno
  * Diseño enfocado en contacto rápido vía WhatsApp
@@ -24,7 +26,7 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
         e.stopPropagation(); // Evitar navegar al detalle al hacer clic en el botón de WhatsApp
         if (!representante.telefono) return;
 
-        const cleanPhone = representante.telefono.replace(/\D/g, '');
+        const cleanPhone = formatWhatsAppPhone(representante.telefono);
         const defaultMessage = `Como esta ${representante.nombre}, `;
         const finalMessage = customWhatsAppMessage
             ? customWhatsAppMessage.replace('#nombre', alumno.nombres)
