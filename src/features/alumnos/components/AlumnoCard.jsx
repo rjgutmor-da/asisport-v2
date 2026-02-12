@@ -16,25 +16,39 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
     };
 
     // Obtener información del representante (Padre o Madre)
-    // Inteligencia para detectar si los campos están invertidos (común en importaciones Excel)
+    // Inteligencia robusta para detectar teléfonos válidos vs nombres
     const getRepresentanteInfo = () => {
-        let nombreRaw = (alumno.nombre_padre || alumno.nombre_madre || '');
-        let telefonoRaw = (alumno.telefono_padre || alumno.telefono_madre || '');
+        const pNombre = alumno.nombre_padre || alumno.nombre_madre || '';
+        const pTelef = alumno.telefono_padre || alumno.telefono_madre || '';
 
-        // Si el teléfono contiene texto y el nombre parece un número, invertimos
-        const telDigits = telefonoRaw.replace(/\D/g, '');
-        const nomDigits = nombreRaw.replace(/\D/g, '');
+        // Función auxiliar: Un string es teléfono si tiene entre 7 y 15 dígitos
+        const isPhone = (str) => {
+            if (!str) return false;
+            const digits = str.replace(/\D/g, '');
+            return digits.length >= 7 && digits.length <= 15;
+        };
 
-        if (telDigits.length < 7 && nomDigits.length >= 7) {
+        // Caso 1: El campo teléfono tiene un número válido (Lo normal)
+        if (isPhone(pTelef)) {
             return {
-                nombre: (telefonoRaw.split(' ')[0] || 'Tutor'),
-                telefono: nombreRaw
+                nombre: (pNombre.split(' ')[0] || 'Tutor'),
+                telefono: pTelef
             };
         }
 
+        // Caso 2: El campo nombre tiene el teléfono (Datos invertidos)
+        // Esto pasa si telefono NO es válido pero nombre SÍ lo es
+        if (isPhone(pNombre)) {
+            return {
+                nombre: (pTelef.split(' ')[0] || 'Tutor'), // Usamos el "teléfono" (texto) como nombre
+                telefono: pNombre // Usamos el "nombre" (números) como teléfono
+            };
+        }
+
+        // Caso 3: Ninguno parece válido, retornamos lo original
         return {
-            nombre: (nombreRaw.split(' ')[0] || 'Tutor'),
-            telefono: telefonoRaw
+            nombre: (pNombre.split(' ')[0] || 'Tutor'),
+            telefono: pTelef
         };
     };
 
@@ -42,11 +56,17 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
 
     // Función para enviar mensaje por WhatsApp
     const handleWhatsApp = (e) => {
-        e.stopPropagation(); // Evitar navegar al detalle al hacer clic en el botón de WhatsApp
-        if (!representante.telefono) return;
+        e.stopPropagation(); // Evitar navegar al detalle
 
         const cleanPhone = formatWhatsAppPhone(representante.telefono);
-        if (!cleanPhone) return; // No abrir WhatsApp si no hay números válidos
+
+        // Validación final: Si no hay número válido, no hacer nada
+        if (!cleanPhone || cleanPhone.length < 7) {
+            console.warn('Número de teléfono inválido para WhatsApp:', representante.telefono);
+            return;
+        }
+
+        const defaultMessage = `Como esta ${representante.nombre}, `;
         const finalMessage = customWhatsAppMessage
             ? customWhatsAppMessage.replace('#nombre', alumno.nombres)
             : defaultMessage;
