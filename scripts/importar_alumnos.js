@@ -53,8 +53,8 @@ async function importarAlumnos() {
 
         // Mapeo simple basado en posición (Ajustar según tu CSV)
         // Ejemplo CSV: Nombres, Apellidos, FechaNacimiento, Carnet, Padre, TelefonoPadre
-        // Limpieza de teléfono para el CSV
-        const rawPhone = values[5] || null;
+        // Limpieza de teléfono para el CSV (Detectamos que en el CSV el teléfono está en values[4] y el nombre en values[5])
+        const rawPhone = values[4] || null;
         let finalPhone = rawPhone;
         if (rawPhone) {
             const clean = rawPhone.replace(/\D/g, '');
@@ -70,8 +70,8 @@ async function importarAlumnos() {
             apellidos: values[1],
             fecha_nacimiento: values[2], // Formato YYYY-MM-DD
             carnet_identidad: values[3] || null,
-            nombre_padre: values[4] || null,
-            telefono_padre: finalPhone,
+            nombre_padre: values[5] || null, // Intercambiado: El nombre/relación está en la columna 5
+            telefono_padre: finalPhone,      // Intercambiado: El número está en la columna 4
 
             // Campos fijos
             escuela_id: ESCUELA_ID,

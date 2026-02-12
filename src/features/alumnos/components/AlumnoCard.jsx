@@ -16,10 +16,29 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
     };
 
     // Obtener información del representante (Padre o Madre)
-    const representante = {
-        nombre: (alumno.nombre_padre || alumno.nombre_madre || '').split(' ')[0],
-        telefono: alumno.telefono_padre || alumno.telefono_madre || ''
+    // Inteligencia para detectar si los campos están invertidos (común en importaciones Excel)
+    const getRepresentanteInfo = () => {
+        let nombreRaw = (alumno.nombre_padre || alumno.nombre_madre || '');
+        let telefonoRaw = (alumno.telefono_padre || alumno.telefono_madre || '');
+
+        // Si el teléfono contiene texto y el nombre parece un número, invertimos
+        const telDigits = telefonoRaw.replace(/\D/g, '');
+        const nomDigits = nombreRaw.replace(/\D/g, '');
+
+        if (telDigits.length < 7 && nomDigits.length >= 7) {
+            return {
+                nombre: (telefonoRaw.split(' ')[0] || 'Tutor'),
+                telefono: nombreRaw
+            };
+        }
+
+        return {
+            nombre: (nombreRaw.split(' ')[0] || 'Tutor'),
+            telefono: telefonoRaw
+        };
     };
+
+    const representante = getRepresentanteInfo();
 
     // Función para enviar mensaje por WhatsApp
     const handleWhatsApp = (e) => {
@@ -27,7 +46,7 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
         if (!representante.telefono) return;
 
         const cleanPhone = formatWhatsAppPhone(representante.telefono);
-        const defaultMessage = `Como esta ${representante.nombre}, `;
+        if (!cleanPhone) return; // No abrir WhatsApp si no hay números válidos
         const finalMessage = customWhatsAppMessage
             ? customWhatsAppMessage.replace('#nombre', alumno.nombres)
             : defaultMessage;
