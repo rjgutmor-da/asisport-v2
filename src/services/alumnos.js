@@ -99,6 +99,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
         direccion: alumnoData.direccion || null,
         cancha_id: alumnoData.cancha_id,
         horario_id: alumnoData.horario_id,
+        profesor_asignado_id: alumnoData.profesor_asignado_id, // ✅ Guardar profesor asignado
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
         estado: 'Pendiente',
@@ -115,12 +116,12 @@ export const createAlumno = async (alumnoData, photoFile) => {
     if (insertError) throw new Error('Error al guardar alumno: ' + insertError.message);
 
     // 5. Asignar Entrenador
-    if (alumno) {
+    if (alumno && alumnoData.profesor_asignado_id) {
         const { error: assignError } = await supabase
             .from('alumnos_entrenadores')
             .insert([{
                 alumno_id: alumno.id,
-                entrenador_id: user.id
+                entrenador_id: alumnoData.profesor_asignado_id // ✅ Usar el profesor asignado, no el creador
             }]);
 
         if (assignError) {
