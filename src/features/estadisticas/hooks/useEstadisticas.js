@@ -65,8 +65,18 @@ export const useEstadisticas = () => {
         today.setHours(0, 0, 0, 0);
 
         switch (dateRangeOption) {
-            case 'hoy': {
-                return { start: new Date(today), end: new Date(today) };
+            case 'ayer': {
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                return { start: yesterday, end: yesterday };
+            }
+            case 'esta_semana': {
+                // De lunes de esta semana hasta hoy
+                const dayOfWeek = today.getDay();
+                const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - daysToMonday);
+                return { start: monday, end: today };
             }
             case 'semana_anterior': {
                 // Retroceder al lunes de la semana pasada y al domingo siguiente
@@ -212,8 +222,12 @@ export const useEstadisticas = () => {
      * Agrupa datos por alumno, sumando sus asistencias totales en el periodo.
      */
     const exportData = useMemo(() => {
-        if (!filteredData.length) return [];
+        if (!filteredData.length) return { students: [], dates: [] };
 
+        // 1. Obtener todas las fechas únicas con registros y ordenarlas
+        const dates = [...new Set(filteredData.map(a => a.fecha))].sort();
+
+        // 2. Agrupar por alumno
         const grouped = filteredData.reduce((acc, curr) => {
             const alumnoId = curr.alumno_id;
             if (!acc[alumnoId]) {
@@ -221,15 +235,26 @@ export const useEstadisticas = () => {
                 acc[alumnoId] = {
                     nombreCompleto: alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Desconocido',
                     presentes: 0,
-                    licencias: 0
+                    licencias: 0,
+                    asistenciasPorFecha: {} // mapa fecha -> 'P' o 'L'
                 };
             }
-            if (curr.estado === 'Presente') acc[alumnoId].presentes++;
-            else if (curr.estado === 'Licencia') acc[alumnoId].licencias++;
+
+            if (curr.estado === 'Presente') {
+                acc[alumnoId].presentes++;
+                acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'P';
+            }
+            else if (curr.estado === 'Licencia') {
+                acc[alumnoId].licencias++;
+                acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'L';
+            }
             return acc;
         }, {});
 
-        return Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+        return {
+            students: Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto)),
+            dates: dates
+        };
     }, [filteredData, alumnos]);
 
     /**

@@ -32,6 +32,7 @@ const ListaAlumnos = () => {
         toggleAlumnoSelection,
         handleSelectAll,
         sendBulkWhatsApp,
+        aprobarTodos,
         introMessage,
         setIntroMessage
     } = useAlumnos();
@@ -250,6 +251,19 @@ const ListaAlumnos = () => {
                             >
                                 Arqueros
                             </button>
+
+                            {activeFilter === 'pendientes' && alumnos.length > 0 && (
+                                <button
+                                    onClick={async () => {
+                                        if (window.confirm(`¿Aprobar los ${alumnos.length} alumnos mostrados?`)) {
+                                            await aprobarTodos();
+                                        }
+                                    }}
+                                    className="px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap bg-success text-white hover:bg-green-700 transition-colors"
+                                >
+                                    Aprobar Resultados
+                                </button>
+                            )}
 
                             {/* Limpiar Filtros */}
                             {(activeFilter !== 'todos' || selectedCancha || selectedHorario || selectedEntrenador || searchTerm) && (

@@ -31,7 +31,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
     let query = supabase
         .from('alumnos')
         .select(`
-            id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id,
+            id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
             cancha:canchas(id, nombre),
             horario:horarios(id, hora)
         `)

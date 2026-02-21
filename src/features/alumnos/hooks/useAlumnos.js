@@ -235,6 +235,29 @@ export const useAlumnos = () => {
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
+    const aprobarTodos = async () => {
+        const pendientes = alumnos.filter(a => a.estado === 'Pendiente');
+        if (pendientes.length === 0) return;
+
+        try {
+            const { supabase } = await import('../../../lib/supabaseClient');
+            const { error } = await supabase
+                .from('alumnos')
+                .update({ estado: 'Aprobado' })
+                .in('id', pendientes.map(a => a.id));
+
+            if (error) throw error;
+
+            addToast(`${pendientes.length} alumnos aprobados correctamente`, 'success');
+            loadData(); // Recargar lista
+            return true;
+        } catch (error) {
+            console.error(error);
+            addToast('Error al aprobar alumnos', 'error');
+            return false;
+        }
+    };
+
     return {
         // Estado
         loading,
@@ -273,6 +296,7 @@ export const useAlumnos = () => {
         toggleAlumnoSelection,
         handleSelectAll,
         sendBulkWhatsApp,
+        aprobarTodos,
         introMessage,
         setIntroMessage
     };

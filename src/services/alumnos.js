@@ -238,6 +238,26 @@ export const restaurarAlumno = async (alumnoId) => {
 };
 
 /**
+ * Aprobar un alumno
+ * Regla: Cambia el estado de 'Pendiente' a 'Aprobado'
+ * Solo Admin/SuperAdmin deberían realizar esta acción
+ */
+export const aprobarAlumno = async (alumnoId) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+
+    const { data, error } = await supabase
+        .from('alumnos')
+        .update({ estado: 'Aprobado' })
+        .eq('id', alumnoId)
+        .select()
+        .single();
+
+    if (error) throw new Error('Error al aprobar alumno: ' + error.message);
+    return data;
+};
+
+/**
  * Obtener alumnos archivados
  * Regla #16: Entrenadores ven solo sus alumnos archivados
  *            Admin/SuperAdmin ven todos los archivados de la escuela

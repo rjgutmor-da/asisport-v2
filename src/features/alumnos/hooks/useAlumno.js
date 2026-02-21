@@ -128,6 +128,21 @@ export const useAlumno = (id) => {
         setEditing(false);
     };
 
+    // Aprobar alumno
+    const handleAprobar = async () => {
+        try {
+            const { aprobarAlumno } = await import('../../../services/alumnos');
+            await aprobarAlumno(id);
+            setAlumno(prev => ({ ...prev, estado: 'Aprobado' }));
+            addToast('Alumno aprobado correctamente', 'success');
+            return true;
+        } catch (error) {
+            console.error(error);
+            addToast(error.message, 'error');
+            return false;
+        }
+    };
+
     return {
         alumno,
         loading,
@@ -139,6 +154,7 @@ export const useAlumno = (id) => {
         setEditing,
         handleChange,
         saveChanges,
-        cancelEditing
+        cancelEditing,
+        handleAprobar
     };
 };

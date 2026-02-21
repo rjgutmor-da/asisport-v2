@@ -24,7 +24,8 @@ const DetalleAlumno = () => {
         setEditing,
         handleChange,
         saveChanges,
-        cancelEditing
+        cancelEditing,
+        handleAprobar
     } = useAlumno(id);
 
     if (loading) {
@@ -121,9 +122,21 @@ const DetalleAlumno = () => {
 
                         <div className="flex gap-2 mb-4">
                             {alumno.estado === 'Pendiente' && (
-                                <span className="px-3 py-1 bg-warning/20 text-warning text-sm font-bold rounded">
-                                    Pendiente
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    <span className="px-3 py-1 bg-warning/20 text-warning text-sm font-bold rounded">
+                                        Pendiente
+                                    </span>
+                                    <button
+                                        onClick={async () => {
+                                            if (window.confirm(`¿Aprobar al alumno ${alumno.nombres}?`)) {
+                                                await handleAprobar();
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-success text-white text-xs font-bold rounded hover:bg-green-700 transition-colors uppercase"
+                                    >
+                                        Aprobar Ahora
+                                    </button>
+                                </div>
                             )}
                             {alumno.estado === 'Aprobado' && (
                                 <span className="px-3 py-1 bg-success/20 text-success text-sm font-bold rounded">

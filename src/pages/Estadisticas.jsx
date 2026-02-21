@@ -29,35 +29,48 @@ const Estadisticas = () => {
 
     const [showFilters, setShowFilters] = React.useState(false);
 
-    // Exportar a Excel con formato especificado
+    // Exportar a Excel con formato detallado por fechas
     const handleExport = () => {
-        if (!exportData || exportData.length === 0) return;
+        if (!exportData || !exportData.students || exportData.students.length === 0) return;
+
+        const { students, dates } = exportData;
+
+        // Formatear cabeceras de fechas (DD/MM)
+        const dateHeaders = dates.map(fecha => {
+            const d = new Date(fecha + 'T12:00:00');
+            return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        });
 
         // Crear datos con encabezados de filtros
         const filterInfo = [
             ['Reporte de Asistencias - AsiSport'],
             [`Período: ${dateRangeText} | Canchas: ${selectedCanchas.length === 0 ? 'Todas' : selectedCanchas.length} | Horarios: ${selectedHorarios.length === 0 ? 'Todos' : selectedHorarios.length} | Entrenadores: ${selectedEntrenadores.length === 0 ? 'Todos' : selectedEntrenadores.length} | Categorías: ${selectedCategorias.length === 0 ? 'Todas' : selectedCategorias.join(', ')}`],
             [], // Fila vacía
-            ['Alumno', 'Presentes', 'Licencias'] // Encabezados
+            ['Alumno', 'Presentes', 'Licencias', ...dateHeaders] // Encabezados con fechas
         ];
 
-        // Agregar datos de alumnos
-        const dataRows = exportData.map(item => [
+        // Agregar datos de alumnos con su detalle diario
+        const dataRows = students.map(item => [
             item.nombreCompleto,
             item.presentes,
-            item.licencias
+            item.licencias,
+            ...dates.map(fecha => item.asistenciasPorFecha[fecha] || '')
         ]);
 
         const allRows = [...filterInfo, ...dataRows];
 
         const ws = XLSX.utils.aoa_to_sheet(allRows);
 
-        // Ajustar anchos de columna
-        ws['!cols'] = [
+        // Ajustar anchos de columna dinámicamente
+        const baseCols = [
             { wch: 35 }, // Alumno
-            { wch: 12 }, // Presentes
-            { wch: 12 }  // Licencias
+            { wch: 10 }, // Presentes
+            { wch: 10 }  // Licencias
         ];
+
+        // Agregar anchos para cada columna de fecha
+        const dateCols = dates.map(() => ({ wch: 6 }));
+        ws['!cols'] = [...baseCols, ...dateCols];
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
@@ -83,7 +96,7 @@ const Estadisticas = () => {
                     </button>
                     <button
                         onClick={handleExport}
-                        disabled={loading || exportData.length === 0}
+                        disabled={loading || !exportData.students || exportData.students.length === 0}
                         className="flex items-center gap-2 bg-success/10 text-success border border-success/20 hover:bg-success/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <FileSpreadsheet size={18} />
@@ -111,6 +124,8 @@ const Estadisticas = () => {
                                 className="w-full bg-background border border-border rounded-md px-3 py-2 text-white text-sm focus:border-primary outline-none"
                             >
                                 <option value="hoy">Hoy</option>
+                                <option value="ayer">Ayer</option>
+                                <option value="esta_semana">Esta Semana</option>
                                 <option value="semana_anterior">Semana Anterior</option>
                                 <option value="mes_anterior">Mes Anterior</option>
                                 <option value="todo">Histórico Completo</option>
