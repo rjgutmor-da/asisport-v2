@@ -384,7 +384,7 @@ const ListaAlumnos = () => {
                                                     </div>
                                                 </td>
                                                 <td className="p-3 text-center text-primary font-bold text-sm">
-                                                    {new Date().getFullYear() - new Date(alumno.fecha_nacimiento).getFullYear()}
+                                                    {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}
                                                 </td>
                                             </tr>
                                         );

@@ -20,7 +20,7 @@ const DetalleAlumno = () => {
         editing,
         saving,
         formData,
-        maestros: { canchas, horarios },
+        maestros: { canchas, horarios, entrenadores },
         setEditing,
         handleChange,
         saveChanges,
@@ -290,14 +290,25 @@ const DetalleAlumno = () => {
                             />
                         </div>
 
-                        <Input
-                            label="Teléfono del Deportista"
-                            name="telefono_deportista"
-                            type="tel"
-                            value={formData.telefono_deportista || ''}
-                            onChange={handleChange}
-                            disabled={!editing}
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Select
+                                label="Entrenador Asignado"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id || ''}
+                                options={entrenadores}
+                                placeholder="Sin Entrenador"
+                                onChange={handleChange}
+                                disabled={!editing}
+                            />
+                            <Input
+                                label="Teléfono del Deportista"
+                                name="telefono_deportista"
+                                type="tel"
+                                value={formData.telefono_deportista || ''}
+                                onChange={handleChange}
+                                disabled={!editing}
+                            />
+                        </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input

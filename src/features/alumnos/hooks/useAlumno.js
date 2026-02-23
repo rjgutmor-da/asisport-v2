@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { supabase } from '../../../lib/supabaseClient';
-import { getCanchas, getHorarios } from '../../../services/maestros';
+import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 
 /**
  * Hook para manejar la lógica de detalle de un alumno
@@ -18,6 +18,7 @@ export const useAlumno = (id) => {
     // Datos maestros
     const [canchas, setCanchas] = useState([]);
     const [horarios, setHorarios] = useState([]);
+    const [entrenadores, setEntrenadores] = useState([]);
 
     // Estado del formulario de edición
     const [formData, setFormData] = useState({});
@@ -54,12 +55,14 @@ export const useAlumno = (id) => {
                 setFormData(alumnoConTotales);
 
                 // Cargar datos maestros
-                const [canchasData, horariosData] = await Promise.all([
+                const [canchasData, horariosData, entrenadoresData] = await Promise.all([
                     getCanchas(),
-                    getHorarios()
+                    getHorarios(),
+                    getEntrenadores()
                 ]);
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
+                setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
 
             } catch (error) {
                 console.error(error);
@@ -101,6 +104,7 @@ export const useAlumno = (id) => {
                     direccion: formData.direccion,
                     cancha_id: formData.cancha_id,
                     horario_id: formData.horario_id,
+                    profesor_asignado_id: formData.profesor_asignado_id,
                     es_arquero: formData.es_arquero
                 })
                 .eq('id', id);
@@ -149,7 +153,7 @@ export const useAlumno = (id) => {
         editing,
         saving,
         formData,
-        maestros: { canchas, horarios },
+        maestros: { canchas, horarios, entrenadores },
 
         setEditing,
         handleChange,

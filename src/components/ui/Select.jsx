@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Select = ({ label, name, options = [], value, onChange, error, placeholder = "Selecciona una opción" }) => {
+const Select = ({ label, name, options = [], value, onChange, error, disabled, placeholder = "Selecciona una opción" }) => {
     return (
         <div className="flex flex-col gap-1">
             {label && <label htmlFor={name} className="text-sm font-medium text-text-secondary">{label}</label>}
@@ -10,6 +10,7 @@ const Select = ({ label, name, options = [], value, onChange, error, placeholder
                     name={name}
                     value={value}
                     onChange={onChange}
+                    disabled={disabled}
                     className={`
                         flex h-10 w-full rounded-md border bg-surface px-3 py-2 text-sm text-white 
                         ring-offset-background placeholder:text-muted-foreground 
