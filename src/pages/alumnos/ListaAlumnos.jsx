@@ -1,17 +1,35 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink } from 'lucide-react';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
+import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
 import Select from '../../components/ui/Select';
 import { useAlumnos } from '../../features/alumnos/hooks/useAlumnos';
+import { useAuth } from '../../context/AuthContext';
 import TabBar from '../../components/dashboard/TabBar';
 
+/**
+ * Página principal de la lista de alumnos.
+ * Funcionalidades:
+ *  - Vista cuadrícula y tabla con navegación al detalle
+ *  - Búsqueda y filtros por cancha, horario, entrenador
+ *  - Archivar alumno individual con confirmación
+ *  - Combinar alumnos duplicados mediante modal
+ *  - Selección múltiple para envío de WhatsApp
+ *  - Aprobar alumnos pendientes en lote
+ */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Control del modal de combinar alumnos
+    const [showCombinarModal, setShowCombinarModal] = React.useState(false);
+    const [isEditingMessage, setIsEditingMessage] = React.useState(false);
 
     const {
         loading,
         alumnos,
+        allAlumnos,
         activeFilter,
         searchTerm,
         selectedAlumnos,
@@ -33,17 +51,26 @@ const ListaAlumnos = () => {
         handleSelectAll,
         sendBulkWhatsApp,
         aprobarTodos,
+        handleArchivarAlumno,
+        handleCombinarAlumnos,
         introMessage,
         setIntroMessage
     } = useAlumnos();
 
-    const [isEditingMessage, setIsEditingMessage] = React.useState(false);
-
-    const filteredAndSortedAlumnos = alumnos;
+    // Verificar si el usuario es Admin o SuperAdmin
+    const esAdmin = user?.rol === 'SuperAdministrador' || user?.rol === 'Administrador';
 
     // Navegación a detalle del alumno
     const handleAlumnoClick = (alumno) => {
         navigate(`/alumnos/${alumno.id}`);
+    };
+
+    // Archivar un alumno con diálogo de confirmación
+    const handleArchivar = async (e, alumno) => {
+        e.stopPropagation(); // Evitar navegar al detalle
+        if (window.confirm(`¿Estás seguro de archivar a ${alumno.nombres} ${alumno.apellidos}?\n\nEl alumno dejará de aparecer en listas activas, pero sus datos se conservarán.`)) {
+            await handleArchivarAlumno(alumno.id);
+        }
     };
 
     // Función para calcular el resumen de asistencia (Presente + Licencia)
@@ -134,6 +161,18 @@ const ListaAlumnos = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Botón Combinar Alumnos (solo Admin) */}
+                    {esAdmin && (
+                        <button
+                            onClick={() => setShowCombinarModal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 text-warning border border-warning/30 rounded-md text-sm font-bold hover:bg-warning/20 transition-colors"
+                            title="Combinar alumnos duplicados"
+                        >
+                            <Merge size={16} />
+                            <span className="hidden md:inline">Combinar</span>
+                        </button>
+                    )}
+
                     {selectedAlumnos.length > 0 && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
                             <button
@@ -313,15 +352,34 @@ const ListaAlumnos = () => {
                         /* Vista Cuadrícula (Cards) */
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {alumnos.map((alumno) => (
-                                <AlumnoCard
-                                    key={alumno.id}
-                                    alumno={alumno}
-                                    onClick={() => handleAlumnoClick(alumno)}
-                                />
+                                <div key={alumno.id} className="relative group">
+                                    <AlumnoCard
+                                        alumno={alumno}
+                                        onClick={() => handleAlumnoClick(alumno)}
+                                    />
+                                    {/* Botón archivar en la tarjeta (solo Admin) */}
+                                    {esAdmin && (
+                                        <button
+                                            onClick={(e) => handleArchivar(e, alumno)}
+                                            className="
+                                                absolute top-2 right-2
+                                                p-1.5 rounded-md
+                                                bg-error/80 text-white
+                                                opacity-0 group-hover:opacity-100
+                                                hover:bg-error
+                                                transition-all duration-200
+                                                shadow-lg
+                                            "
+                                            title={`Archivar a ${alumno.nombres}`}
+                                        >
+                                            <Archive size={14} />
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     ) : (
-                        /* Vista Lista (Excel-style) */
+                        /* Vista Lista (Tabla) */
                         <div className="bg-surface border border-border rounded-md overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-background/50 border-b border-border">
@@ -337,42 +395,50 @@ const ListaAlumnos = () => {
                                         <th className="p-3 text-xs font-bold text-text-secondary uppercase">Alumno</th>
                                         <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-14">Asist</th>
                                         <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-12">Sub</th>
+                                        {esAdmin && (
+                                            <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-20">Acciones</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {alumnos.map((alumno) => {
                                         const asistencias = getAsistenciaResumen(alumno.id);
-                                        const isIneligible = asistencias < 2;
 
                                         return (
                                             <tr
                                                 key={alumno.id}
-                                                className={`
-                                                    border-b border-border/50 transition-colors cursor-pointer
-                                                    ${isIneligible ? 'opacity-60 grayscale-[0.5]' : 'hover:bg-primary/5'}
-                                                `}
-                                                onClick={() => !isIneligible && handleAlumnoClick(alumno)}
+                                                className="border-b border-border/50 transition-colors hover:bg-primary/5 cursor-pointer"
+                                                onClick={() => handleAlumnoClick(alumno)}
                                             >
                                                 <td className="p-3" onClick={(e) => e.stopPropagation()}>
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedAlumnos.includes(alumno.id)}
                                                         onChange={() => toggleAlumnoSelection(alumno.id)}
-                                                        disabled={isIneligible}
-                                                        className={`
-                                                            rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 
-                                                            ${isIneligible ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}
-                                                        `}
+                                                        className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
                                                     />
                                                 </td>
                                                 <td className="p-3">
                                                     <div className="flex items-center gap-3">
-                                                        {alumno.foto_url && (
+                                                        {alumno.foto_url ? (
                                                             <img src={alumno.foto_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                                                                <span className="text-primary text-xs font-bold">
+                                                                    {alumno.nombres?.[0]}{alumno.apellidos?.[0]}
+                                                                </span>
+                                                            </div>
                                                         )}
-                                                        <span className={`font-medium truncate ${isIneligible ? 'text-text-secondary' : 'text-white'}`}>
-                                                            {alumno.nombres}
-                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <span className="font-medium text-white truncate block">
+                                                                {alumno.nombres} {alumno.apellidos}
+                                                            </span>
+                                                            <span className="text-[10px] text-text-secondary">
+                                                                {alumno.cancha?.nombre || 'Sin cancha'}
+                                                            </span>
+                                                        </div>
+                                                        {/* Indicador visual de que se puede acceder al detalle */}
+                                                        <ExternalLink size={14} className="text-text-secondary/40 flex-shrink-0 ml-auto hidden md:block" />
                                                     </div>
                                                 </td>
                                                 <td className="p-3 text-center">
@@ -386,6 +452,17 @@ const ListaAlumnos = () => {
                                                 <td className="p-3 text-center text-primary font-bold text-sm">
                                                     {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}
                                                 </td>
+                                                {esAdmin && (
+                                                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={(e) => handleArchivar(e, alumno)}
+                                                            className="p-1.5 rounded-md text-text-secondary hover:text-error hover:bg-error/10 transition-colors"
+                                                            title={`Archivar a ${alumno.nombres}`}
+                                                        >
+                                                            <Archive size={16} />
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}
@@ -482,6 +559,15 @@ const ListaAlumnos = () => {
             >
                 <Plus size={28} />
             </button>
+
+            {/* Modal de Combinar Alumnos */}
+            <CombinarAlumnosModal
+                isOpen={showCombinarModal}
+                onClose={() => setShowCombinarModal(false)}
+                alumnos={allAlumnos}
+                onCombinar={handleCombinarAlumnos}
+            />
+
             <TabBar />
         </div>
     );

@@ -1,18 +1,26 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
-import { getAlumnos } from '../../../services/alumnos';
+import { getAlumnos, archivarAlumno } from '../../../services/alumnos';
+import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getAsistenciasUltimos7Dias } from '../../../services/asistencias';
 
 /**
- * Hook para manejar la lógica de la lista de alumnos
+ * Hook para manejar la lógica de la lista de alumnos.
+ * Incluye:
+ *  - Carga, filtrado, búsqueda y paginación de alumnos
+ *  - Selección múltiple y envío de WhatsApp
+ *  - Archivar alumno individual con confirmación
+ *  - Combinar alumnos duplicados
+ *  - Aprobar alumnos pendientes
  */
 export const useAlumnos = () => {
     const { addToast } = useToast();
     const { user, role } = useAuth();
 
     const [alumnos, setAlumnos] = useState([]);
+    const [allAlumnos, setAllAlumnos] = useState([]); // Lista completa sin filtrar (para el modal de combinar)
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('todos');
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
@@ -51,7 +59,7 @@ export const useAlumnos = () => {
         return dates;
     }, []);
 
-    // Cargar alumnos y opciones de filtros al montar variable
+    // Cargar alumnos y opciones de filtros al montar
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
@@ -63,6 +71,7 @@ export const useAlumnos = () => {
             ]);
 
             setAlumnos(alumnsData);
+            setAllAlumnos(alumnsData); // Guardar copia completa para el modal de combinar
             setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
             setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
             setEntrenadores(entrenadorsData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
@@ -114,10 +123,7 @@ export const useAlumnos = () => {
         // 2. Aplicar filtros dinámicos
         if (selectedEntrenador) {
             filtered = filtered.filter(a =>
-                // Si el filtro es por entrenador asignado (nuevo campo) o entrenadores secundarios (si existieran)
-                // Por ahora usamos el nuevo campo
                 a.profesor_asignado_id === selectedEntrenador
-                // O fall back a la lógica antigua si existiera tabla intermedia, pero por ahora profesor_asignado_id es la fuente de verdad
             );
         }
 
@@ -137,19 +143,14 @@ export const useAlumnos = () => {
             );
         }
 
-        // 3. Aplicar ordenamiento interno fijo:
-        // Primero Activos (Aprobados) -> Pendientes
-        // Luego por fecha de creación (Más antiguo -> Más nuevo)
+        // 4. Aplicar ordenamiento interno fijo
         const sorted = [...filtered].sort((a, b) => {
-            // Prioridad de estado: Aprobado < Pendiente
             if (a.estado === 'Aprobado' && b.estado === 'Pendiente') return -1;
             if (a.estado === 'Pendiente' && b.estado === 'Aprobado') return 1;
-
-            // Si tienen el mismo estado, ordenar por fecha de creación (Oldest first)
             return new Date(a.created_at) - new Date(b.created_at);
         });
 
-        // 4. Calcular paginación
+        // 5. Calcular paginación
         const total = Math.ceil(sorted.length / itemsPerPage);
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
@@ -161,7 +162,10 @@ export const useAlumnos = () => {
         };
     }, [alumnos, activeFilter, selectedCancha, selectedHorario, selectedEntrenador, searchTerm, currentPage, itemsPerPage, role, user]);
 
+    // =========================================================================
     // Handlers
+    // =========================================================================
+
     const handleFilterChange = (filter) => {
         setActiveFilter(filter);
         setCurrentPage(1);
@@ -183,11 +187,9 @@ export const useAlumnos = () => {
     };
 
     const toggleAlumnoSelection = (id) => {
-        // Encontrar el alumno y verificar su asistencia
         const alumno = alumnos.find(a => a.id === id);
         if (!alumno) return;
 
-        // Calcular asistencia (Presente + Licencia)
         const history = asistenciaHistory[id] || {};
         const asistencias = Object.values(history).filter(estado =>
             estado === 'Presente' || estado === 'Licencia'
@@ -227,7 +229,6 @@ export const useAlumnos = () => {
     const sendBulkWhatsApp = () => {
         if (selectedAlumnos.length === 0) return;
 
-        // Obtener datos de los alumnos seleccionados en el orden que aparecen en la lista actual
         const selectedData = alumnos.filter(a => selectedAlumnos.includes(a.id));
         const namesList = selectedData.map((a, index) => `${index + 1}. ${a.nombres}`).join('\n');
 
@@ -258,10 +259,43 @@ export const useAlumnos = () => {
         }
     };
 
+    // =========================================================================
+    // Archivar un alumno individual desde la lista
+    // =========================================================================
+    const handleArchivarAlumno = async (alumnoId) => {
+        try {
+            await archivarAlumno(alumnoId);
+            addToast('Alumno archivado correctamente', 'success');
+            await loadData(); // Recargar la lista para reflejar el cambio
+            return true;
+        } catch (error) {
+            console.error(error);
+            addToast(error.message || 'Error al archivar alumno', 'error');
+            return false;
+        }
+    };
+
+    // =========================================================================
+    // Combinar alumnos duplicados
+    // =========================================================================
+    const handleCombinarAlumnos = async (destinoId, origenId) => {
+        try {
+            await combinarAlumnos(destinoId, origenId);
+            addToast('Alumnos combinados correctamente', 'success');
+            await loadData(); // Recargar la lista completa
+            return true;
+        } catch (error) {
+            console.error(error);
+            addToast(error.message || 'Error al combinar alumnos', 'error');
+            throw error; // Re-lanzar para que el modal maneje el error
+        }
+    };
+
     return {
         // Estado
         loading,
         alumnos: paginatedAlumnos,
+        allAlumnos, // Lista completa sin filtrar (para el modal de combinar)
         totalAlumnos: filteredAndSortedAlumnos.length,
         totalPages,
         currentPage,
@@ -297,6 +331,8 @@ export const useAlumnos = () => {
         handleSelectAll,
         sendBulkWhatsApp,
         aprobarTodos,
+        handleArchivarAlumno,
+        handleCombinarAlumnos,
         introMessage,
         setIntroMessage
     };

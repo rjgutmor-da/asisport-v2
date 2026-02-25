@@ -1,18 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Loader2, Archive } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Loader2, Archive, UserPlus, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
+import FileInput from '../../components/ui/FileInput';
 import { useAlumno } from '../../features/alumnos/hooks/useAlumno';
 import { archivarAlumno } from '../../services/alumnos';
 
+/**
+ * Página de detalle y edición de un alumno.
+ * Permite:
+ *  - Ver y editar todos los datos del alumno
+ *  - Cambiar o agregar foto del alumno
+ *  - Asignar hasta 2 entrenadores (campo unificado)
+ *  - Aprobar alumnos pendientes
+ *  - Archivar alumnos (solo Admin/SuperAdmin)
+ */
 const DetalleAlumno = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { user } = useAuth();
+
+    // Selector temporal para agregar entrenador
+    const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('');
 
     const {
         alumno,
@@ -20,9 +33,14 @@ const DetalleAlumno = () => {
         editing,
         saving,
         formData,
+        photoFile,
+        selectedEntrenadores,
         maestros: { canchas, horarios, entrenadores },
         setEditing,
         handleChange,
+        setPhotoFile,
+        addEntrenador,
+        removeEntrenador,
         saveChanges,
         cancelEditing,
         handleAprobar
@@ -52,9 +70,31 @@ const DetalleAlumno = () => {
         );
     }
 
+    // Opciones de entrenadores filtradas: excluir los ya seleccionados
+    const entrenadoresDisponibles = entrenadores.filter(
+        e => !selectedEntrenadores.includes(e.value)
+    );
+
+    // Obtener el nombre de un entrenador por su ID
+    const getNombreEntrenador = (entrenadorId) => {
+        const e = entrenadores.find(ent => ent.value === entrenadorId);
+        if (e) return e.label;
+        // Buscar en los datos del alumno (por si el entrenador no está en la lista activa)
+        const ae = alumno.alumnos_entrenadores?.find(ae => ae.entrenador_id === entrenadorId);
+        return ae?.usuario ? `${ae.usuario.nombres} ${ae.usuario.apellidos}` : 'Entrenador desconocido';
+    };
+
+    // Manejar la selección y adición de un nuevo entrenador
+    const handleAddEntrenador = () => {
+        if (nuevoEntrenadorId) {
+            addEntrenador(nuevoEntrenadorId);
+            setNuevoEntrenadorId('');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
-            {/* Header */}
+            {/* Cabecera */}
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/alumnos', { replace: true })} className="text-white hover:text-primary transition-colors">
@@ -96,21 +136,49 @@ const DetalleAlumno = () => {
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
                 {/* Foto y Badges */}
-                <div className="bg-surface border border-border rounded-md p-6 flex items-center gap-6">
-                    {/* Foto */}
+                <div className="bg-surface border border-border rounded-md p-6 flex flex-col md:flex-row items-center gap-6">
+                    {/* Foto del alumno: en modo edición muestra el FileInput */}
                     <div className="flex-shrink-0">
-                        {alumno.foto_url ? (
-                            <img
-                                src={alumno.foto_url}
-                                alt={`${alumno.nombres} ${alumno.apellidos}`}
-                                className="w-32 h-32 rounded-md border-2 border-primary object-cover"
-                            />
-                        ) : (
-                            <div className="w-32 h-32 rounded-md border-2 border-primary bg-background flex items-center justify-center">
-                                <span className="text-4xl font-bold text-primary">
-                                    {alumno.nombres[0]}{alumno.apellidos[0]}
-                                </span>
+                        {editing ? (
+                            <div className="w-48">
+                                {/* Si ya tiene foto y no se ha seleccionado una nueva, mostrar la actual con opción de cambiar */}
+                                {(alumno.foto_url && !photoFile) ? (
+                                    <div className="space-y-2">
+                                        <img
+                                            src={alumno.foto_url}
+                                            alt={`${alumno.nombres} ${alumno.apellidos}`}
+                                            className="w-32 h-32 rounded-md border-2 border-primary object-cover mx-auto"
+                                        />
+                                        <p className="text-xs text-text-secondary text-center">Foto actual</p>
+                                        <FileInput
+                                            label="Cambiar Foto"
+                                            name="foto_edit"
+                                            onChange={setPhotoFile}
+                                        />
+                                    </div>
+                                ) : (
+                                    <FileInput
+                                        label={photoFile ? "Nueva Foto Seleccionada" : "Agregar Foto"}
+                                        name="foto_edit"
+                                        onChange={setPhotoFile}
+                                    />
+                                )}
                             </div>
+                        ) : (
+                            // Modo visualización: mostrar foto o iniciales
+                            alumno.foto_url ? (
+                                <img
+                                    src={alumno.foto_url}
+                                    alt={`${alumno.nombres} ${alumno.apellidos}`}
+                                    className="w-32 h-32 rounded-md border-2 border-primary object-cover"
+                                />
+                            ) : (
+                                <div className="w-32 h-32 rounded-md border-2 border-primary bg-background flex items-center justify-center">
+                                    <span className="text-4xl font-bold text-primary">
+                                        {alumno.nombres[0]}{alumno.apellidos[0]}
+                                    </span>
+                                </div>
+                            )
                         )}
                     </div>
 
@@ -157,7 +225,7 @@ const DetalleAlumno = () => {
                             </div>
                             <div>
                                 <p className="text-text-secondary">Entrenadores</p>
-                                <p className="text-white font-semibold text-lg">{alumno.alumnos_entrenadores?.length || 0}</p>
+                                <p className="text-white font-semibold text-lg">{selectedEntrenadores.length}</p>
                             </div>
                         </div>
                     </div>
@@ -291,15 +359,6 @@ const DetalleAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Select
-                                label="Entrenador Asignado"
-                                name="profesor_asignado_id"
-                                value={formData.profesor_asignado_id || ''}
-                                options={entrenadores}
-                                placeholder="Sin Entrenador"
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
                             <Input
                                 label="Teléfono del Deportista"
                                 name="telefono_deportista"
@@ -308,9 +367,6 @@ const DetalleAlumno = () => {
                                 onChange={handleChange}
                                 disabled={!editing}
                             />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
                                 label="Colegio"
                                 name="colegio"
@@ -318,6 +374,9 @@ const DetalleAlumno = () => {
                                 onChange={handleChange}
                                 disabled={!editing}
                             />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
                             <Input
                                 label="Dirección"
                                 name="direccion"
@@ -328,22 +387,83 @@ const DetalleAlumno = () => {
                         </div>
                     </section>
 
-                    {/* Entrenadores Asignados */}
-                    {alumno.alumnos_entrenadores && alumno.alumnos_entrenadores.length > 0 && (
-                        <section className="space-y-4">
-                            <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
-                                Entrenadores Asignados
-                            </h3>
-                            <div className="space-y-2">
-                                {alumno.alumnos_entrenadores.map((ae, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-white">
-                                        <span className="w-2 h-2 bg-primary rounded-full"></span>
-                                        <span>{ae.usuario?.nombres} {ae.usuario?.apellidos}</span>
+                    {/* Entrenadores Asignados (campo unificado - máximo 2) */}
+                    <section className="space-y-4">
+                        <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
+                            Entrenadores Asignados
+                            <span className="text-sm font-normal text-text-secondary ml-2">
+                                ({selectedEntrenadores.length}/2)
+                            </span>
+                        </h3>
+
+                        {/* Lista de entrenadores actualmente asignados */}
+                        <div className="space-y-2">
+                            {selectedEntrenadores.length === 0 ? (
+                                <p className="text-text-secondary text-sm italic">
+                                    No hay entrenadores asignados
+                                </p>
+                            ) : (
+                                selectedEntrenadores.map((entrenadorId, index) => (
+                                    <div
+                                        key={entrenadorId}
+                                        className="flex items-center justify-between gap-2 p-3 bg-background/50 border border-border rounded-lg"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
+                                                {index + 1}
+                                            </span>
+                                            <span className="text-white font-medium">
+                                                {getNombreEntrenador(entrenadorId)}
+                                            </span>
+                                        </div>
+                                        {editing && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeEntrenador(entrenadorId)}
+                                                className="p-1.5 text-error hover:bg-error/20 rounded-md transition-colors"
+                                                title="Quitar entrenador"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
-                                ))}
+                                ))
+                            )}
+                        </div>
+
+                        {/* Selector para agregar entrenador (solo en modo edición y si quedan espacios) */}
+                        {editing && selectedEntrenadores.length < 2 && (
+                            <div className="flex items-end gap-2">
+                                <div className="flex-1">
+                                    <Select
+                                        label="Agregar Entrenador"
+                                        name="nuevo_entrenador"
+                                        value={nuevoEntrenadorId}
+                                        options={entrenadoresDisponibles}
+                                        onChange={(e) => setNuevoEntrenadorId(e.target.value)}
+                                        placeholder="Seleccionar entrenador..."
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAddEntrenador}
+                                    disabled={!nuevoEntrenadorId}
+                                    className="flex items-center gap-2 px-4 py-2.5 mb-0.5 bg-primary text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Agregar entrenador"
+                                >
+                                    <UserPlus size={18} />
+                                    Agregar
+                                </button>
                             </div>
-                        </section>
-                    )}
+                        )}
+
+                        {/* Nota informativa */}
+                        {editing && (
+                            <p className="text-xs text-text-secondary">
+                                Se pueden asignar hasta 2 entrenadores por alumno. Los administradores no aparecen en la lista.
+                            </p>
+                        )}
+                    </section>
                 </div>
 
                 {/* Botón de Archivar (solo Admin/SuperAdmin) */}

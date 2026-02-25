@@ -24,7 +24,8 @@ https.get(options, (res) => {
             const def = spec.definitions[table];
             if (def && def.properties) {
                 Object.keys(def.properties).forEach(prop => {
-                    console.log(` - ${prop} (${def.properties[prop].type})`);
+                    const req = def.required && def.required.includes(prop) ? '(Required)' : '';
+                    console.log(` - ${prop} ${req}`);
                 });
             } else {
                 console.log(' Definition not found.');
