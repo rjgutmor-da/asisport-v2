@@ -15,10 +15,10 @@ Bienvenido a **AsiSport**, la solución definitiva para la gestión de asistenci
 - **Validaciones**: Protección contra registros duplicados o fechas futuras.
 - **Acceso Administrativo**: Los Administradores pueden tomar asistencia en nombre de cualquier entrenador, seleccionándolo desde un menú desplegable.
 
-### 👥 Administración de Alumnos
-- **Registro con Foto**: Sube o toma fotos directamente desde el móvil con compresión automática (<100KB).
-- **Validación de Representantes**: Asegura que cada alumno tenga al menos un contacto de emergencia completo.
 - **WhatsApp Integrado**: Envía mensajes directos a los padres con un solo clic.
+- **Asignación Múltiple**: Asigna hasta 2 entrenadores por cada alumno para un seguimiento compartido.
+- **Fusión de Duplicados**: Herramienta de combinación inteligente para unir registros de alumnos creados por error, migrando historial de asistencias y datos.
+- **Gestión de Fotos**: Edición y actualización de fotos de alumnos en cualquier momento con compresión inteligente.
 
 ### 🎂 Cumpleaños
 - **Gestión Diaria**: Secciones de cumpleaños Hoy, Ayer y Mañana.
