@@ -20,7 +20,7 @@ import TabBar from '../../components/dashboard/TabBar';
  */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { isAdmin } = useAuth();
 
     // Control del modal de combinar alumnos
     const [showCombinarModal, setShowCombinarModal] = React.useState(false);
@@ -57,8 +57,8 @@ const ListaAlumnos = () => {
         setIntroMessage
     } = useAlumnos();
 
-    // Verificar si el usuario es Admin o SuperAdmin
-    const esAdmin = user?.rol === 'SuperAdministrador' || user?.rol === 'Administrador';
+    // Usar el isAdmin del AuthContext (incluye SuperAdministrador, Administrador y Dueño)
+    const esAdmin = isAdmin;
 
     // Navegación a detalle del alumno
     const handleAlumnoClick = (alumno) => {
