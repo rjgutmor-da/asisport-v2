@@ -3,7 +3,7 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
 
-export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId = null) => {
+export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId = null, entrenadorId = null) => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const [y, m, d] = fecha.split('-').map(Number);
@@ -18,14 +18,36 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada.');
 
+    // Verificar rol del usuario
+    const { data: usuarioDB, error: userError } = await supabase
+        .from('usuarios')
+        .select('rol')
+        .eq('id', user.id)
+        .single();
+    
+    if (userError) throw userError;
+
+    const esAdmin = ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol);
+    let targetEntrenadorId = user.id;
+
+    if (esAdmin && entrenadorId) {
+        targetEntrenadorId = entrenadorId;
+    } else if (esAdmin && !entrenadorId) {
+        // Opción: Si es admin y no selecciona entrenador, forzamos a cargar sus asignados (si los tuviera)
+        // O podríamos retornar vacío para obligar a seleccionar.
+        // Mantenemos user.id por defecto.
+        targetEntrenadorId = user.id;
+    }
+
     const { data: asignaciones, error: asignError } = await supabase
         .from('alumnos_entrenadores')
         .select('alumno_id')
-        .eq('entrenador_id', user.id);
+        .eq('entrenador_id', targetEntrenadorId);
 
     if (asignError) throw asignError;
 
     const alumnoIdsAsignados = asignaciones.map(a => a.alumno_id);
+    
     if (alumnoIdsAsignados.length === 0) return [];
 
     let query = supabase

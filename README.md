@@ -13,6 +13,7 @@ Bienvenido a **AsiSport**, la solución definitiva para la gestión de asistenci
 - **Filtros Inteligentes**: Filtra por cancha y horario para encontrar rápidamente a tus alumnos.
 - **Historial de 7 Días**: Consulta la consistencia de cada alumno en la última semana.
 - **Validaciones**: Protección contra registros duplicados o fechas futuras.
+- **Acceso Administrativo**: Los Administradores pueden tomar asistencia en nombre de cualquier entrenador, seleccionándolo desde un menú desplegable.
 
 ### 👥 Administración de Alumnos
 - **Registro con Foto**: Sube o toma fotos directamente desde el móvil con compresión automática (<100KB).

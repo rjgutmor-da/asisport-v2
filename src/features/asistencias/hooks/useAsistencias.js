@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
-import { getCanchas, getHorarios } from '../../../services/maestros';
+import { useAuth } from '../../../context/AuthContext';
+import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import {
     getAlumnosParaAsistencia,
     registrarAsistenciasPorLote,
@@ -9,6 +10,7 @@ import {
 
 export const useAsistencias = () => {
     const { addToast } = useToast();
+    const { isAdmin, user } = useAuth();
 
     // Fecha selecionada (por defecto HOY)
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -27,10 +29,12 @@ export const useAsistencias = () => {
     const [alumnos, setAlumnos] = useState([]);
     const [canchas, setCanchas] = useState([]);
     const [horarios, setHorarios] = useState([]);
+    const [entrenadores, setEntrenadores] = useState([]);
 
     // Filtros
     const [selectedCancha, setSelectedCancha] = useState('');
     const [selectedHorario, setSelectedHorario] = useState('');
+    const [selectedEntrenador, setSelectedEntrenador] = useState('');
 
     // Estado local de cambios pendientes (Map: alumnoId -> estado)
     const [localChanges, setLocalChanges] = useState(new Map());
@@ -42,26 +46,42 @@ export const useAsistencias = () => {
     useEffect(() => {
         const loadMaestros = async () => {
             try {
-                const [canchasData, horariosData] = await Promise.all([
-                    getCanchas(),
-                    getHorarios()
-                ]);
+                const promises = [getCanchas(), getHorarios()];
+
+                if (isAdmin) {
+                    promises.push(getEntrenadores());
+                }
+
+                const results = await Promise.all(promises);
+
+                const canchasData = results[0];
+                const horariosData = results[1];
+
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
+
+                if (isAdmin && results[2]) {
+                    const entrenadoresData = results[2];
+                    setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
+                }
+
             } catch (error) {
                 console.error(error);
-                addToast('Error al cargar canchas y horarios', 'error');
+                addToast('Error al cargar datos maestros', 'error');
             }
         };
-        loadMaestros();
-    }, [addToast]);
+        // Solo cargar si tenemos info de admin (o usuario cargado)
+        if (user) {
+            loadMaestros();
+        }
+    }, [addToast, isAdmin, user]);
 
     // Cargar alumnos y verificar estado de envío
     const loadAlumnos = useCallback(async () => {
         setLoading(true);
         try {
             const [data, estadoEnvio] = await Promise.all([
-                getAlumnosParaAsistencia(selectedDate, selectedCancha || null, selectedHorario || null),
+                getAlumnosParaAsistencia(selectedDate, selectedCancha || null, selectedHorario || null, selectedEntrenador || null),
                 verificarEstadoEnvio(selectedDate)
             ]);
 
@@ -87,7 +107,7 @@ export const useAsistencias = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate, selectedCancha, selectedHorario, addToast]);
+    }, [selectedDate, selectedCancha, selectedHorario, selectedEntrenador, addToast]);
 
     useEffect(() => {
         loadAlumnos();
@@ -253,6 +273,10 @@ export const useAsistencias = () => {
         handleEliminarAsistenciaNormal,
         getEstadoEfectivo,
         handleSubmit,
-        refresh: loadAlumnos
+        refresh: loadAlumnos,
+        isAdmin,
+        entrenadores,
+        selectedEntrenador,
+        setSelectedEntrenador
     };
 };

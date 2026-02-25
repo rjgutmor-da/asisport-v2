@@ -31,7 +31,11 @@ const Asistencia = () => {
         handleEliminarAsistenciaNormal,
         getEstadoEfectivo,
         handleSubmit,
-        refresh
+        refresh,
+        isAdmin,
+        entrenadores,
+        selectedEntrenador,
+        setSelectedEntrenador
     } = useAsistencias();
 
     // Estados para modales
@@ -114,7 +118,15 @@ const Asistencia = () => {
             </header>
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                    {isAdmin && (
+                        <Select
+                            placeholder="Todos los Entrenadores"
+                            options={entrenadores}
+                            value={selectedEntrenador}
+                            onChange={(e) => setSelectedEntrenador(e.target.value)}
+                        />
+                    )}
                     <Select
                         placeholder="Todas las Canchas"
                         options={canchas}
