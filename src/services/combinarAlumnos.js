@@ -6,12 +6,15 @@ import { supabase } from '../lib/supabaseClient';
  * Lógica de fusión:
  *  - El alumno DESTINO tiene prioridad: sus datos no se sobreescriben.
  *  - Del alumno ORIGEN solo se toman los campos que estén vacíos en el destino.
- *  - Las asistencias del origen se migran al destino.
+ *  - Las asistencias del origen se migran al destino SOLO donde el destino
+ *    no tenga registro para esa fecha (el destino tiene prevalencia).
+ *  - Las asistencias del origen que coincidan en fecha con el destino se eliminan.
  *  - Las relaciones con entrenadores se unifican (sin duplicar).
- *  - El alumno origen se archiva al finalizar.
+ *  - Se intenta eliminar el alumno origen de la BD; si no es posible
+ *    (por constraints), se marca con estado 'Eliminado' y se archiva.
  *
  * @param {string} destinoId - ID del alumno que conservaremos (prioridad)
- * @param {string} origenId - ID del alumno que se fusionará y archivará
+ * @param {string} origenId - ID del alumno que se fusionará y eliminará/archivará
  * @returns {Object} Alumno destino actualizado
  */
 export const combinarAlumnos = async (destinoId, origenId) => {
@@ -87,25 +90,86 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         }
     }
 
-    // 5. Migrar asistencias normales del origen al destino
-    const { error: errAsistNorm } = await supabase
+    // 5. Migrar asistencias normales del origen al destino (solo donde el destino NO tiene registro)
+    // Obtener todas las asistencias de ambos alumnos
+    const { data: asistenciasOrigen } = await supabase
         .from('asistencias_normales')
-        .update({ alumno_id: destinoId })
+        .select('id, fecha')
         .eq('alumno_id', origenId);
 
-    if (errAsistNorm) {
-        console.error('Error al migrar asistencias normales:', errAsistNorm);
-        // Continuar con el proceso, no es un error crítico
+    const { data: asistenciasDestino } = await supabase
+        .from('asistencias_normales')
+        .select('id, fecha')
+        .eq('alumno_id', destinoId);
+
+    // Crear set de fechas que ya tiene el destino
+    const fechasDestinoSet = new Set((asistenciasDestino || []).map(a => a.fecha));
+
+    // Filtrar asistencias del origen que se pueden migrar (fechas que NO están en el destino)
+    const asistenciasMigrables = (asistenciasOrigen || []).filter(a => !fechasDestinoSet.has(a.fecha));
+    const asistenciasDescartables = (asistenciasOrigen || []).filter(a => fechasDestinoSet.has(a.fecha));
+
+    // Migrar las asistencias que no generan conflicto
+    if (asistenciasMigrables.length > 0) {
+        const idsMigrables = asistenciasMigrables.map(a => a.id);
+        const { error: errMigrar } = await supabase
+            .from('asistencias_normales')
+            .update({ alumno_id: destinoId })
+            .in('id', idsMigrables);
+
+        if (errMigrar) {
+            console.error('Error al migrar asistencias normales:', errMigrar);
+        }
     }
 
-    // 6. Migrar asistencias de arqueros del origen al destino
-    const { error: errAsistArq } = await supabase
+    // Eliminar las asistencias del origen que ya existen en el destino (el destino tiene prevalencia)
+    if (asistenciasDescartables.length > 0) {
+        const idsDescartables = asistenciasDescartables.map(a => a.id);
+        const { error: errEliminar } = await supabase
+            .from('asistencias_normales')
+            .delete()
+            .in('id', idsDescartables);
+
+        if (errEliminar) {
+            console.error('Error al eliminar asistencias duplicadas del origen:', errEliminar);
+        }
+    }
+
+    // 6. Migrar asistencias de arqueros del origen al destino (misma lógica)
+    const { data: asistArqOrigen } = await supabase
         .from('asistencias_arqueros')
-        .update({ alumno_id: destinoId })
+        .select('id, fecha')
         .eq('alumno_id', origenId);
 
-    if (errAsistArq) {
-        console.error('Error al migrar asistencias de arqueros:', errAsistArq);
+    const { data: asistArqDestino } = await supabase
+        .from('asistencias_arqueros')
+        .select('id, fecha')
+        .eq('alumno_id', destinoId);
+
+    const fechasArqDestinoSet = new Set((asistArqDestino || []).map(a => a.fecha));
+    const arqMigrables = (asistArqOrigen || []).filter(a => !fechasArqDestinoSet.has(a.fecha));
+    const arqDescartables = (asistArqOrigen || []).filter(a => fechasArqDestinoSet.has(a.fecha));
+
+    if (arqMigrables.length > 0) {
+        const { error: errMigrarArq } = await supabase
+            .from('asistencias_arqueros')
+            .update({ alumno_id: destinoId })
+            .in('id', arqMigrables.map(a => a.id));
+
+        if (errMigrarArq) {
+            console.error('Error al migrar asistencias de arqueros:', errMigrarArq);
+        }
+    }
+
+    if (arqDescartables.length > 0) {
+        const { error: errEliminarArq } = await supabase
+            .from('asistencias_arqueros')
+            .delete()
+            .in('id', arqDescartables.map(a => a.id));
+
+        if (errEliminarArq) {
+            console.error('Error al eliminar asistencias de arqueros duplicadas:', errEliminarArq);
+        }
     }
 
     // 7. Migrar relaciones con entrenadores (evitando duplicados)
@@ -147,14 +211,23 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         .delete()
         .eq('alumno_id', origenId);
 
-    // 9. Archivar el alumno origen (soft delete)
-    const { error: errArchivar } = await supabase
+    // 9. Intentar eliminar el alumno origen; si falla, marcarlo como 'Eliminado' y archivarlo
+    const { error: errEliminarAlumno } = await supabase
         .from('alumnos')
-        .update({ archivado: true })
+        .delete()
         .eq('id', origenId);
 
-    if (errArchivar) {
-        throw new Error('Error al archivar alumno duplicado: ' + errArchivar.message);
+    if (errEliminarAlumno) {
+        // No se pudo eliminar (posiblemente por constraints de BD), marcar como eliminado y archivar
+        console.warn('No se pudo eliminar alumno origen, se archiva como Eliminado:', errEliminarAlumno.message);
+        const { error: errArchivar } = await supabase
+            .from('alumnos')
+            .update({ archivado: true, estado: 'Eliminado' })
+            .eq('id', origenId);
+
+        if (errArchivar) {
+            throw new Error('Error al archivar alumno duplicado: ' + errArchivar.message);
+        }
     }
 
     // 10. Retornar los datos actualizados del alumno destino

@@ -78,6 +78,12 @@ export const useAsistencias = () => {
 
     // Cargar alumnos y verificar estado de envío
     const loadAlumnos = useCallback(async () => {
+        // Para entrenadores, no cargar hasta que se seleccionen cancha y horario
+        if (!isAdmin && (!selectedCancha || !selectedHorario)) {
+            setAlumnos([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const [data, estadoEnvio] = await Promise.all([
@@ -107,7 +113,7 @@ export const useAsistencias = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate, selectedCancha, selectedHorario, selectedEntrenador, addToast]);
+    }, [selectedDate, selectedCancha, selectedHorario, selectedEntrenador, addToast, isAdmin]);
 
     useEffect(() => {
         loadAlumnos();

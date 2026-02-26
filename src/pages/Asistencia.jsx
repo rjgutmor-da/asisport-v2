@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle, MapPin, Clock } from 'lucide-react';
 import Select from '../components/ui/Select';
 import AsistenciaListItem from '../features/asistencias/components/AsistenciaListItem';
 
@@ -77,6 +77,10 @@ const Asistencia = () => {
 
     const isButtonDisabled = loading || submitting || enviosRealizados >= 2;
 
+    // Determinar si los filtros obligatorios están seleccionados
+    // Para entrenadores (no admin) la cancha y horario son obligatorios
+    const filtrosCompletos = isAdmin || (selectedCancha && selectedHorario);
+
     return (
         <div className="min-h-screen bg-background pb-32 md:pb-10 relative">
             {/* Header */}
@@ -141,7 +145,34 @@ const Asistencia = () => {
                     />
                 </div>
 
-                {loading ? (
+                {/* Mensaje si no se han seleccionado los filtros obligatorios */}
+                {!filtrosCompletos ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                        <div className="bg-surface border border-border rounded-xl p-8 max-w-md w-full space-y-4">
+                            <div className="flex justify-center gap-3">
+                                <div className={`p-3 rounded-full ${selectedCancha ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                    <MapPin size={28} />
+                                </div>
+                                <div className={`p-3 rounded-full ${selectedHorario ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                    <Clock size={28} />
+                                </div>
+                            </div>
+                            <h3 className="text-lg font-bold text-white">
+                                Selecciona Cancha y Horario
+                            </h3>
+                            <p className="text-text-secondary text-sm">
+                                Para tomar lista debes elegir una cancha
+                                {!selectedCancha && !selectedHorario
+                                    ? ' y un horario.'
+                                    : !selectedCancha
+                                        ? '.'
+                                        : !selectedHorario
+                                            ? '. Falta seleccionar el horario.'
+                                            : '.'}
+                            </p>
+                        </div>
+                    </div>
+                ) : loading ? (
                     <div className="flex items-center justify-center py-12">
                         <Loader2 className="animate-spin text-primary w-8 h-8" />
                     </div>
@@ -236,67 +267,71 @@ const Asistencia = () => {
                 </div>
             )}
 
-            {/* Botón flotante siempre visible (sticky) */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden z-20">
-                <button
-                    onClick={onSendClick}
-                    disabled={isButtonDisabled}
-                    className={`
+            {/* Botón flotante siempre visible (sticky) - solo si filtros están completos */}
+            {filtrosCompletos && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden z-20">
+                    <button
+                        onClick={onSendClick}
+                        disabled={isButtonDisabled}
+                        className={`
                         w-full font-bold py-4 px-6 rounded-lg
                         flex items-center justify-center gap-3
                         transition-all shadow-lg
                         ${isButtonDisabled
-                            ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
-                            : enviosRealizados === 1
-                                ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
-                                : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
-                        }
+                                ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
+                                : enviosRealizados === 1
+                                    ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
+                                    : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
+                            }
                     `}
-                >
-                    {submitting ? (
-                        <>
-                            <Loader2 className="animate-spin" size={20} />
-                            Enviando...
-                        </>
-                    ) : (
-                        <>
-                            <Send size={20} />
-                            {getButtonText()}
-                        </>
-                    )}
-                </button>
-            </div>
+                    >
+                        {submitting ? (
+                            <>
+                                <Loader2 className="animate-spin" size={20} />
+                                Enviando...
+                            </>
+                        ) : (
+                            <>
+                                <Send size={20} />
+                                {getButtonText()}
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
 
-            {/* Versión Desktop */}
-            <div className="hidden md:block fixed bottom-8 right-8 z-20">
-                <button
-                    onClick={onSendClick}
-                    disabled={isButtonDisabled}
-                    className={`
+            {/* Versión Desktop - solo si filtros están completos */}
+            {filtrosCompletos && (
+                <div className="hidden md:block fixed bottom-8 right-8 z-20">
+                    <button
+                        onClick={onSendClick}
+                        disabled={isButtonDisabled}
+                        className={`
                          font-bold py-3 px-6 rounded-lg
                         flex items-center gap-3
                         transition-all shadow-lg
                         ${isButtonDisabled
-                            ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
-                            : enviosRealizados === 1
-                                ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
-                                : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
-                        }
+                                ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
+                                : enviosRealizados === 1
+                                    ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
+                                    : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
+                            }
                     `}
-                >
-                    {submitting ? (
-                        <>
-                            <Loader2 className="animate-spin" size={20} />
-                            Enviando...
-                        </>
-                    ) : (
-                        <>
-                            <Send size={20} />
-                            {getButtonText()}
-                        </>
-                    )}
-                </button>
-            </div>
+                    >
+                        {submitting ? (
+                            <>
+                                <Loader2 className="animate-spin" size={20} />
+                                Enviando...
+                            </>
+                        ) : (
+                            <>
+                                <Send size={20} />
+                                {getButtonText()}
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
 
             {/* Tab Bar (Solo Mobile) */}
             <TabBar />

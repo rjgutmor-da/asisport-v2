@@ -71,7 +71,7 @@ const AsistenciaListItem = ({
                     )}
                 </div>
                 <p className="text-xs text-text-secondary truncate">
-                    Sub {alumno.fecha_nacimiento ? (new Date().getFullYear() - new Date(alumno.fecha_nacimiento).getFullYear()) : '??'} • {alumno.horario?.hora || ''}
+                    Sub {alumno.fecha_nacimiento ? (new Date().getFullYear() - parseInt(alumno.fecha_nacimiento.split('-')[0])) : '??'} • {alumno.horario?.hora || ''}
                 </p>
             </div>
 

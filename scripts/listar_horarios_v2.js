@@ -26,7 +26,7 @@ async function listarHorarios() {
 
     console.log(`✅ Total horarios encontrados: ${todos.length}`);
     todos.forEach(h => {
-        console.log(`🆔 ID: ${h.id} -> ⏰ Hora: ${h.hora} (Escuela: ${h.escuela_id})`);
+        console.log(`🆔 ID: ${h.id} -> ⏰ Hora: ${h.hora} | Activo: ${h.activo} (Escuela: ${h.escuela_id})`);
     });
 }
 
