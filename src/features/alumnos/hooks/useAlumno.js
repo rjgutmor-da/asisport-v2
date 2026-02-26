@@ -192,6 +192,18 @@ export const useAlumno = (id) => {
             // 1. Si hay una nueva foto, subirla primero
             let fotoUrl = formData.foto_url || null;
             if (photoFile) {
+                // Eliminar foto antigua de Supabase Storage si existe
+                if (alumno.foto_url) {
+                    try {
+                        const urlParts = alumno.foto_url.split('/avatars/');
+                        if (urlParts.length > 1) {
+                            const oldPath = urlParts[1];
+                            await supabase.storage.from('avatars').remove([oldPath]);
+                        }
+                    } catch (e) {
+                        console.error('Error al eliminar foto antigua:', e);
+                    }
+                }
                 fotoUrl = await uploadPhoto(photoFile);
             }
 
@@ -261,7 +273,7 @@ export const useAlumno = (id) => {
             return true;
         } catch (error) {
             console.error(error);
-            addToast('No pudimos guardar los cambios. Intenta nuevamente.', 'error');
+            addToast(error.message || 'No pudimos guardar los cambios. Intenta nuevamente.', 'error');
             return false;
         } finally {
             setSaving(false);

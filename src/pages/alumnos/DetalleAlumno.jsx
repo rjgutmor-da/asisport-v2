@@ -140,29 +140,22 @@ const DetalleAlumno = () => {
                     {/* Foto del alumno: en modo edición muestra el FileInput */}
                     <div className="flex-shrink-0">
                         {editing ? (
-                            <div className="w-48">
-                                {/* Si ya tiene foto y no se ha seleccionado una nueva, mostrar la actual con opción de cambiar */}
-                                {(alumno.foto_url && !photoFile) ? (
-                                    <div className="space-y-2">
+                            <div className="w-48 space-y-2">
+                                {alumno.foto_url && !photoFile && (
+                                    <div className="flex flex-col items-center">
                                         <img
                                             src={alumno.foto_url}
                                             alt={`${alumno.nombres} ${alumno.apellidos}`}
-                                            className="w-32 h-32 rounded-md border-2 border-primary object-cover mx-auto"
+                                            className="w-32 h-32 rounded-md border-2 border-primary object-cover mb-2"
                                         />
                                         <p className="text-xs text-text-secondary text-center">Foto actual</p>
-                                        <FileInput
-                                            label="Cambiar Foto"
-                                            name="foto_edit"
-                                            onChange={setPhotoFile}
-                                        />
                                     </div>
-                                ) : (
-                                    <FileInput
-                                        label={photoFile ? "Nueva Foto Seleccionada" : "Agregar Foto"}
-                                        name="foto_edit"
-                                        onChange={setPhotoFile}
-                                    />
                                 )}
+                                <FileInput
+                                    label={alumno.foto_url ? "Cambiar Foto" : "Agregar Foto"}
+                                    name="foto_edit"
+                                    onChange={setPhotoFile}
+                                />
                             </div>
                         ) : (
                             // Modo visualización: mostrar foto o iniciales
