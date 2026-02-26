@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 
-// Validar foto (máx 100 KB)
+// Validar foto (máx 200 KB)
 export const validatePhoto = (file) => {
     return new Promise((resolve) => {
         if (!file) {
@@ -9,9 +9,9 @@ export const validatePhoto = (file) => {
             return;
         }
 
-        const MAX_SIZE = 100 * 1024; // 100 KB
+        const MAX_SIZE = 200 * 1024; // 200 KB
         if (file.size > MAX_SIZE) {
-            resolve({ valid: false, error: 'La foto es demasiado pesada. Máximo 100 KB.' });
+            resolve({ valid: false, error: 'La foto es demasiado pesada. Máximo 200 KB.' });
             return;
         }
 

@@ -9,7 +9,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 async function listarHorarios() {
     console.log('🔍 Listando todos los horarios disponibles...');
 
-    // Primero intentemos sin filtrar por escuela, por si acaso
     const { data: todos, error: errTodos } = await supabase
         .from('horarios')
         .select('*');

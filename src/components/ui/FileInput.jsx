@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Camera, X, AlertCircle, Loader2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 
 const FileInput = ({ label, name, onChange, error }) => {
     const [preview, setPreview] = useState(null);
@@ -7,54 +8,23 @@ const FileInput = ({ label, name, onChange, error }) => {
     const [compressing, setCompressing] = useState(false);
     const inputRef = useRef(null);
 
-    const compressImage = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-
-                    // Redimensionar para ayudar a la compresión si es muy grande
-                    const MAX_DIM = 800;
-                    if (width > MAX_DIM || height > MAX_DIM) {
-                        if (width > height) {
-                            height = (height / width) * MAX_DIM;
-                            width = MAX_DIM;
-                        } else {
-                            width = (width / height) * MAX_DIM;
-                            height = MAX_DIM;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    canvas.toBlob(
-                        (blob) => {
-                            if (blob) {
-                                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                                    type: 'image/jpeg',
-                                    lastModified: Date.now(),
-                                });
-                                resolve(compressedFile);
-                            } else {
-                                reject(new Error('Error al comprimir'));
-                            }
-                        },
-                        'image/jpeg',
-                        0.7
-                    );
-                };
-            };
-            reader.onerror = (err) => reject(err);
-        });
+    const compressImage = async (file) => {
+        const options = {
+            maxSizeMB: 0.19, // slightly under 200 KB to be safe
+            maxWidthOrHeight: 800,
+            useWebWorker: true,
+        };
+        try {
+            const compressedFile = await imageCompression(file, options);
+            // Rename the file to .jpg
+            return new File([compressedFile], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+            });
+        } catch (error) {
+            console.error('Error al comprimir', error);
+            throw new Error('Error al comprimir');
+        }
     };
 
     const handleFileChange = async (e) => {
@@ -74,17 +44,17 @@ const FileInput = ({ label, name, onChange, error }) => {
 
         try {
             let fileToProcess = file;
-            const MAX_SIZE = 100 * 1024;
+            const MAX_SIZE = 200 * 1024; // 200 KB
 
             if (file.size > MAX_SIZE) {
                 setCompressing(true);
-                fileToProcess = await compressImage(file);
-
-                if (fileToProcess.size > MAX_SIZE) {
-                    // Si sigue grande, intentamos una compresión más agresiva
-                    // (Omitido por simplicidad, 0.7 suele bastar)
+                try {
+                    fileToProcess = await compressImage(file);
+                } catch (err) {
+                    throw err;
+                } finally {
+                    setCompressing(false);
                 }
-                setCompressing(false);
             }
 
             const reader = new FileReader();
@@ -167,7 +137,7 @@ const FileInput = ({ label, name, onChange, error }) => {
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-black">AI Auto-Compression</p>
-                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">Target: Under 100 KB</p>
+                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">Target: Under 200 KB</p>
                         </div>
                     </div>
                 )}
