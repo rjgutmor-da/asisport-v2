@@ -24,7 +24,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         .select('rol')
         .eq('id', user.id)
         .single();
-    
+
     if (userError) throw userError;
 
     const esAdmin = ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol);
@@ -47,7 +47,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
     if (asignError) throw asignError;
 
     const alumnoIdsAsignados = asignaciones.map(a => a.alumno_id);
-    
+
     if (alumnoIdsAsignados.length === 0) return [];
 
     let query = supabase
@@ -150,15 +150,45 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha) => {
     return resultados;
 };
 
-export const verificarEstadoEnvio = async (fecha) => {
+export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { existe: false, cantidad: 0 };
 
+    // Si no hay filtros de cancha/horario, verificar globalmente (para admins)
+    if (!canchaId && !horarioId) {
+        const { count, error } = await supabase
+            .from('asistencias_normales')
+            .select('*', { count: 'exact', head: true })
+            .eq('fecha', fecha)
+            .eq('entrenador_id', user.id);
+
+        if (error) return { existe: false, cantidad: 0 };
+        return { existe: (count && count > 0), cantidad: count || 0 };
+    }
+
+    // Obtener los IDs de alumnos que pertenecen a esta cancha/horario específico
+    let alumnosQuery = supabase
+        .from('alumnos')
+        .select('id')
+        .eq('archivado', false);
+
+    if (canchaId) alumnosQuery = alumnosQuery.eq('cancha_id', canchaId);
+    if (horarioId) alumnosQuery = alumnosQuery.eq('horario_id', horarioId);
+
+    const { data: alumnosData, error: alumnosError } = await alumnosQuery;
+    if (alumnosError || !alumnosData || alumnosData.length === 0) {
+        return { existe: false, cantidad: 0 };
+    }
+
+    const alumnoIds = alumnosData.map(a => a.id);
+
+    // Contar asistencias solo de estos alumnos para esta fecha y entrenador
     const { count, error } = await supabase
         .from('asistencias_normales')
         .select('*', { count: 'exact', head: true })
         .eq('fecha', fecha)
-        .eq('entrenador_id', user.id);
+        .eq('entrenador_id', user.id)
+        .in('alumno_id', alumnoIds);
 
     if (error) return { existe: false, cantidad: 0 };
 

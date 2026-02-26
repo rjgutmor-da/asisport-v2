@@ -211,23 +211,14 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         .delete()
         .eq('alumno_id', origenId);
 
-    // 9. Intentar eliminar el alumno origen; si falla, marcarlo como 'Eliminado' y archivarlo
-    const { error: errEliminarAlumno } = await supabase
+    // 9. Archivar el alumno origen directamente (más seguro que intentar eliminar)
+    const { error: errArchivar } = await supabase
         .from('alumnos')
-        .delete()
+        .update({ archivado: true, estado: 'Fusionado' })
         .eq('id', origenId);
 
-    if (errEliminarAlumno) {
-        // No se pudo eliminar (posiblemente por constraints de BD), marcar como eliminado y archivar
-        console.warn('No se pudo eliminar alumno origen, se archiva como Eliminado:', errEliminarAlumno.message);
-        const { error: errArchivar } = await supabase
-            .from('alumnos')
-            .update({ archivado: true, estado: 'Eliminado' })
-            .eq('id', origenId);
-
-        if (errArchivar) {
-            throw new Error('Error al archivar alumno duplicado: ' + errArchivar.message);
-        }
+    if (errArchivar) {
+        throw new Error('Error al archivar alumno duplicado: ' + errArchivar.message);
     }
 
     // 10. Retornar los datos actualizados del alumno destino

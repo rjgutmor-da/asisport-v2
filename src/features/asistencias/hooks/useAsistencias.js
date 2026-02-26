@@ -88,15 +88,14 @@ export const useAsistencias = () => {
         try {
             const [data, estadoEnvio] = await Promise.all([
                 getAlumnosParaAsistencia(selectedDate, selectedCancha || null, selectedHorario || null, selectedEntrenador || null),
-                verificarEstadoEnvio(selectedDate)
+                verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null)
             ]);
 
             setAlumnos(data);
 
-            // Lógica de estado de envío
-            // Si hay registros en DB, es al menos envío 1.
-            // Si localStorage dice que ya se reenvió hoy, es envío 2.
-            const reenvioKey = `asistencia_reenvio_${selectedDate}`;
+            // Lógica de estado de envío por combinación cancha/horario
+            // Cada combinación cancha+horario tiene su propio contador independiente
+            const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
             const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
 
             if (estadoEnvio.existe) {
@@ -211,8 +210,9 @@ export const useAsistencias = () => {
             } else {
                 // Éxito
                 if (enviosRealizados === 1) {
-                    // Marcar en localStorage que ya se hizo el reenvío
-                    localStorage.setItem(`asistencia_reenvio_${selectedDate}`, 'true');
+                    // Marcar en localStorage que ya se hizo el reenvío (por cancha/horario)
+                    const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
+                    localStorage.setItem(reenvioKey, 'true');
                     setEnviosRealizados(2);
                 } else {
                     setEnviosRealizados(1);

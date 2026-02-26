@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Loader2, Archive, UserPlus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/ui/Input';
@@ -23,9 +23,6 @@ const DetalleAlumno = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { user } = useAuth();
-
-    // Selector temporal para agregar entrenador
-    const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('');
 
     const {
         alumno,
@@ -84,11 +81,11 @@ const DetalleAlumno = () => {
         return ae?.usuario ? `${ae.usuario.nombres} ${ae.usuario.apellidos}` : 'Entrenador desconocido';
     };
 
-    // Manejar la selección y adición de un nuevo entrenador
-    const handleAddEntrenador = () => {
-        if (nuevoEntrenadorId) {
-            addEntrenador(nuevoEntrenadorId);
-            setNuevoEntrenadorId('');
+    // Agregar entrenador directamente al seleccionarlo del dropdown
+    const handleSelectEntrenador = (e) => {
+        const entrenadorId = e.target.value;
+        if (entrenadorId) {
+            addEntrenador(entrenadorId);
         }
     };
 
@@ -426,27 +423,15 @@ const DetalleAlumno = () => {
 
                         {/* Selector para agregar entrenador (solo en modo edición y si quedan espacios) */}
                         {editing && selectedEntrenadores.length < 2 && (
-                            <div className="flex items-end gap-2">
-                                <div className="flex-1">
-                                    <Select
-                                        label="Agregar Entrenador"
-                                        name="nuevo_entrenador"
-                                        value={nuevoEntrenadorId}
-                                        options={entrenadoresDisponibles}
-                                        onChange={(e) => setNuevoEntrenadorId(e.target.value)}
-                                        placeholder="Seleccionar entrenador..."
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleAddEntrenador}
-                                    disabled={!nuevoEntrenadorId}
-                                    className="flex items-center gap-2 px-4 py-2.5 mb-0.5 bg-primary text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                    title="Agregar entrenador"
-                                >
-                                    <UserPlus size={18} />
-                                    Agregar
-                                </button>
+                            <div>
+                                <Select
+                                    label="Agregar Entrenador"
+                                    name="nuevo_entrenador"
+                                    value=""
+                                    options={entrenadoresDisponibles}
+                                    onChange={handleSelectEntrenador}
+                                    placeholder="Seleccionar entrenador para agregar..."
+                                />
                             </div>
                         )}
 

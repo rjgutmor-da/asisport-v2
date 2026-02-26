@@ -9,21 +9,38 @@ const FileInput = ({ label, name, onChange, error }) => {
     const inputRef = useRef(null);
 
     const compressImage = async (file) => {
+        const MAX_SIZE = 200 * 1024; // 200 KB límite de Supabase
         const options = {
-            maxSizeMB: 0.19, // slightly under 200 KB to be safe
+            maxSizeMB: 0.15, // ~150 KB para margen seguro
             maxWidthOrHeight: 800,
             useWebWorker: true,
         };
         try {
-            const compressedFile = await imageCompression(file, options);
-            // Rename the file to .jpg
+            let compressedFile = await imageCompression(file, options);
+
+            // Si aún excede el límite, comprimir más agresivamente
+            if (compressedFile.size > MAX_SIZE) {
+                const secondPass = {
+                    maxSizeMB: 0.10, // ~100 KB segundo intento
+                    maxWidthOrHeight: 600,
+                    useWebWorker: true,
+                };
+                compressedFile = await imageCompression(compressedFile, secondPass);
+            }
+
+            // Verificación final
+            if (compressedFile.size > MAX_SIZE) {
+                throw new Error('La imagen es demasiado grande incluso después de comprimir. Intenta con otra foto.');
+            }
+
+            // Renombrar a .jpg
             return new File([compressedFile], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
             });
         } catch (error) {
             console.error('Error al comprimir', error);
-            throw new Error('Error al comprimir');
+            throw new Error(error.message || 'Error al comprimir la imagen');
         }
     };
 

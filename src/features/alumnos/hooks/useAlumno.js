@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { supabase } from '../../../lib/supabaseClient';
+import imageCompression from 'browser-image-compression';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 
 /**
@@ -132,13 +133,43 @@ export const useAlumno = (id) => {
      * @returns {string} URL pública de la foto subida
      */
     const uploadPhoto = async (file) => {
+        const MAX_SIZE = 200 * 1024; // 200 KB
+        let fileToUpload = file;
+
+        // Re-comprimir si el archivo aún excede el límite (seguridad adicional)
+        if (file.size > MAX_SIZE) {
+            try {
+                const options = {
+                    maxSizeMB: 0.15,
+                    maxWidthOrHeight: 800,
+                    useWebWorker: true,
+                };
+                fileToUpload = await imageCompression(file, options);
+
+                // Segundo intento si sigue excediendo
+                if (fileToUpload.size > MAX_SIZE) {
+                    fileToUpload = await imageCompression(fileToUpload, {
+                        maxSizeMB: 0.10,
+                        maxWidthOrHeight: 600,
+                        useWebWorker: true,
+                    });
+                }
+
+                if (fileToUpload.size > MAX_SIZE) {
+                    throw new Error('La foto es demasiado pesada incluso después de comprimir. Intenta con otra imagen.');
+                }
+            } catch (compError) {
+                throw new Error(compError.message || 'Error al comprimir la foto para subir.');
+            }
+        }
+
         const fileExt = 'jpg';
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `fotos_alumnos/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(filePath, file);
+            .upload(filePath, fileToUpload);
 
         if (uploadError) throw new Error('Error al subir la foto: ' + uploadError.message);
 
