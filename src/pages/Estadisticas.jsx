@@ -158,6 +158,7 @@ const Estadisticas = () => {
                                 <option value="ayer">Ayer</option>
                                 <option value="esta_semana">Esta Semana</option>
                                 <option value="semana_anterior">Semana Anterior</option>
+                                <option value="este_mes">Este Mes</option>
                                 <option value="mes_anterior">Mes Anterior</option>
                                 <option value="todo">Histórico Completo</option>
                             </select>

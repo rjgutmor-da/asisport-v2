@@ -59,6 +59,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA')
         .in('id', alumnoIdsAsignados)
         .order('apellidos', { ascending: true });
 
@@ -170,7 +171,8 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
     let alumnosQuery = supabase
         .from('alumnos')
         .select('id')
-        .eq('archivado', false);
+        .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA');
 
     if (canchaId) alumnosQuery = alumnosQuery.eq('cancha_id', canchaId);
     if (horarioId) alumnosQuery = alumnosQuery.eq('horario_id', horarioId);

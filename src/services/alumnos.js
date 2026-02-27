@@ -178,6 +178,7 @@ export const getAlumnos = async () => {
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA')
         .order('apellidos', { ascending: true });
 
     if (error) {
@@ -293,6 +294,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', true)
+        .neq('estado', 'ELIMINADO SISTEMA')
         .order('apellidos', { ascending: true });
 
     // Si es entrenador, solo ve sus alumnos archivados

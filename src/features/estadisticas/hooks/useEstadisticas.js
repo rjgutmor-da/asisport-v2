@@ -98,6 +98,11 @@ export const useEstadisticas = () => {
 
                 return { start: firstDayPrevMonth, end: lastDayPrevMonth };
             }
+            case 'este_mes': {
+                // Del primer día del mes actual hasta hoy
+                const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                return { start: firstDayThisMonth, end: today };
+            }
             case 'todo': {
                 const startDate = new Date(2020, 0, 1);
                 return { start: startDate, end: today };
