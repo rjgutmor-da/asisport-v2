@@ -266,18 +266,20 @@ const ListaAlumnos = () => {
                             >
                                 Todos
                             </button>
-                            <button
-                                onClick={() => handleFilterChange('pendientes')}
-                                className={`
-                                    px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                    ${activeFilter === 'pendientes'
-                                        ? 'bg-primary text-white'
-                                        : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                    }
-                                `}
-                            >
-                                Pendientes
-                            </button>
+                            {esAdmin && (
+                                <button
+                                    onClick={() => handleFilterChange('pendientes')}
+                                    className={`
+                                        px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
+                                        ${activeFilter === 'pendientes'
+                                            ? 'bg-primary text-white'
+                                            : 'bg-surface text-text-secondary border border-border hover:border-primary'
+                                        }
+                                    `}
+                                >
+                                    Pendientes
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleFilterChange('arqueros')}
                                 className={`
@@ -291,7 +293,8 @@ const ListaAlumnos = () => {
                                 Arqueros
                             </button>
 
-                            {activeFilter === 'pendientes' && alumnos.length > 0 && (
+
+                            {esAdmin && activeFilter === 'pendientes' && alumnos.length > 0 && (
                                 <button
                                     onClick={async () => {
                                         if (window.confirm(`¿Aprobar los ${alumnos.length} alumnos mostrados?`)) {
