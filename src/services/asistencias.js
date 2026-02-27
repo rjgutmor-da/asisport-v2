@@ -39,17 +39,6 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         targetEntrenadorId = user.id;
     }
 
-    const { data: asignaciones, error: asignError } = await supabase
-        .from('alumnos_entrenadores')
-        .select('alumno_id')
-        .eq('entrenador_id', targetEntrenadorId);
-
-    if (asignError) throw asignError;
-
-    const alumnoIdsAsignados = asignaciones.map(a => a.alumno_id);
-
-    if (alumnoIdsAsignados.length === 0) return [];
-
     let query = supabase
         .from('alumnos')
         .select(`
@@ -60,7 +49,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA')
-        .in('id', alumnoIdsAsignados)
+        .eq('profesor_asignado_id', targetEntrenadorId)
         .order('apellidos', { ascending: true });
 
     if (canchaId) query = query.eq('cancha_id', canchaId);

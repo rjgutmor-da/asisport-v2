@@ -163,23 +163,7 @@ export const getAlumnos = async (filtros = {}) => {
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Si es Entrenador, primero obtener los IDs de alumnos asignados
-    let alumnoIdsAsignados = null;
-    if (userRole === 'Entrenador' && userId) {
-        const { data: asignaciones, error: asignError } = await supabase
-            .from('alumnos_entrenadores')
-            .select('alumno_id')
-            .eq('entrenador_id', userId);
-
-        if (asignError) {
-            console.error('Error al obtener asignaciones:', asignError);
-            throw new Error('Error al cargar tus alumnos asignados.');
-        }
-
-        alumnoIdsAsignados = asignaciones.map(a => a.alumno_id);
-        // Si no tiene alumnos asignados, retornar lista vacía
-        if (alumnoIdsAsignados.length === 0) return [];
-    }
+    // El filtrado por Entrenador se hará directamente en la query principal
 
     // Query principal con JOINs (sin descargar arrays completos de asistencias)
     let query = supabase
@@ -203,16 +187,15 @@ export const getAlumnos = async (filtros = {}) => {
             cancha:canchas(nombre),
             horario:horarios(hora),
             asistencias_normales(id),
-            asistencias_arqueros(id),
-            alumnos_entrenadores(entrenador_id)
+            asistencias_arqueros(id)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
     // Filtro por rol: Entrenador solo ve sus alumnos asignados
-    if (alumnoIdsAsignados) {
-        query = query.in('id', alumnoIdsAsignados);
+    if (userRole === 'Entrenador' && userId) {
+        query = query.eq('profesor_asignado_id', userId);
     }
 
     // Filtro por rol: Entrenarqueros solo ve arqueros
@@ -234,12 +217,11 @@ export const getAlumnos = async (filtros = {}) => {
         throw new Error('No pudimos cargar los datos. Intenta nuevamente.');
     }
 
-    // Calcular totales de asistencias y entrenadores
+    // Calcular totales de asistencias
     return data.map(alumno => ({
         ...alumno,
         asistencias_count: (alumno.asistencias_normales?.length || 0) +
-            (alumno.asistencias_arqueros?.length || 0),
-        entrenadores_count: alumno.alumnos_entrenadores?.length || 0
+            (alumno.asistencias_arqueros?.length || 0)
     }));
 };
 
@@ -337,8 +319,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             cancha:canchas(nombre),
             horario:horarios(hora),
             asistencias_normales(id),
-            asistencias_arqueros(id),
-            alumnos_entrenadores(entrenador_id)
+            asistencias_arqueros(id)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', true)
@@ -347,20 +328,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
 
     // Si es entrenador, solo ve sus alumnos archivados
     if (userRol === 'Entrenador') {
-        // Obtener los alumnos del entrenador usando la tabla de relación
-        const { data: asignaciones, error: assignError } = await supabase
-            .from('alumnos_entrenadores')
-            .select('alumno_id')
-            .eq('entrenador_id', userId);
-
-        if (assignError) throw new Error('Error al verificar asignaciones');
-
-        const alumnoIds = asignaciones.map(a => a.alumno_id);
-        if (alumnoIds.length === 0) {
-            return []; // No tiene alumnos archivados
-        }
-
-        query = query.in('id', alumnoIds);
+        query = query.eq('profesor_asignado_id', userId);
     }
 
     const { data, error } = await query;
@@ -374,8 +342,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
     return data.map(alumno => ({
         ...alumno,
         asistencias_count: (alumno.asistencias_normales?.length || 0) +
-            (alumno.asistencias_arqueros?.length || 0),
-        entrenadores_count: alumno.alumnos_entrenadores?.length || 0
+            (alumno.asistencias_arqueros?.length || 0)
     }));
 };
 

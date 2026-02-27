@@ -9,9 +9,7 @@ import { supabase } from '../lib/supabaseClient';
  *  - Las asistencias del origen se migran al destino SOLO donde el destino
  *    no tenga registro para esa fecha (el destino tiene prevalencia).
  *  - Las asistencias del origen que coincidan en fecha con el destino se eliminan.
- *  - Las relaciones con entrenadores se unifican (sin duplicar).
- *  - Se intenta eliminar el alumno origen de la BD; si no es posible
- *    (por constraints), se marca con estado 'Eliminado' y se archiva.
+ *  - Se intenta archivar el alumno origen, marcándolo de estado 'Fusionado'.
  *
  * @param {string} destinoId - ID del alumno que conservaremos (prioridad)
  * @param {string} origenId - ID del alumno que se fusionará y eliminará/archivará
@@ -172,46 +170,8 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         }
     }
 
-    // 7. Migrar relaciones con entrenadores (evitando duplicados)
-    // Obtener entrenadores actuales del destino
-    const { data: entrenadoresDestino } = await supabase
-        .from('alumnos_entrenadores')
-        .select('entrenador_id')
-        .eq('alumno_id', destinoId);
 
-    const idsDestinoSet = new Set((entrenadoresDestino || []).map(e => e.entrenador_id));
-
-    // Obtener entrenadores del origen
-    const { data: entrenadoresOrigen } = await supabase
-        .from('alumnos_entrenadores')
-        .select('entrenador_id')
-        .eq('alumno_id', origenId);
-
-    // Solo agregar los que no estén ya en el destino
-    const nuevosEntrenadores = (entrenadoresOrigen || [])
-        .filter(e => !idsDestinoSet.has(e.entrenador_id))
-        .map(e => ({
-            alumno_id: destinoId,
-            entrenador_id: e.entrenador_id
-        }));
-
-    if (nuevosEntrenadores.length > 0) {
-        const { error: errInsertEnt } = await supabase
-            .from('alumnos_entrenadores')
-            .insert(nuevosEntrenadores);
-
-        if (errInsertEnt) {
-            console.error('Error al migrar entrenadores:', errInsertEnt);
-        }
-    }
-
-    // 8. Eliminar relaciones de entrenadores del origen (ya migradas)
-    await supabase
-        .from('alumnos_entrenadores')
-        .delete()
-        .eq('alumno_id', origenId);
-
-    // 9. Archivar el alumno origen directamente (más seguro que intentar eliminar)
+    // 7. Archivar el alumno origen directamente (más seguro que intentar eliminar)
     const { error: errArchivar } = await supabase
         .from('alumnos')
         .update({ archivado: true, estado: 'Fusionado' })
@@ -221,7 +181,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         throw new Error('Error al archivar alumno duplicado: ' + errArchivar.message);
     }
 
-    // 10. Retornar los datos actualizados del alumno destino
+    // 8. Retornar los datos actualizados del alumno destino
     const { data: resultado, error: errResultado } = await supabase
         .from('alumnos')
         .select('*')

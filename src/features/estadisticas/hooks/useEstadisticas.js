@@ -152,10 +152,9 @@ export const useEstadisticas = () => {
 
             // Filtrado por Entrenador (Múltiple)
             if (selectedEntrenadores.length > 0) {
-                const tieneEntrenador = alumno.alumnos_entrenadores?.some(
-                    ae => selectedEntrenadores.includes(ae.entrenador_id)
-                );
-                if (!tieneEntrenador) return false;
+                if (!selectedEntrenadores.includes(alumno.profesor_asignado_id)) {
+                    return false;
+                }
             }
 
             // Filtrado por Cancha (Múltiple)

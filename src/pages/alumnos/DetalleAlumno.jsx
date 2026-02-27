@@ -24,10 +24,7 @@ const DetalleAlumno = () => {
     const { addToast } = useToast();
     const { user } = useAuth();
 
-    // Estado local para el selector de nuevo entrenador
-    const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('');
-    // Key para forzar remontaje del Select y limpiar su estado nativo
-    const [selectorKey, setSelectorKey] = useState(0);
+
 
     const {
         alumno,
@@ -36,13 +33,10 @@ const DetalleAlumno = () => {
         saving,
         formData,
         photoFile,
-        selectedEntrenadores,
         maestros: { canchas, horarios, entrenadores },
         setEditing,
         handleChange,
         setPhotoFile,
-        addEntrenador,
-        removeEntrenador,
         saveChanges,
         cancelEditing,
         handleAprobar
@@ -72,28 +66,12 @@ const DetalleAlumno = () => {
         );
     }
 
-    // Opciones de entrenadores filtradas: excluir los ya seleccionados
-    const entrenadoresDisponibles = entrenadores.filter(
-        e => !selectedEntrenadores.includes(e.value)
-    );
-
-    // Obtener el nombre de un entrenador por su ID
+    // Obtener el nombre del profesor asignado para mostrarlo cuando no se está editando
     const getNombreEntrenador = (entrenadorId) => {
+        if (!entrenadorId) return 'Sin asignar';
         const e = entrenadores.find(ent => ent.value === entrenadorId);
         if (e) return e.label;
-        // Buscar en los datos del alumno (por si el entrenador no está en la lista activa)
-        const ae = alumno.alumnos_entrenadores?.find(ae => ae.entrenador_id === entrenadorId);
-        return ae?.usuario ? `${ae.usuario.nombres} ${ae.usuario.apellidos}` : 'Entrenador desconocido';
-    };
-
-    // Agregar entrenador: auto-agrega al seleccionar del dropdown
-    const handleSelectEntrenador = (e) => {
-        const entrenadorId = e.target.value;
-        if (entrenadorId) {
-            addEntrenador(entrenadorId);
-            setNuevoEntrenadorId('');      // Resetear valor local
-            setSelectorKey(k => k + 1);   // Forzar remontaje del Select
-        }
+        return 'Entrenador desconocido';
     };
 
     return (
@@ -221,8 +199,8 @@ const DetalleAlumno = () => {
                                 <p className="text-white font-semibold text-lg">{alumno.asistencias_count}</p>
                             </div>
                             <div>
-                                <p className="text-text-secondary">Entrenadores</p>
-                                <p className="text-white font-semibold text-lg">{selectedEntrenadores.length}</p>
+                                <p className="text-text-secondary">Entrenador Asignado</p>
+                                <p className="text-white font-semibold text-lg">{getNombreEntrenador(alumno.profesor_asignado_id)}</p>
                             </div>
                         </div>
                     </div>
@@ -384,71 +362,23 @@ const DetalleAlumno = () => {
                         </div>
                     </section>
 
-                    {/* Entrenadores Asignados (campo unificado - máximo 2) */}
+                    {/* Entrenador Asignado */}
                     <section className="space-y-4">
                         <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
-                            Entrenadores Asignados
-                            <span className="text-sm font-normal text-text-secondary ml-2">
-                                ({selectedEntrenadores.length}/2)
-                            </span>
+                            Profesor Asignado
                         </h3>
 
-                        {/* Lista de entrenadores actualmente asignados */}
-                        <div className="space-y-2">
-                            {selectedEntrenadores.length === 0 ? (
-                                <p className="text-text-secondary text-sm italic">
-                                    No hay entrenadores asignados
-                                </p>
-                            ) : (
-                                selectedEntrenadores.map((entrenadorId, index) => (
-                                    <div
-                                        key={entrenadorId}
-                                        className="flex items-center justify-between gap-2 p-3 bg-background/50 border border-border rounded-lg"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <span className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">
-                                                {index + 1}
-                                            </span>
-                                            <span className="text-white font-medium">
-                                                {getNombreEntrenador(entrenadorId)}
-                                            </span>
-                                        </div>
-                                        {editing && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeEntrenador(entrenadorId)}
-                                                className="p-1.5 text-error hover:bg-error/20 rounded-md transition-colors"
-                                                title="Quitar entrenador"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))
-                            )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Select
+                                label="Entrenador"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id || ''}
+                                options={entrenadores}
+                                onChange={handleChange}
+                                disabled={!editing}
+                                placeholder="Seleccionar entrenador..."
+                            />
                         </div>
-
-                        {/* Selector para agregar entrenador (solo en modo edición y si quedan espacios) */}
-                        {editing && selectedEntrenadores.length < 2 && (
-                            <div>
-                                <Select
-                                    key={selectorKey}
-                                    label="Agregar Entrenador"
-                                    name="nuevo_entrenador"
-                                    value={nuevoEntrenadorId}
-                                    options={entrenadoresDisponibles}
-                                    onChange={handleSelectEntrenador}
-                                    placeholder="Seleccionar entrenador para agregar..."
-                                />
-                            </div>
-                        )}
-
-                        {/* Nota informativa */}
-                        {editing && (
-                            <p className="text-xs text-text-secondary">
-                                Se pueden asignar hasta 2 entrenadores por alumno. Los administradores no aparecen en la lista.
-                            </p>
-                        )}
                     </section>
                 </div>
 
