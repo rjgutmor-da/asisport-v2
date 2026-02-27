@@ -176,7 +176,7 @@ export const useAlumno = (id) => {
         }
     };
 
-    // Guardar todos los cambios (datos, foto y entrenadores)
+    // Guardar todos los cambios (datos y foto)
     const saveChanges = async () => {
         setSaving(true);
         try {
@@ -198,88 +198,86 @@ export const useAlumno = (id) => {
                 fotoUrl = await uploadPhoto(photoFile);
             }
 
-        }
-
             // 3. Actualizar datos del alumno en la tabla principal
             const { error } = await supabase
-            .from('alumnos')
-            .update({
-                nombres: formData.nombres,
-                apellidos: formData.apellidos,
-                fecha_nacimiento: formData.fecha_nacimiento,
-                carnet_identidad: formData.carnet_identidad,
-                nombre_padre: formData.nombre_padre,
-                telefono_padre: formData.telefono_padre,
-                nombre_madre: formData.nombre_madre,
-                telefono_madre: formData.telefono_madre,
-                telefono_deportista: formData.telefono_deportista,
-                colegio: formData.colegio,
-                direccion: formData.direccion,
-                cancha_id: formData.cancha_id,
-                horario_id: formData.horario_id,
-                profesor_asignado_id: formData.profesor_asignado_id,
-                es_arquero: formData.es_arquero,
-                foto_url: fotoUrl
-            })
-            .eq('id', id);
+                .from('alumnos')
+                .update({
+                    nombres: formData.nombres,
+                    apellidos: formData.apellidos,
+                    fecha_nacimiento: formData.fecha_nacimiento,
+                    carnet_identidad: formData.carnet_identidad,
+                    nombre_padre: formData.nombre_padre,
+                    telefono_padre: formData.telefono_padre,
+                    nombre_madre: formData.nombre_madre,
+                    telefono_madre: formData.telefono_madre,
+                    telefono_deportista: formData.telefono_deportista,
+                    colegio: formData.colegio,
+                    direccion: formData.direccion,
+                    cancha_id: formData.cancha_id,
+                    horario_id: formData.horario_id,
+                    profesor_asignado_id: formData.profesor_asignado_id,
+                    es_arquero: formData.es_arquero,
+                    foto_url: fotoUrl
+                })
+                .eq('id', id);
 
-        if (error) throw error;
+            if (error) throw error;
 
-        // 4. Recargar los datos del alumno para reflejar los cambios
-        await recargarAlumno(id);
+            // 4. Recargar los datos del alumno para reflejar los cambios
+            await recargarAlumno(id);
 
-        // Limpiar archivo de foto temporal
+            // Limpiar archivo de foto temporal
+            setPhotoFile(null);
+
+            addToast('¡Listo! Cambios guardados correctamente ✓', 'success');
+            setEditing(false);
+
+            return true;
+        } catch (error) {
+            console.error('Error general al guardar cambios:', error);
+            addToast(error.message || 'No pudimos guardar los cambios. Intenta nuevamente.', 'error');
+            return false;
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Cancelar edición y restaurar datos originales
+    const cancelEditing = () => {
+        setFormData(alumno);
         setPhotoFile(null);
-
-        addToast('¡Listo! Cambios guardados correctamente ✓', 'success');
         setEditing(false);
+    };
 
-        return true;
-    } catch (error) {
-        console.error('Error general al guardar cambios:', error);
-        addToast(error.message || 'No pudimos guardar los cambios. Intenta nuevamente.', 'error');
-        return false;
-    } finally {
-        setSaving(false);
-    }
-};
+    // Aprobar alumno (cambiar estado de Pendiente a Aprobado)
+    const handleAprobar = async () => {
+        try {
+            const { aprobarAlumno } = await import('../../../services/alumnos');
+            await aprobarAlumno(id);
+            setAlumno(prev => ({ ...prev, estado: 'Aprobado' }));
+            addToast('Alumno aprobado correctamente', 'success');
+            return true;
+        } catch (error) {
+            console.error(error);
+            addToast(error.message, 'error');
+            return false;
+        }
+    };
 
-// Cancelar edición y restaurar datos originales
-const cancelEditing = () => {
-    setFormData(alumno);
-    setPhotoFile(null);
-    setEditing(false);
-};
+    return {
+        alumno,
+        loading,
+        editing,
+        saving,
+        formData,
+        photoFile,
+        maestros: { canchas, horarios, entrenadores },
 
-// Aprobar alumno (cambiar estado de Pendiente a Aprobado)
-const handleAprobar = async () => {
-    try {
-        const { aprobarAlumno } = await import('../../../services/alumnos');
-        await aprobarAlumno(id);
-        setAlumno(prev => ({ ...prev, estado: 'Aprobado' }));
-        addToast('Alumno aprobado correctamente', 'success');
-        return true;
-    } catch (error) {
-        console.error(error);
-        addToast(error.message, 'error');
-        return false;
-    }
-};
-
-return {
-    alumno,
-    loading,
-    editing,
-    saving,
-    formData,
-    photoFile,
-    maestros: { canchas, horarios, entrenadores },
-
-    setEditing,
-    handleChange,
-    setPhotoFile,
-    saveChanges,
-    cancelEditing,
-    handleAprobar
-};
+        setEditing,
+        handleChange,
+        setPhotoFile,
+        saveChanges,
+        cancelEditing,
+        handleAprobar
+    };
 };
