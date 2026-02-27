@@ -180,25 +180,61 @@ export const useAlumno = (id) => {
 
     /**
      * Sincroniza la tabla alumnos_entrenadores con los entrenadores seleccionados.
-     * Elimina los registros existentes y crea los nuevos.
+     * Usa un enfoque diferencial: compara los actuales con los deseados y solo
+     * elimina/inserta lo necesario. Si falla completamente, intenta un segundo
+     * enfoque con delete + insert total.
      * @param {string} alumnoId - ID del alumno
      * @param {string[]} entrenadoresIds - IDs de los entrenadores a asignar
      */
     const syncEntrenadores = async (alumnoId, entrenadoresIds) => {
-        // 1. Eliminar asignaciones actuales
-        const { error: deleteError } = await supabase
+        // Obtener las asignaciones actuales en la BD
+        const { data: actuales, error: fetchError } = await supabase
             .from('alumnos_entrenadores')
-            .delete()
+            .select('id, entrenador_id')
             .eq('alumno_id', alumnoId);
 
-        if (deleteError) {
-            console.error('Error al eliminar entrenadores antiguos:', deleteError);
-            throw new Error('Error al actualizar entrenadores');
+        if (fetchError) {
+            console.error('Error al consultar entrenadores actuales:', fetchError);
+            throw new Error('No se pudieron consultar los entrenadores actuales.');
         }
 
-        // 2. Insertar las nuevas asignaciones
-        if (entrenadoresIds.length > 0) {
-            const nuevasAsignaciones = entrenadoresIds.map(entrenadorId => ({
+        const idsActuales = (actuales || []).map(a => a.entrenador_id);
+
+        // Calcular los que hay que eliminar y los que hay que insertar
+        const paraEliminar = (actuales || []).filter(a => !entrenadoresIds.includes(a.entrenador_id));
+        const paraInsertar = entrenadoresIds.filter(eId => !idsActuales.includes(eId));
+
+        // Si no hay cambios, no hacer nada
+        if (paraEliminar.length === 0 && paraInsertar.length === 0) {
+            return;
+        }
+
+        // Eliminar los que ya no deben estar
+        if (paraEliminar.length > 0) {
+            const idsParaEliminar = paraEliminar.map(a => a.id);
+            const { error: deleteError } = await supabase
+                .from('alumnos_entrenadores')
+                .delete()
+                .in('id', idsParaEliminar);
+
+            if (deleteError) {
+                console.error('Error al eliminar entrenadores por id:', deleteError);
+                // Intentar eliminar uno por uno como fallback
+                for (const registro of paraEliminar) {
+                    const { error: delOneError } = await supabase
+                        .from('alumnos_entrenadores')
+                        .delete()
+                        .eq('id', registro.id);
+                    if (delOneError) {
+                        console.error(`Error al eliminar registro ${registro.id}:`, delOneError);
+                    }
+                }
+            }
+        }
+
+        // Insertar los nuevos
+        if (paraInsertar.length > 0) {
+            const nuevasAsignaciones = paraInsertar.map(entrenadorId => ({
                 alumno_id: alumnoId,
                 entrenador_id: entrenadorId
             }));
@@ -208,9 +244,42 @@ export const useAlumno = (id) => {
                 .insert(nuevasAsignaciones);
 
             if (insertError) {
-                console.error('Error al asignar entrenadores:', insertError);
-                throw new Error('Error al asignar entrenadores');
+                console.error('Error al insertar nuevos entrenadores:', insertError);
+                throw new Error('Error al asignar nuevos entrenadores.');
             }
+        }
+    };
+
+    /**
+     * Recarga los datos del alumno desde la BD y actualiza el estado local.
+     * @param {string} alumnoId - ID del alumno a recargar
+     */
+    const recargarAlumno = async (alumnoId) => {
+        const { data: alumnoActualizado, error: reloadError } = await supabase
+            .from('alumnos')
+            .select(`
+                *,
+                cancha:canchas(id, nombre),
+                horario:horarios(id, hora),
+                asistencias_normales(id),
+                asistencias_arqueros(id),
+                alumnos_entrenadores(entrenador_id, usuario:usuarios(id, nombres, apellidos))
+            `)
+            .eq('id', alumnoId)
+            .single();
+
+        if (!reloadError && alumnoActualizado) {
+            const actualizado = {
+                ...alumnoActualizado,
+                asistencias_count: (alumnoActualizado.asistencias_normales?.length || 0) +
+                    (alumnoActualizado.asistencias_arqueros?.length || 0)
+            };
+            setAlumno(actualizado);
+            setFormData(actualizado);
+            // Sincronizar entrenadores seleccionados con la BD
+            const entrenadoresActualizados = (alumnoActualizado.alumnos_entrenadores || [])
+                .map(ae => ae.entrenador_id);
+            setSelectedEntrenadores(entrenadoresActualizados);
         }
     };
 
@@ -267,41 +336,33 @@ export const useAlumno = (id) => {
             if (error) throw error;
 
             // 4. Sincronizar entrenadores en la tabla de relación
-            await syncEntrenadores(id, selectedEntrenadores);
+            // Este paso es independiente: si falla, los datos del alumno ya se guardaron
+            let errorEntrenadores = null;
+            try {
+                await syncEntrenadores(id, selectedEntrenadores);
+            } catch (syncError) {
+                console.error('Error en sincronización de entrenadores:', syncError);
+                errorEntrenadores = syncError;
+            }
 
             // 5. Recargar los datos del alumno para reflejar los cambios
-            const { data: alumnoActualizado, error: reloadError } = await supabase
-                .from('alumnos')
-                .select(`
-                    *,
-                    cancha:canchas(id, nombre),
-                    horario:horarios(id, hora),
-                    asistencias_normales(id),
-                    asistencias_arqueros(id),
-                    alumnos_entrenadores(entrenador_id, usuario:usuarios(id, nombres, apellidos))
-                `)
-                .eq('id', id)
-                .single();
-
-            if (!reloadError && alumnoActualizado) {
-                const actualizado = {
-                    ...alumnoActualizado,
-                    asistencias_count: (alumnoActualizado.asistencias_normales?.length || 0) +
-                        (alumnoActualizado.asistencias_arqueros?.length || 0)
-                };
-                setAlumno(actualizado);
-                setFormData(actualizado);
-            }
+            await recargarAlumno(id);
 
             // Limpiar archivo de foto temporal
             setPhotoFile(null);
 
-            addToast('¡Listo! Cambios guardados correctamente ✓', 'success');
+            // 6. Notificar al usuario según el resultado
+            if (errorEntrenadores) {
+                // Los datos se guardaron, pero hubo problema con la tabla de relación
+                addToast('Datos del alumno guardados. Nota: hubo un problema al sincronizar entrenadores, pero el entrenador principal se asignó correctamente.', 'warning');
+            } else {
+                addToast('¡Listo! Cambios guardados correctamente ✓', 'success');
+            }
             setEditing(false);
 
             return true;
         } catch (error) {
-            console.error(error);
+            console.error('Error general al guardar cambios:', error);
             addToast(error.message || 'No pudimos guardar los cambios. Intenta nuevamente.', 'error');
             return false;
         } finally {
