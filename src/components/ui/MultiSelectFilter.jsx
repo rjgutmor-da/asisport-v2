@@ -26,8 +26,9 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
     }, []);
 
     const handleToggle = (value) => {
-        if (selectedValues.includes(value)) {
-            onChange(selectedValues.filter(v => v !== value));
+        // Usamos comparación loose (==) para permitir números y strings equivalentes
+        if (selectedValues.some(v => v == value)) {
+            onChange(selectedValues.filter(v => v != value));
         } else {
             onChange([...selectedValues, value]);
         }
@@ -41,7 +42,7 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
     const displayText = selectedValues.length === 0
         ? placeholder
         : selectedValues.length === 1
-            ? options.find(o => o.value === selectedValues[0])?.label || placeholder
+            ? options.find(o => o.value == selectedValues[0])?.label || placeholder
             : `${selectedValues.length} seleccionados`;
 
     return (
@@ -80,7 +81,7 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
 
                     {/* Opciones individuales */}
                     {options.map(option => {
-                        const isSelected = selectedValues.includes(option.value);
+                        const isSelected = selectedValues.some(v => v == option.value);
                         return (
                             <button
                                 key={option.value}

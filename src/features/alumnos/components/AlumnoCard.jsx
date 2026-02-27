@@ -135,7 +135,7 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
                 </div>
 
                 <p className="text-xs text-text-secondary font-medium mt-0.5">
-                    {alumno.cancha?.nombre || 'Sin Cancha'} • <span className="text-primary">Sub {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}</span>
+                    <span className="text-primary">Sub {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}</span> {alumno.asistencias !== undefined && `• Asist: ${alumno.asistencias}`}
                 </p>
 
                 {/* INFO NIVEL 3: Tutor y WhatsApp */}

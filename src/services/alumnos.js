@@ -141,29 +141,27 @@ export const createAlumno = async (alumnoData, photoFile) => {
 /**
  * Obtiene los alumnos activos de la escuela, filtrados según el rol del usuario.
  * 
- * - Entrenador: solo ve alumnos asignados a él (via alumnos_entrenadores)
+ * - Entrenador: solo ve alumnos asignados a él (via profesor_asignado_id)
  * - Entrenarqueros: solo ve alumnos marcados como arqueros
  * - Admin/Dueño/SuperAdmin: ve todos los alumnos de la escuela
  * 
- * Acepta filtros opcionales de cancha y horario que se aplican
- * directamente en la query de Supabase (filtrado desde servidor).
+ * Acepta filtros opcionales de canchas, horarios y subs (multi-selección).
  * 
  * @param {Object} filtros - Filtros opcionales
  * @param {string} filtros.userId - ID del usuario actual
  * @param {string} filtros.userRole - Rol del usuario ('Entrenador', 'Administrador', etc.)
- * @param {string} filtros.canchaId - Filtrar por cancha específica
- * @param {string} filtros.horarioId - Filtrar por horario específico
+ * @param {Array<string>} filtros.canchaIds - Filtrar por una o más canchas
+ * @param {Array<string>} filtros.horarioIds - Filtrar por uno o más horarios
+ * @param {Array<number>} filtros.subAnios - Filtrar por uno o más años (sub = año de nacimiento)
  */
 export const getAlumnos = async (filtros = {}) => {
-    const { userId, userRole, canchaId, horarioId } = filtros;
+    const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [] } = filtros;
 
     // Regla #1: Autenticación obligatoria
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 
     const escuelaId = await obtenerEscuelaId();
-
-    // El filtrado por Entrenador se hará directamente en la query principal
 
     // Query principal con JOINs (sin descargar arrays completos de asistencias)
     let query = supabase
@@ -203,9 +201,19 @@ export const getAlumnos = async (filtros = {}) => {
         query = query.eq('es_arquero', true);
     }
 
-    // Filtros de selección desde el servidor (evita descargar datos innecesarios)
-    if (canchaId) query = query.eq('cancha_id', canchaId);
-    if (horarioId) query = query.eq('horario_id', horarioId);
+    // Filtros multi-selección de cancha desde el servidor
+    if (canchaIds.length === 1) {
+        query = query.eq('cancha_id', canchaIds[0]);
+    } else if (canchaIds.length > 1) {
+        query = query.in('cancha_id', canchaIds);
+    }
+
+    // Filtros multi-selección de horario desde el servidor
+    if (horarioIds.length === 1) {
+        query = query.eq('horario_id', horarioIds[0]);
+    } else if (horarioIds.length > 1) {
+        query = query.in('horario_id', horarioIds);
+    }
 
     // Ordenamiento
     query = query.order('apellidos', { ascending: true });
@@ -217,12 +225,24 @@ export const getAlumnos = async (filtros = {}) => {
         throw new Error('No pudimos cargar los datos. Intenta nuevamente.');
     }
 
-    // Calcular totales de asistencias
-    return data.map(alumno => ({
+    // Calcular totales de asistencias y aplicar filtro de sub (en memoria, ya que fecha_nacimiento no es un campo indexado para año)
+    const anoActual = 2026;
+    let resultado = data.map(alumno => ({
         ...alumno,
         asistencias_count: (alumno.asistencias_normales?.length || 0) +
             (alumno.asistencias_arqueros?.length || 0)
     }));
+
+    // Filtro de Sub (por año de nacimiento)
+    if (subAnios.length > 0) {
+        resultado = resultado.filter(alumno => {
+            const anioNac = new Date(alumno.fecha_nacimiento).getUTCFullYear();
+            const sub = anoActual - anioNac;
+            return subAnios.includes(sub);
+        });
+    }
+
+    return resultado;
 };
 
 // ============================================================================

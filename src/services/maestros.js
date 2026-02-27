@@ -43,6 +43,93 @@ export const getHorarios = async () => {
     return data;
 };
 
+/**
+ * Obtiene las canchas únicas de los alumnos asignados a un entrenador.
+ * Si userId no se provee (admin), devuelve todas las canchas activas.
+ * @param {string|null} userId - ID del entrenador (null para admins)
+ * @param {string|null} userRole - Rol del usuario
+ */
+export const getCanchasParaEntrenador = async (userId = null, userRole = null) => {
+    const esEntrenador = userRole === 'Entrenador' || userRole === 'Entrenarqueros';
+
+    if (!esEntrenador) {
+        // Para admins devolver todas las canchas activas
+        return getCanchas();
+    }
+
+    const escuelaId = await obtenerEscuelaId();
+
+    // Obtener cancha_id únicos de los alumnos del entrenador
+    let query = supabase
+        .from('alumnos')
+        .select('cancha_id, cancha:canchas(id, nombre)')
+        .eq('escuela_id', escuelaId)
+        .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    if (userRole === 'Entrenador' && userId) {
+        query = query.eq('profesor_asignado_id', userId);
+    } else if (userRole === 'Entrenarqueros') {
+        query = query.eq('es_arquero', true);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Extraer canchas únicas
+    const canchasMap = new Map();
+    data.forEach(a => {
+        if (a.cancha_id && a.cancha) {
+            canchasMap.set(a.cancha_id, { id: a.cancha_id, nombre: a.cancha.nombre });
+        }
+    });
+
+    return Array.from(canchasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+};
+
+/**
+ * Obtiene los horarios únicos de los alumnos asignados a un entrenador.
+ * Si userId no se provee (admin), devuelve todos los horarios activos.
+ * @param {string|null} userId - ID del entrenador (null para admins)
+ * @param {string|null} userRole - Rol del usuario
+ */
+export const getHorariosParaEntrenador = async (userId = null, userRole = null) => {
+    const esEntrenador = userRole === 'Entrenador' || userRole === 'Entrenarqueros';
+
+    if (!esEntrenador) {
+        // Para admins devolver todos los horarios activos
+        return getHorarios();
+    }
+
+    const escuelaId = await obtenerEscuelaId();
+
+    let query = supabase
+        .from('alumnos')
+        .select('horario_id, horario:horarios(id, hora)')
+        .eq('escuela_id', escuelaId)
+        .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    if (userRole === 'Entrenador' && userId) {
+        query = query.eq('profesor_asignado_id', userId);
+    } else if (userRole === 'Entrenarqueros') {
+        query = query.eq('es_arquero', true);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Extraer horarios únicos
+    const horariosMap = new Map();
+    data.forEach(a => {
+        if (a.horario_id && a.horario) {
+            horariosMap.set(a.horario_id, { id: a.horario_id, hora: a.horario.hora });
+        }
+    });
+
+    return Array.from(horariosMap.values()).sort((a, b) => a.hora.localeCompare(b.hora));
+};
+
 export const getEntrenadores = async () => {
     // Verificar caché antes de consultar Supabase
     const cached = cacheService.get('entrenadores');

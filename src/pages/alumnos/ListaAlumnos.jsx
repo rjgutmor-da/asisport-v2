@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink } from 'lucide-react';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
-import Select from '../../components/ui/Select';
+import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
 import { useAlumnos } from '../../features/alumnos/hooks/useAlumnos';
 import { useAuth } from '../../context/AuthContext';
 import TabBar from '../../components/dashboard/TabBar';
@@ -12,11 +12,13 @@ import TabBar from '../../components/dashboard/TabBar';
  * Página principal de la lista de alumnos.
  * Funcionalidades:
  *  - Vista cuadrícula y tabla con navegación al detalle
- *  - Búsqueda y filtros por cancha, horario, entrenador
+ *  - Búsqueda y filtros multi-selección: cancha, horario, sub
+ *  - Filtro inteligente para entrenadores (solo sus canchas/horarios)
  *  - Archivar alumno individual con confirmación
  *  - Combinar alumnos duplicados mediante modal
  *  - Selección múltiple para envío de WhatsApp
  *  - Aprobar alumnos pendientes en lote
+ *  - Muestra asistencia últimos 7 días y sub del alumno
  */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
@@ -36,14 +38,27 @@ const ListaAlumnos = () => {
         viewMode,
         totalPages,
         currentPage,
-        filtrosMaestros: { canchas, horarios, entrenadores, selectedCancha, selectedHorario, selectedEntrenador },
         asistenciaHistory,
         last7Days,
+        esEntrenador,
+        hayFiltrosActivos,
+        filtrosMaestros: {
+            canchas,
+            horarios,
+            entrenadores,
+            subs,
+            selectedCanchas,
+            selectedHorarios,
+            selectedEntrenador,
+            selectedSubs
+        },
+        getAsistenciaResumen,
         setViewMode,
         setCurrentPage,
-        setSelectedCancha,
-        setSelectedHorario,
+        setSelectedCanchas,
+        setSelectedHorarios,
         setSelectedEntrenador,
+        setSelectedSubs,
         handleFilterChange,
         handleSearchChange,
         handleClearFilters,
@@ -73,13 +88,6 @@ const ListaAlumnos = () => {
         }
     };
 
-    // Función para calcular el resumen de asistencia (Presente + Licencia)
-    const getAsistenciaResumen = (alumnoId) => {
-        const history = asistenciaHistory[alumnoId] || {};
-        return Object.values(history).filter(estado =>
-            estado === 'Presente' || estado === 'Licencia'
-        ).length;
-    };
 
     // Loading Skeleton
     if (loading) {
@@ -115,7 +123,7 @@ const ListaAlumnos = () => {
     }
 
     // Empty State
-    if (!loading && alumnos.length === 0 && activeFilter === 'todos' && !searchTerm && !selectedCancha && !selectedHorario && !selectedEntrenador) {
+    if (!loading && alumnos.length === 0 && activeFilter === 'todos' && !searchTerm && !hayFiltrosActivos) {
         return (
             <div className="min-h-screen bg-background pb-20 md:pb-10">
                 {/* Header */}
@@ -230,6 +238,7 @@ const ListaAlumnos = () => {
                         </div>
                     </div>
                 )}
+
                 {/* Barra de Búsqueda */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
@@ -293,7 +302,6 @@ const ListaAlumnos = () => {
                                 Arqueros
                             </button>
 
-
                             {esAdmin && activeFilter === 'pendientes' && alumnos.length > 0 && (
                                 <button
                                     onClick={async () => {
@@ -308,7 +316,7 @@ const ListaAlumnos = () => {
                             )}
 
                             {/* Limpiar Filtros */}
-                            {(activeFilter !== 'todos' || selectedCancha || selectedHorario || selectedEntrenador || searchTerm) && (
+                            {hayFiltrosActivos && (
                                 <button
                                     onClick={handleClearFilters}
                                     className="px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap bg-error/10 text-error border border-error/20 hover:bg-error/20 transition-colors flex items-center gap-2"
@@ -320,26 +328,45 @@ const ListaAlumnos = () => {
                         </div>
                     </div>
 
-                    {/* Filtros de Datos (Cancha, Horario, Entrenador) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Select
-                            placeholder="Cualquier Cancha"
+                    {/* Filtros Inteligentes Multi-selección */}
+                    <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                        {/* Filtro Cancha */}
+                        <MultiSelectFilter
+                            label="Cancha"
+                            placeholder="Todas las Canchas"
                             options={canchas}
-                            value={selectedCancha}
-                            onChange={(e) => setSelectedCancha(e.target.value)}
+                            selectedValues={selectedCanchas}
+                            onChange={setSelectedCanchas}
                         />
-                        <Select
-                            placeholder="Cualquier Horario"
+
+                        {/* Filtro Horario */}
+                        <MultiSelectFilter
+                            label="Horario"
+                            placeholder="Todos los Horarios"
                             options={horarios}
-                            value={selectedHorario}
-                            onChange={(e) => setSelectedHorario(e.target.value)}
+                            selectedValues={selectedHorarios}
+                            onChange={setSelectedHorarios}
                         />
-                        <Select
-                            placeholder="Cualquier Entrenador"
-                            options={entrenadores}
-                            value={selectedEntrenador}
-                            onChange={(e) => setSelectedEntrenador(e.target.value)}
+
+                        {/* Filtro Sub */}
+                        <MultiSelectFilter
+                            label="Categoría (Sub)"
+                            placeholder="Todos los Sub"
+                            options={subs}
+                            selectedValues={selectedSubs}
+                            onChange={setSelectedSubs}
                         />
+
+                        {/* Filtro Entrenador — solo para admins */}
+                        {esAdmin && (
+                            <MultiSelectFilter
+                                label="Entrenador"
+                                placeholder="Todos los Entrenadores"
+                                options={entrenadores}
+                                selectedValues={selectedEntrenador ? [selectedEntrenador] : []}
+                                onChange={(vals) => setSelectedEntrenador(vals[vals.length - 1] || '')}
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -354,32 +381,35 @@ const ListaAlumnos = () => {
                     viewMode === 'grid' ? (
                         /* Vista Cuadrícula (Cards) */
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {alumnos.map((alumno) => (
-                                <div key={alumno.id} className="relative group">
-                                    <AlumnoCard
-                                        alumno={alumno}
-                                        onClick={() => handleAlumnoClick(alumno)}
-                                    />
-                                    {/* Botón archivar en la tarjeta (solo Admin) */}
-                                    {esAdmin && (
-                                        <button
-                                            onClick={(e) => handleArchivar(e, alumno)}
-                                            className="
-                                                absolute top-2 right-2
-                                                p-1.5 rounded-md
-                                                bg-error/80 text-white
-                                                opacity-0 group-hover:opacity-100
-                                                hover:bg-error
-                                                transition-all duration-200
-                                                shadow-lg
-                                            "
-                                            title={`Archivar a ${alumno.nombres}`}
-                                        >
-                                            <Archive size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                            {alumnos.map((alumno) => {
+                                const asistenciasCount = getAsistenciaResumen(alumno.id);
+                                return (
+                                    <div key={alumno.id} className="relative group">
+                                        <AlumnoCard
+                                            alumno={{ ...alumno, asistencias: asistenciasCount }}
+                                            onClick={() => handleAlumnoClick(alumno)}
+                                        />
+                                        {/* Botón archivar en la tarjeta (solo Admin) */}
+                                        {esAdmin && (
+                                            <button
+                                                onClick={(e) => handleArchivar(e, alumno)}
+                                                className="
+                                                    absolute top-2 right-2
+                                                    p-1.5 rounded-md
+                                                    bg-error/80 text-white
+                                                    opacity-0 group-hover:opacity-100
+                                                    hover:bg-error
+                                                    transition-all duration-200
+                                                    shadow-lg
+                                                "
+                                                title={`Archivar a ${alumno.nombres}`}
+                                            >
+                                                <Archive size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         /* Vista Lista (Tabla) */
@@ -396,7 +426,7 @@ const ListaAlumnos = () => {
                                             />
                                         </th>
                                         <th className="p-3 text-xs font-bold text-text-secondary uppercase">Alumno</th>
-                                        <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-14">Asist</th>
+                                        <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center">7 días</th>
                                         <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-12">Sub</th>
                                         {esAdmin && (
                                             <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-20">Acciones</th>
@@ -406,6 +436,7 @@ const ListaAlumnos = () => {
                                 <tbody>
                                     {alumnos.map((alumno) => {
                                         const asistencias = getAsistenciaResumen(alumno.id);
+                                        const subAnio = 2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear();
 
                                         return (
                                             <tr
@@ -436,24 +467,19 @@ const ListaAlumnos = () => {
                                                             <span className="font-medium text-white truncate block">
                                                                 {alumno.nombres} {alumno.apellidos}
                                                             </span>
-                                                            <span className="text-[10px] text-text-secondary">
-                                                                {alumno.cancha?.nombre || 'Sin cancha'}
-                                                            </span>
                                                         </div>
-                                                        {/* Indicador visual de que se puede acceder al detalle */}
                                                         <ExternalLink size={14} className="text-text-secondary/40 flex-shrink-0 ml-auto hidden md:block" />
                                                     </div>
                                                 </td>
+                                                {/* Asistencia últimos 7 días: solo el número */}
                                                 <td className="p-3 text-center">
-                                                    <div className={`
-                                                        inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm
-                                                        ${asistencias < 2 ? 'bg-border/20 text-text-secondary' : 'bg-primary/10 text-primary'}
-                                                    `}>
+                                                    <span className={`text-lg font-bold ${asistencias >= 2 ? 'text-success' : 'text-text-secondary'
+                                                        }`}>
                                                         {asistencias}
-                                                    </div>
+                                                    </span>
                                                 </td>
                                                 <td className="p-3 text-center text-primary font-bold text-sm">
-                                                    {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}
+                                                    {subAnio}
                                                 </td>
                                                 {esAdmin && (
                                                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
