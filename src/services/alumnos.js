@@ -184,8 +184,8 @@ export const getAlumnos = async (filtros = {}) => {
             created_at,
             cancha:canchas(nombre),
             horario:horarios(hora),
-            asistencias_normales(id),
-            asistencias_arqueros(id)
+            asistencias_normales(id, fecha, estado),
+            asistencias_arqueros(id, fecha, estado)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
@@ -225,13 +225,24 @@ export const getAlumnos = async (filtros = {}) => {
         throw new Error('No pudimos cargar los datos. Intenta nuevamente.');
     }
 
-    // Calcular totales de asistencias y aplicar filtro de sub (en memoria, ya que fecha_nacimiento no es un campo indexado para año)
-    const anoActual = 2026;
-    let resultado = data.map(alumno => ({
-        ...alumno,
-        asistencias_count: (alumno.asistencias_normales?.length || 0) +
-            (alumno.asistencias_arqueros?.length || 0)
-    }));
+    // Calcular totales de asistencias del mes actual y aplicar filtro de sub
+    const hoy = new Date();
+    const anoActual = hoy.getFullYear();
+    const mesActualStr = `${anoActual}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+    let resultado = data.map(alumno => {
+        const asisN = (alumno.asistencias_normales || []).filter(a =>
+            a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+        ).length;
+        const asisA = (alumno.asistencias_arqueros || []).filter(a =>
+            a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+        ).length;
+
+        return {
+            ...alumno,
+            asistencias_count: asisN + asisA
+        };
+    });
 
     // Filtro de Sub (por año de nacimiento)
     if (subAnios.length > 0) {

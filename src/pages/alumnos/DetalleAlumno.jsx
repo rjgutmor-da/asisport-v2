@@ -74,6 +74,9 @@ const DetalleAlumno = () => {
         return 'Entrenador desconocido';
     };
 
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const mesActualNombre = meses[new Date().getMonth()];
+
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Cabecera */}
@@ -195,7 +198,7 @@ const DetalleAlumno = () => {
 
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <p className="text-text-secondary">Asistencias Totales</p>
+                                <p className="text-text-secondary">Asistencias de {mesActualNombre}</p>
                                 <p className="text-white font-semibold text-lg">{alumno.asistencias_count}</p>
                             </div>
                             <div>

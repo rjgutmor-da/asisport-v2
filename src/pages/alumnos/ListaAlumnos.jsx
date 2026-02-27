@@ -413,11 +413,12 @@ const ListaAlumnos = () => {
                         </div>
                     ) : (
                         /* Vista Lista (Tabla) */
-                        <div className="bg-surface border border-border rounded-md overflow-hidden">
-                            <table className="w-full text-left border-collapse">
+                        /* Vista Lista (Tabla) */
+                        <div className="bg-surface border border-border rounded-md overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[320px]">
                                 <thead className="bg-background/50 border-b border-border">
                                     <tr>
-                                        <th className="p-3 w-10">
+                                        <th className="p-2 md:p-3 w-8 md:w-10">
                                             <input
                                                 type="checkbox"
                                                 onChange={() => handleSelectAll(alumnos)}
@@ -425,11 +426,11 @@ const ListaAlumnos = () => {
                                                 className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
                                             />
                                         </th>
-                                        <th className="p-3 text-xs font-bold text-text-secondary uppercase">Alumno</th>
-                                        <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center">7 días</th>
-                                        <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-12">Sub</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase">Alumno</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-auto">Asist. mes</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Sub</th>
                                         {esAdmin && (
-                                            <th className="p-3 text-xs font-bold text-text-secondary uppercase text-center w-20">Acciones</th>
+                                            <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-16 md:w-20">Acciones</th>
                                         )}
                                     </tr>
                                 </thead>
@@ -444,7 +445,7 @@ const ListaAlumnos = () => {
                                                 className="border-b border-border/50 transition-colors hover:bg-primary/5 cursor-pointer"
                                                 onClick={() => handleAlumnoClick(alumno)}
                                             >
-                                                <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                                                <td className="p-2 md:p-3" onClick={(e) => e.stopPropagation()}>
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedAlumnos.includes(alumno.id)}
@@ -452,37 +453,37 @@ const ListaAlumnos = () => {
                                                         className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
                                                     />
                                                 </td>
-                                                <td className="p-3">
-                                                    <div className="flex items-center gap-3">
+                                                <td className="p-2 md:p-3">
+                                                    <div className="flex items-center gap-2 md:gap-3 max-w-[140px] md:max-w-[200px]">
                                                         {alumno.foto_url ? (
-                                                            <img src={alumno.foto_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary/30" loading="lazy" />
+                                                            <img src={alumno.foto_url} alt="" className="hidden sm:block w-8 h-8 rounded-full object-cover border border-primary/30" loading="lazy" />
                                                         ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+                                                            <div className="hidden sm:flex w-8 h-8 rounded-full bg-primary/20 border border-primary/30 items-center justify-center">
                                                                 <span className="text-primary text-xs font-bold">
                                                                     {alumno.nombres?.[0]}{alumno.apellidos?.[0]}
                                                                 </span>
                                                             </div>
                                                         )}
                                                         <div className="min-w-0">
-                                                            <span className="font-medium text-white truncate block">
+                                                            <span className="font-medium text-white text-sm md:text-base truncate block w-full">
                                                                 {alumno.nombres} {alumno.apellidos}
                                                             </span>
                                                         </div>
                                                         <ExternalLink size={14} className="text-text-secondary/40 flex-shrink-0 ml-auto hidden md:block" />
                                                     </div>
                                                 </td>
-                                                {/* Asistencia últimos 7 días: solo el número */}
-                                                <td className="p-3 text-center">
-                                                    <span className={`text-lg font-bold ${asistencias >= 2 ? 'text-success' : 'text-text-secondary'
+                                                {/* Asistencia del mes */}
+                                                <td className="p-2 md:p-3 text-center">
+                                                    <span className={`text-base md:text-lg font-bold ${asistencias >= 1 ? 'text-success' : 'text-text-secondary'
                                                         }`}>
                                                         {asistencias}
                                                     </span>
                                                 </td>
-                                                <td className="p-3 text-center text-primary font-bold text-sm">
+                                                <td className="p-2 md:p-3 text-center text-primary font-bold text-sm">
                                                     {subAnio}
                                                 </td>
                                                 {esAdmin && (
-                                                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                    <td className="p-2 md:p-3 text-center" onClick={(e) => e.stopPropagation()}>
                                                         <button
                                                             onClick={(e) => handleArchivar(e, alumno)}
                                                             className="p-1.5 rounded-md text-text-secondary hover:text-error hover:bg-error/10 transition-colors"

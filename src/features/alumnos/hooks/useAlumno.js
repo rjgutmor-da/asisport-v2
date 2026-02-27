@@ -43,8 +43,8 @@ export const useAlumno = (id) => {
                         *,
                         cancha:canchas(id, nombre),
                         horario:horarios(id, hora),
-                        asistencias_normales(id),
-                        asistencias_arqueros(id),
+                        asistencias_normales(id, fecha, estado),
+                        asistencias_arqueros(id, fecha, estado),
                         alumnos_entrenadores(entrenador_id, usuario:usuarios(id, nombres, apellidos))
                     `)
                     .eq('id', id)
@@ -52,11 +52,20 @@ export const useAlumno = (id) => {
 
                 if (alumnoError) throw alumnoError;
 
-                // Calcular totales de asistencias
+                // Calcular totales de asistencias del mes actual
+                const hoy = new Date();
+                const mesActualStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+                const asisN = (alumnoData.asistencias_normales || []).filter(a =>
+                    a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+                ).length;
+                const asisA = (alumnoData.asistencias_arqueros || []).filter(a =>
+                    a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+                ).length;
+
                 const alumnoConTotales = {
                     ...alumnoData,
-                    asistencias_count: (alumnoData.asistencias_normales?.length || 0) +
-                        (alumnoData.asistencias_arqueros?.length || 0)
+                    asistencias_count: asisN + asisA
                 };
 
                 setAlumno(alumnoConTotales);
@@ -158,18 +167,27 @@ export const useAlumno = (id) => {
                 *,
                 cancha:canchas(id, nombre),
                 horario:horarios(id, hora),
-                asistencias_normales(id),
-                asistencias_arqueros(id),
+                asistencias_normales(id, fecha, estado),
+                asistencias_arqueros(id, fecha, estado),
                 alumnos_entrenadores(entrenador_id, usuario:usuarios(id, nombres, apellidos))
             `)
             .eq('id', alumnoId)
             .single();
 
         if (!reloadError && alumnoActualizado) {
+            const hoy = new Date();
+            const mesActualStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+            const asisN = (alumnoActualizado.asistencias_normales || []).filter(a =>
+                a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+            ).length;
+            const asisA = (alumnoActualizado.asistencias_arqueros || []).filter(a =>
+                a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
+            ).length;
+
             const actualizado = {
                 ...alumnoActualizado,
-                asistencias_count: (alumnoActualizado.asistencias_normales?.length || 0) +
-                    (alumnoActualizado.asistencias_arqueros?.length || 0)
+                asistencias_count: asisN + asisA
             };
             setAlumno(actualizado);
             setFormData(actualizado);
