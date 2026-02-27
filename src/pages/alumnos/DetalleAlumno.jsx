@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
@@ -23,6 +23,11 @@ const DetalleAlumno = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { user } = useAuth();
+
+    // Estado local para el selector de nuevo entrenador
+    const [nuevoEntrenadorId, setNuevoEntrenadorId] = useState('');
+    // Key para forzar remontaje del Select y limpiar su estado nativo
+    const [selectorKey, setSelectorKey] = useState(0);
 
     const {
         alumno,
@@ -81,11 +86,13 @@ const DetalleAlumno = () => {
         return ae?.usuario ? `${ae.usuario.nombres} ${ae.usuario.apellidos}` : 'Entrenador desconocido';
     };
 
-    // Agregar entrenador directamente al seleccionarlo del dropdown
+    // Agregar entrenador: auto-agrega al seleccionar del dropdown
     const handleSelectEntrenador = (e) => {
         const entrenadorId = e.target.value;
         if (entrenadorId) {
             addEntrenador(entrenadorId);
+            setNuevoEntrenadorId('');      // Resetear valor local
+            setSelectorKey(k => k + 1);   // Forzar remontaje del Select
         }
     };
 
@@ -425,9 +432,10 @@ const DetalleAlumno = () => {
                         {editing && selectedEntrenadores.length < 2 && (
                             <div>
                                 <Select
+                                    key={selectorKey}
                                     label="Agregar Entrenador"
                                     name="nuevo_entrenador"
-                                    value=""
+                                    value={nuevoEntrenadorId}
                                     options={entrenadoresDisponibles}
                                     onChange={handleSelectEntrenador}
                                     placeholder="Seleccionar entrenador para agregar..."
