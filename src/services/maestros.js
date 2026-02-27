@@ -1,8 +1,12 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
+import { cacheService } from '../lib/cacheService';
 
 export const getCanchas = async () => {
-    // Obtener escuela_id del usuario actual mediante RPC
+    // Verificar caché antes de consultar Supabase
+    const cached = cacheService.get('canchas');
+    if (cached) return cached;
+
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
@@ -12,11 +16,17 @@ export const getCanchas = async () => {
         .eq('activo', true);
 
     if (error) throw error;
+
+    // Guardar en caché (5 minutos por defecto)
+    cacheService.set('canchas', data);
     return data;
 };
 
 export const getHorarios = async () => {
-    // Obtener escuela_id del usuario actual mediante RPC
+    // Verificar caché antes de consultar Supabase
+    const cached = cacheService.get('horarios');
+    if (cached) return cached;
+
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
@@ -27,11 +37,17 @@ export const getHorarios = async () => {
         .order('hora', { ascending: true });
 
     if (error) throw error;
+
+    // Guardar en caché (5 minutos por defecto)
+    cacheService.set('horarios', data);
     return data;
 };
 
 export const getEntrenadores = async () => {
-    // Obtener escuela_id del usuario actual mediante RPC
+    // Verificar caché antes de consultar Supabase
+    const cached = cacheService.get('entrenadores');
+    if (cached) return cached;
+
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
@@ -42,6 +58,9 @@ export const getEntrenadores = async () => {
         .eq('activo', true);
 
     if (error) throw error;
+
+    // Guardar en caché (5 minutos por defecto)
+    cacheService.set('entrenadores', data);
     return data;
 };
 

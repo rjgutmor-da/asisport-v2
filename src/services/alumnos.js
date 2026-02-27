@@ -139,20 +139,50 @@ export const createAlumno = async (alumnoData, photoFile) => {
 };
 
 /**
- * Obtiene todos los alumnos activos de la escuela
- * Incluye JOIN con canchas, horarios
- * Cuenta asistencias y entrenadores
- * Regla #14: Entrenadores pueden ver todos los alumnos de su escuela (solo lectura)
+ * Obtiene los alumnos activos de la escuela, filtrados según el rol del usuario.
+ * 
+ * - Entrenador: solo ve alumnos asignados a él (via alumnos_entrenadores)
+ * - Entrenarqueros: solo ve alumnos marcados como arqueros
+ * - Admin/Dueño/SuperAdmin: ve todos los alumnos de la escuela
+ * 
+ * Acepta filtros opcionales de cancha y horario que se aplican
+ * directamente en la query de Supabase (filtrado desde servidor).
+ * 
+ * @param {Object} filtros - Filtros opcionales
+ * @param {string} filtros.userId - ID del usuario actual
+ * @param {string} filtros.userRole - Rol del usuario ('Entrenador', 'Administrador', etc.)
+ * @param {string} filtros.canchaId - Filtrar por cancha específica
+ * @param {string} filtros.horarioId - Filtrar por horario específico
  */
-export const getAlumnos = async () => {
+export const getAlumnos = async (filtros = {}) => {
+    const { userId, userRole, canchaId, horarioId } = filtros;
+
     // Regla #1: Autenticación obligatoria
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Query con JOINs y conteos
-    const { data, error } = await supabase
+    // Si es Entrenador, primero obtener los IDs de alumnos asignados
+    let alumnoIdsAsignados = null;
+    if (userRole === 'Entrenador' && userId) {
+        const { data: asignaciones, error: asignError } = await supabase
+            .from('alumnos_entrenadores')
+            .select('alumno_id')
+            .eq('entrenador_id', userId);
+
+        if (asignError) {
+            console.error('Error al obtener asignaciones:', asignError);
+            throw new Error('Error al cargar tus alumnos asignados.');
+        }
+
+        alumnoIdsAsignados = asignaciones.map(a => a.alumno_id);
+        // Si no tiene alumnos asignados, retornar lista vacía
+        if (alumnoIdsAsignados.length === 0) return [];
+    }
+
+    // Query principal con JOINs (sin descargar arrays completos de asistencias)
+    let query = supabase
         .from('alumnos')
         .select(`
             id,
@@ -178,8 +208,26 @@ export const getAlumnos = async () => {
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
-        .neq('estado', 'ELIMINADO SISTEMA')
-        .order('apellidos', { ascending: true });
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    // Filtro por rol: Entrenador solo ve sus alumnos asignados
+    if (alumnoIdsAsignados) {
+        query = query.in('id', alumnoIdsAsignados);
+    }
+
+    // Filtro por rol: Entrenarqueros solo ve arqueros
+    if (userRole === 'Entrenarqueros') {
+        query = query.eq('es_arquero', true);
+    }
+
+    // Filtros de selección desde el servidor (evita descargar datos innecesarios)
+    if (canchaId) query = query.eq('cancha_id', canchaId);
+    if (horarioId) query = query.eq('horario_id', horarioId);
+
+    // Ordenamiento
+    query = query.order('apellidos', { ascending: true });
+
+    const { data, error } = await query;
 
     if (error) {
         console.error('Error al cargar alumnos:', error);

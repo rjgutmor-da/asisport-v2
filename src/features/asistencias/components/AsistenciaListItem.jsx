@@ -43,6 +43,7 @@ const AsistenciaListItem = ({
                         src={alumno.foto_url}
                         alt={`${alumno.nombres} ${alumno.apellidos}`}
                         className="w-12 h-12 rounded-md border border-primary object-cover"
+                        loading="lazy"
                     />
                 ) : (
                     <div className="w-12 h-12 rounded-md border border-primary bg-background flex items-center justify-center">

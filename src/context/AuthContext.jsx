@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { cacheService } from '../lib/cacheService';
 
 const AuthContext = createContext({});
 
@@ -92,11 +93,12 @@ export const AuthProvider = ({ children }) => {
                     await fetchUserProfile(session.user.id);
                 }
             } else {
-                // Logout
+                // Logout — limpiar caché de datos maestros
                 currentUserIdRef.current = null;
                 setUser(null);
                 setUserProfile(null);
                 setRole(null);
+                cacheService.clear();
             }
             // Siempre asegurar que loading sea false después de procesar
             setLoading(false);

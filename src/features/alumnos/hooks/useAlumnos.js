@@ -63,8 +63,16 @@ export const useAlumnos = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
+            // Pasar filtros al servidor para reducir datos descargados
+            const filtrosServidor = {
+                userId: user?.id,
+                userRole: role,
+                canchaId: selectedCancha || undefined,
+                horarioId: selectedHorario || undefined,
+            };
+
             const [alumnsData, canchasData, horariosData, entrenadorsData] = await Promise.all([
-                getAlumnos(),
+                getAlumnos(filtrosServidor),
                 getCanchas(),
                 getHorarios(),
                 getEntrenadores()
@@ -76,7 +84,7 @@ export const useAlumnos = () => {
             setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
             setEntrenadores(entrenadorsData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
 
-            // Cargar historial de asistencia para los alumnos cargados
+            // Cargar historial de asistencia solo para los alumnos retornados
             if (alumnsData.length > 0) {
                 const history = await getAsistenciasUltimos7Dias(alumnsData.map(a => a.id));
                 setAsistenciaHistory(history);
@@ -88,26 +96,22 @@ export const useAlumnos = () => {
         } finally {
             setLoading(false);
         }
-    }, [addToast]);
+    }, [addToast, user, role, selectedCancha, selectedHorario]);
 
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        if (user) {
+            loadData();
+        }
+    }, [loadData, user]);
 
     // Filtrado, búsqueda, ordenamiento y paginación con useMemo
     const { filteredAndSortedAlumnos, paginatedAlumnos, totalPages } = useMemo(() => {
-        // 1. Aplicar filtro por estado/tipo y ROL
+        // Nota: El filtrado por rol (Entrenador/Entrenarqueros) y por cancha/horario
+        // ya se hizo desde el servidor en getAlumnos(). Aquí solo quedan:
+        // filtros de estado, búsqueda por nombre, y filtro por entrenador manual.
         let filtered = alumnos;
 
-        // Filtros Automáticos por Rol
-        if (role === 'Entrenador' && user?.id) {
-            // Entrenador solo ve sus alumnos asignados
-            filtered = filtered.filter(a => a.profesor_asignado_id === user.id);
-        } else if (role === 'Entrenarqueros') {
-            // Entrenador de Arqueros solo ve arqueros
-            filtered = filtered.filter(a => a.es_arquero === true);
-        }
-
+        // Filtro por estado/tipo
         switch (activeFilter) {
             case 'pendientes':
                 filtered = filtered.filter(a => a.estado === 'Pendiente');
@@ -116,26 +120,18 @@ export const useAlumnos = () => {
                 filtered = filtered.filter(a => a.es_arquero === true);
                 break;
             default:
-                // 'todos' - no extra filter needed
+                // 'todos' - sin filtro adicional
                 break;
         }
 
-        // 2. Aplicar filtros dinámicos
+        // Filtro por entrenador (selección manual en el dropdown, solo para Admin)
         if (selectedEntrenador) {
             filtered = filtered.filter(a =>
                 a.profesor_asignado_id === selectedEntrenador
             );
         }
 
-        if (selectedCancha) {
-            filtered = filtered.filter(a => a.cancha_id === selectedCancha);
-        }
-
-        if (selectedHorario) {
-            filtered = filtered.filter(a => a.horario_id === selectedHorario);
-        }
-
-        // 3. Aplicar búsqueda por nombre
+        // Búsqueda por nombre
         if (searchTerm.trim()) {
             const search = searchTerm.toLowerCase();
             filtered = filtered.filter(a =>
@@ -143,14 +139,14 @@ export const useAlumnos = () => {
             );
         }
 
-        // 4. Aplicar ordenamiento interno fijo
+        // Ordenamiento interno fijo
         const sorted = [...filtered].sort((a, b) => {
             if (a.estado === 'Aprobado' && b.estado === 'Pendiente') return -1;
             if (a.estado === 'Pendiente' && b.estado === 'Aprobado') return 1;
             return new Date(a.created_at) - new Date(b.created_at);
         });
 
-        // 5. Calcular paginación
+        // Paginación
         const total = Math.ceil(sorted.length / itemsPerPage);
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
@@ -160,7 +156,7 @@ export const useAlumnos = () => {
             paginatedAlumnos: paginated,
             totalPages: total
         };
-    }, [alumnos, activeFilter, selectedCancha, selectedHorario, selectedEntrenador, searchTerm, currentPage, itemsPerPage, role, user]);
+    }, [alumnos, activeFilter, selectedEntrenador, searchTerm, currentPage, itemsPerPage]);
 
     // =========================================================================
     // Handlers

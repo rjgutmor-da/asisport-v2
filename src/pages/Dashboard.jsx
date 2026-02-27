@@ -80,13 +80,15 @@ const Dashboard = () => {
 
 
 
-                    {/* Nuevo Módulo de Estadísticas */}
-                    <ModuleCard
-                        icon={<BarChart3 size={60} />}
-                        label="Estadísticas"
-                        onClick={() => navigate('/estadisticas')}
-                        size="compact"
-                    />
+                    {/* Nuevo Módulo de Estadísticas (Solo Admin/Dueño/SuperAdmin) */}
+                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
+                        <ModuleCard
+                            icon={<BarChart3 size={60} />}
+                            label="Estadísticas"
+                            onClick={() => navigate('/estadisticas')}
+                            size="compact"
+                        />
+                    )}
 
                     {/* Módulo de Admin Usuarios (Solo Dueño) */}
                     {isOwner && (

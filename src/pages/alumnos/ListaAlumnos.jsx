@@ -424,7 +424,7 @@ const ListaAlumnos = () => {
                                                 <td className="p-3">
                                                     <div className="flex items-center gap-3">
                                                         {alumno.foto_url ? (
-                                                            <img src={alumno.foto_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary/30" />
+                                                            <img src={alumno.foto_url} alt="" className="w-8 h-8 rounded-full object-cover border border-primary/30" loading="lazy" />
                                                         ) : (
                                                             <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
                                                                 <span className="text-primary text-xs font-bold">

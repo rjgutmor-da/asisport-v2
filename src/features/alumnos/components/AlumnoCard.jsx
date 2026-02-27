@@ -104,6 +104,7 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
                         src={alumno.foto_url}
                         alt={`${alumno.nombres} ${alumno.apellidos}`}
                         className="w-20 h-20 rounded-md border border-primary object-cover"
+                        loading="lazy"
                     />
                 ) : (
                     <div className="w-20 h-20 rounded-md border border-primary bg-surface flex items-center justify-center">
