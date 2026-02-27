@@ -9,32 +9,28 @@ const FileInput = ({ label, name, onChange, error }) => {
     const inputRef = useRef(null);
 
     const compressImage = async (file) => {
-        const MAX_SIZE = 200 * 1024; // 200 KB límite de Supabase
+        const TARGET_KB = 100 * 1024; // 100 KB target
         const options = {
-            maxSizeMB: 0.15, // ~150 KB para margen seguro
+            maxSizeMB: 0.09, // ~90 KB para dejar margen
             maxWidthOrHeight: 800,
             useWebWorker: true,
+            fileType: 'image/jpeg',
         };
         try {
             let compressedFile = await imageCompression(file, options);
 
-            // Si aún excede el límite, comprimir más agresivamente
-            if (compressedFile.size > MAX_SIZE) {
-                const secondPass = {
-                    maxSizeMB: 0.10, // ~100 KB segundo intento
+            // Segundo pase si aún supera el target
+            if (compressedFile.size > TARGET_KB) {
+                compressedFile = await imageCompression(compressedFile, {
+                    maxSizeMB: 0.07, // ~70 KB segundo intento
                     maxWidthOrHeight: 600,
                     useWebWorker: true,
-                };
-                compressedFile = await imageCompression(compressedFile, secondPass);
-            }
-
-            // Verificación final
-            if (compressedFile.size > MAX_SIZE) {
-                throw new Error('La imagen es demasiado grande incluso después de comprimir. Intenta con otra foto.');
+                    fileType: 'image/jpeg',
+                });
             }
 
             // Renombrar a .jpg
-            return new File([compressedFile], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            return new File([compressedFile], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
             });
@@ -60,18 +56,13 @@ const FileInput = ({ label, name, onChange, error }) => {
         }
 
         try {
-            let fileToProcess = file;
-            const MAX_SIZE = 200 * 1024; // 200 KB
-
-            if (file.size > MAX_SIZE) {
-                setCompressing(true);
-                try {
-                    fileToProcess = await compressImage(file);
-                } catch (err) {
-                    throw err;
-                } finally {
-                    setCompressing(false);
-                }
+            // Siempre comprimir a ≤100 KB antes de pasar al padre
+            setCompressing(true);
+            let fileToProcess;
+            try {
+                fileToProcess = await compressImage(file);
+            } finally {
+                setCompressing(false);
             }
 
             const reader = new FileReader();
