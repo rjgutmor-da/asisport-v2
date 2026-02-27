@@ -41,12 +41,42 @@ const Estadisticas = () => {
             return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
         });
 
-        // Crear datos con encabezados de filtros
+        // Resolver nombres de los filtros aplicados
+        const nombresEntrenadores = selectedEntrenadores.length === 0
+            ? 'Todos'
+            : selectedEntrenadores
+                .map(id => entrenadores.find(e => e.value === id)?.label ?? id)
+                .join(', ');
+
+        const nombresCanchas = selectedCanchas.length === 0
+            ? 'Todas'
+            : selectedCanchas
+                .map(id => canchas.find(c => c.value === id)?.label ?? id)
+                .join(', ');
+
+        const nombresHorarios = selectedHorarios.length === 0
+            ? 'Todos'
+            : selectedHorarios
+                .map(id => horarios.find(h => h.value === id)?.label ?? id)
+                .join(', ');
+
+        const nombresCategorias = selectedCategorias.length === 0
+            ? 'Todas'
+            : selectedCategorias.join(', ');
+
+        // Crear encabezado del reporte con filtros detallados
         const filterInfo = [
-            ['Reporte de Asistencias - AsiSport'],
-            [`Período: ${dateRangeText} | Canchas: ${selectedCanchas.length === 0 ? 'Todas' : selectedCanchas.length} | Horarios: ${selectedHorarios.length === 0 ? 'Todos' : selectedHorarios.length} | Entrenadores: ${selectedEntrenadores.length === 0 ? 'Todos' : selectedEntrenadores.length} | Categorías: ${selectedCategorias.length === 0 ? 'Todas' : selectedCategorias.join(', ')}`],
-            [], // Fila vacía
-            ['Alumno', 'Presentes', 'Licencias', ...dateHeaders] // Encabezados con fechas
+            ['Reporte de Asistencias — AsiSport'],
+            [`Generado: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`],
+            [],
+            ['Filtros Aplicados'],
+            ['Período:', dateRangeText],
+            ['Entrenadores:', nombresEntrenadores],
+            ['Canchas:', nombresCanchas],
+            ['Horarios:', nombresHorarios],
+            ['Categorías:', nombresCategorias],
+            [], // Fila vacía separador
+            ['Alumno', 'Presentes', 'Licencias', ...dateHeaders]
         ];
 
         // Agregar datos de alumnos con su detalle diario
@@ -76,6 +106,7 @@ const Estadisticas = () => {
         XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
         XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
+
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
