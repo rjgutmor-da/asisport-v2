@@ -1,11 +1,27 @@
-// Service Worker mínimo para cumplir con los requisitos de PWA (Instalación)
-const CACHE_NAME = 'asisport-v1';
+// Service Worker - Actualizar CACHE_NAME al hacer cambios para forzar refresh en móviles
+const CACHE_NAME = 'asisport-v2';
 
 self.addEventListener('install', (event) => {
+    // Activar inmediatamente sin esperar a que se cierre la pestaña
     self.skipWaiting();
 });
 
+self.addEventListener('activate', (event) => {
+    // Eliminar cachés viejos al activar la nueva versión
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames
+                    .filter((name) => name !== CACHE_NAME)
+                    .map((name) => caches.delete(name))
+            );
+        }).then(() => self.clients.claim())
+    );
+});
+
 self.addEventListener('fetch', (event) => {
-    // Estrategia: Solo red por ahora (o lo que decida el navegador)
-    // Esto es solo para que Chrome detecte que hay un SW
+    // Estrategia: Siempre red primero (Network First) para garantizar contenido fresco
+    event.respondWith(
+        fetch(event.request).catch(() => caches.match(event.request))
+    );
 });
