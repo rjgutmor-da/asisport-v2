@@ -105,7 +105,8 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha) => {
 
     asistencias.forEach(({ alumnoId, estado }) => {
         if (existentesMap.has(alumnoId)) {
-            updates.push({ id: existentesMap.get(alumnoId), alumno_id: alumnoId, estado, entrenador_id: entrenadorId });
+            // Editamos estado pero mantenemos el entrenador_id original para no quitarle la autoría a quien lo creó
+            updates.push({ id: existentesMap.get(alumnoId), alumno_id: alumnoId, estado });
         } else {
             inserts.push({ alumno_id: alumnoId, fecha, estado, entrenador_id: entrenadorId });
         }
@@ -115,13 +116,14 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha) => {
 
     if (updates.length > 0) {
         const updatePromises = updates.map(u =>
-            supabase.from('asistencias_normales').update({ estado: u.estado, entrenador_id: u.entrenador_id }).eq('id', u.id)
+            supabase.from('asistencias_normales').update({ estado: u.estado }).eq('id', u.id)
         );
         const updateResults = await Promise.allSettled(updatePromises);
         updateResults.forEach((r, i) => {
             if (r.status === 'fulfilled' && !r.value.error) resultados.exitosos++;
             else {
                 resultados.fallidos++;
+                console.error("Error actualizando asistencia DB:", r.value?.error);
                 resultados.errores.push({ alumnoId: updates[i].alumno_id, error: r.value?.error?.message || 'Error' });
             }
         });
