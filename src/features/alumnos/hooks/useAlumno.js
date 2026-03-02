@@ -217,12 +217,12 @@ export const useAlumno = (id) => {
             }
 
             // 3. Actualizar datos del alumno en la tabla principal
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('alumnos')
                 .update({
                     nombres: formData.nombres,
                     apellidos: formData.apellidos,
-                    fecha_nacimiento: formData.fecha_nacimiento,
+                    fecha_nacimiento: formData.fecha_nacimiento === "" ? null : formData.fecha_nacimiento,
                     carnet_identidad: formData.carnet_identidad,
                     nombre_padre: formData.nombre_padre,
                     telefono_padre: formData.telefono_padre,
@@ -231,15 +231,20 @@ export const useAlumno = (id) => {
                     telefono_deportista: formData.telefono_deportista,
                     colegio: formData.colegio,
                     direccion: formData.direccion,
-                    cancha_id: formData.cancha_id,
-                    horario_id: formData.horario_id,
-                    profesor_asignado_id: formData.profesor_asignado_id,
+                    cancha_id: formData.cancha_id === "" ? null : formData.cancha_id,
+                    horario_id: formData.horario_id === "" ? null : formData.horario_id,
+                    profesor_asignado_id: formData.profesor_asignado_id === "" ? null : formData.profesor_asignado_id,
                     es_arquero: formData.es_arquero,
                     foto_url: fotoUrl
                 })
-                .eq('id', id);
+                .eq('id', id)
+                .select();
 
             if (error) throw error;
+
+            if (!data || data.length === 0) {
+                throw new Error('No se pudo actualizar el alumno. Es posible que las políticas de seguridad (RLS) impidan la modificación.');
+            }
 
             // 4. Recargar los datos del alumno para reflejar los cambios
             await recargarAlumno(id);

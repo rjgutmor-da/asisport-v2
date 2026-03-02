@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
@@ -6,7 +6,19 @@ const FileInput = ({ label, name, onChange, error }) => {
     const [preview, setPreview] = useState(null);
     const [localError, setLocalError] = useState('');
     const [compressing, setCompressing] = useState(false);
+
+    // Estados para la webcam
+    const [showWebcam, setShowWebcam] = useState(false);
+    const videoRef = useRef(null);
+    const streamRef = useRef(null);
     const inputRef = useRef(null);
+
+    // Limpiar la cámara al desmontar
+    useEffect(() => {
+        return () => {
+            stopCamera();
+        };
+    }, []);
 
     const compressImage = async (file) => {
         const TARGET_KB = 100 * 1024; // 100 KB target
@@ -40,11 +52,7 @@ const FileInput = ({ label, name, onChange, error }) => {
         }
     };
 
-    const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        setLocalError('');
-        setPreview(null);
-
+    const processFile = async (file) => {
         if (!file) {
             onChange(null);
             return;
@@ -56,19 +64,14 @@ const FileInput = ({ label, name, onChange, error }) => {
         }
 
         try {
-            // Siempre comprimir a ≤100 KB antes de pasar al padre
             setCompressing(true);
-            let fileToProcess;
-            try {
-                fileToProcess = await compressImage(file);
-            } finally {
-                setCompressing(false);
-            }
+            const fileToProcess = await compressImage(file);
 
             const reader = new FileReader();
             reader.onload = (event) => {
                 setPreview(event.target.result);
                 onChange(fileToProcess);
+                setCompressing(false);
             };
             reader.readAsDataURL(fileToProcess);
         } catch (err) {
@@ -78,14 +81,15 @@ const FileInput = ({ label, name, onChange, error }) => {
         }
     };
 
-    const triggerInput = (mode) => {
+    const handleFileChange = (e) => {
+        setLocalError('');
+        setPreview(null);
+        processFile(e.target.files[0]);
+    };
+
+    const triggerInput = () => {
         if (!inputRef.current) return;
         inputRef.current.value = '';
-        if (mode === 'camera') {
-            inputRef.current.setAttribute('capture', 'user');
-        } else {
-            inputRef.current.removeAttribute('capture');
-        }
         inputRef.current.click();
     };
 
@@ -94,6 +98,53 @@ const FileInput = ({ label, name, onChange, error }) => {
         setLocalError('');
         onChange(null);
         if (inputRef.current) inputRef.current.value = '';
+        stopCamera();
+    };
+
+    // --- Funciones de Webcam ---
+    const startCamera = async () => {
+        setLocalError('');
+        setPreview(null);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            streamRef.current = stream;
+            setShowWebcam(true);
+
+            // Esperar a que el video se renderice para asignarle el stream
+            setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.play();
+                }
+            }, 100);
+        } catch (err) {
+            console.error("Error al acceder a la cámara:", err);
+            setLocalError("No se pudo acceder a la cámara. Verifica los permisos.");
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setShowWebcam(false);
+    };
+
+    const captureSnapshot = () => {
+        if (!videoRef.current) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(async (blob) => {
+            stopCamera();
+            const file = new File([blob], `camara_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            processFile(file);
+        }, 'image/jpeg', 0.9);
     };
 
     return (
@@ -101,15 +152,41 @@ const FileInput = ({ label, name, onChange, error }) => {
             {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
 
             <div className={`
-                relative flex flex-col items-center justify-center w-full h-48 
-                border-2 border-dashed rounded-xl bg-surface/50 overflow-hidden
+                relative flex flex-col items-center justify-center w-full min-h-[12rem] h-48 
+                border-2 border-dashed rounded-xl overflow-hidden
                 transition-all duration-300
-                ${(error || localError) ? 'border-error bg-error/5' : 'border-border hover:border-primary/50'}
+                ${(error || localError) ? 'border-error bg-error/5' : 'border-border bg-surface/50 hover:border-primary/50'}
+                ${showWebcam ? 'bg-black' : ''}
             `}>
                 {compressing ? (
                     <div className="flex flex-col items-center gap-3">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-xs font-bold text-primary animate-pulse uppercase tracking-widest">Optimizando...</p>
+                        <p className="text-xs font-bold text-primary animate-pulse uppercase tracking-widest">Procesando...</p>
+                    </div>
+                ) : showWebcam ? (
+                    <div className="relative w-full h-full flex items-center justify-center bg-black">
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-4 flex gap-4">
+                            <button
+                                type="button"
+                                onClick={stopCamera}
+                                className="px-4 py-2 bg-error text-white font-bold rounded-full text-xs hover:bg-red-600 shadow-lg transition-transform active:scale-95"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={captureSnapshot}
+                                className="px-6 py-2 bg-primary text-white font-bold rounded-full text-sm hover:scale-105 shadow-xl transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                <Camera size={18} /> Tomar Foto
+                            </button>
+                        </div>
                     </div>
                 ) : preview ? (
                     <div className="relative w-full h-full p-2 bg-black/20 backdrop-blur-sm">
@@ -127,8 +204,8 @@ const FileInput = ({ label, name, onChange, error }) => {
                         <div className="flex gap-4 w-full max-w-[320px]">
                             <button
                                 type="button"
-                                onClick={() => triggerInput('gallery')}
-                                className="flex-1 flex flex-col items-center justify-center gap-3 p-5 bg-surface border-2 border-border/50 rounded-2xl hover:border-primary group transition-all duration-300 active:scale-95 shadow-lg"
+                                onClick={triggerInput}
+                                className="flex-1 flex flex-col items-center justify-center gap-3 p-5 bg-surface border-2 border-border/50 rounded-2xl hover:border-primary group transition-all duration-300 active:scale-95 shadow-lg relative overflow-hidden"
                             >
                                 <Upload className="w-7 h-7 text-text-secondary group-hover:text-primary transition-transform group-hover:-translate-y-1" />
                                 <span className="text-[11px] font-black uppercase tracking-wider text-text-secondary group-hover:text-primary">Subir</span>
@@ -136,7 +213,7 @@ const FileInput = ({ label, name, onChange, error }) => {
 
                             <button
                                 type="button"
-                                onClick={() => triggerInput('camera')}
+                                onClick={startCamera}
                                 className="flex-1 flex flex-col items-center justify-center gap-3 p-5 bg-surface border-2 border-border/50 rounded-2xl hover:border-primary group transition-all duration-300 active:scale-95 shadow-lg"
                             >
                                 <Camera className="w-7 h-7 text-text-secondary group-hover:text-primary transition-transform group-hover:-translate-y-1" />
@@ -144,11 +221,12 @@ const FileInput = ({ label, name, onChange, error }) => {
                             </button>
                         </div>
                         <div>
-                            <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-black">AI Auto-Compression</p>
-                            <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">Target: Under 200 KB</p>
+                            <p className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-black">AI Auto-Compression</p>
+                            <p className="text-[9px] text-text-secondary/70 font-bold uppercase tracking-widest">Target: Under 200 KB</p>
                         </div>
                     </div>
                 )}
+
                 <input
                     ref={inputRef}
                     id={name}
