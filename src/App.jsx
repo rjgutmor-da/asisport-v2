@@ -10,6 +10,7 @@ import Estadisticas from './pages/Estadisticas'
 import AdminUsuarios from './pages/admin/AdminUsuarios'
 import Configuraciones from './pages/admin/Configuraciones'
 import PanelEscuela from './pages/admin/PanelEscuela'
+import GestorSucursales from './pages/admin/GestorSucursales'
 import Asistencia from './pages/Asistencia'
 import { ToastProvider } from './components/ui/Toast'
 import { AuthProvider } from './context/AuthContext'
@@ -84,8 +85,14 @@ function App() {
                         } />
 
                         <Route path="/admin/escuela" element={
-                            <ProtectedRoute allowedRoles={['SuperAdministrador']}>
+                            <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
                                 <PanelEscuela />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/admin/sucursales" element={
+                            <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
+                                <GestorSucursales />
                             </ProtectedRoute>
                         } />
 

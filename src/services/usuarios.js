@@ -7,11 +7,26 @@ export const getUsuarios = async () => {
 
     const escuelaId = await obtenerEscuelaId();
 
-    const { data, error } = await supabase
+    // Obtener perfil extra para saber rol y sucursal
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('rol, sucursal_id')
+        .eq('id', user.id)
+        .single();
+
+    let query = supabase
         .from('usuarios')
         .select('*')
-        .eq('escuela_id', escuelaId)
-        .order('nombres', { ascending: true });
+        .eq('escuela_id', escuelaId);
+
+    // Filtrar por sucursal si es Administrador o Entrenador
+    if (userProfile && userProfile.rol !== 'Dueño' && userProfile.rol !== 'SuperAdministrador') {
+        if (userProfile.sucursal_id) {
+            query = query.eq('sucursal_id', userProfile.sucursal_id);
+        }
+    }
+
+    const { data, error } = await query.order('nombres', { ascending: true });
 
     if (error) throw error;
     return data;
@@ -42,6 +57,20 @@ export const toggleUserStatus = async (userId, currentStatus) => {
     const { data, error } = await supabase
         .from('usuarios')
         .update({ activo: !currentStatus })
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+export const updateUserSucursal = async (userId, sucursalId) => {
+    // Si sucursalId es vacío, seteamos null
+    const newValue = sucursalId ? sucursalId : null;
+    const { data, error } = await supabase
+        .from('usuarios')
+        .update({ sucursal_id: newValue })
         .eq('id', userId)
         .select()
         .single();

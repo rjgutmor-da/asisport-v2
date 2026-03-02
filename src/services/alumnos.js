@@ -40,11 +40,18 @@ export const createAlumno = async (alumnoData, photoFile) => {
     const repError = validateRepresentante(alumnoData);
     if (repError) throw new Error(repError);
 
-    // Obtener usuario actual (Entrenador)
+    // Obtener usuario actual (Entrenador o Admin)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Inicia sesión nuevamente.');
 
     const escuelaId = await obtenerEscuelaId();
+
+    // Obtener sucursal_id del usuario actual
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('sucursal_id')
+        .eq('id', user.id)
+        .single();
 
     // 2. Validación de duplicados (Carnet de Identidad)
     if (alumnoData.carnet_identidad) {
@@ -103,6 +110,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
         telefono_deportista: formatPhone(alumnoData.telefono_deportista),
         colegio: alumnoData.colegio || null,
         direccion: alumnoData.direccion || null,
+        sucursal_id: alumnoData.sucursal_id || userProfile?.sucursal_id || null,
         cancha_id: alumnoData.cancha_id,
         horario_id: alumnoData.horario_id,
         profesor_asignado_id: alumnoData.profesor_asignado_id, // ✅ Guardar profesor asignado
@@ -163,6 +171,13 @@ export const getAlumnos = async (filtros = {}) => {
 
     const escuelaId = await obtenerEscuelaId();
 
+    // Obtener perfil para sacar la sucursal
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('sucursal_id')
+        .eq('id', user.id)
+        .single();
+
     // Query principal con JOINs (sin descargar arrays completos de asistencias)
     let query = supabase
         .from('alumnos')
@@ -190,6 +205,13 @@ export const getAlumnos = async (filtros = {}) => {
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
+
+    // Filtro por sucursal (para Administradores y Entrenadores)
+    if (userRole !== 'Dueño' && userRole !== 'SuperAdministrador') {
+        if (userProfile?.sucursal_id) {
+            query = query.eq('sucursal_id', userProfile.sucursal_id);
+        }
+    }
 
     // Filtro por rol: Entrenador solo ve sus alumnos asignados
     if (userRole === 'Entrenador' && userId) {
@@ -330,6 +352,12 @@ export const getAlumnosArchivados = async (userRol, userId) => {
 
     const escuelaId = await obtenerEscuelaId();
 
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('sucursal_id')
+        .eq('id', user.id)
+        .single();
+
     let query = supabase
         .from('alumnos')
         .select(`
@@ -354,8 +382,15 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', true)
-        .neq('estado', 'ELIMINADO SISTEMA')
-        .order('apellidos', { ascending: true });
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    if (userRol !== 'Dueño' && userRol !== 'SuperAdministrador') {
+        if (userProfile?.sucursal_id) {
+            query = query.eq('sucursal_id', userProfile.sucursal_id);
+        }
+    }
+
+    query = query.order('apellidos', { ascending: true });
 
     // Si es entrenador, solo ve sus alumnos archivados
     if (userRol === 'Entrenador') {

@@ -100,8 +100,8 @@ const Dashboard = () => {
                         />
                     )}
 
-                    {/* Módulo de Configuraciones (Admin/SuperAdmin) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador') && (
+                    {/* Módulo de Configuraciones (Admin/Dueño/SuperAdmin) */}
+                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
                         <ModuleCard
                             icon={<Settings size={60} className="text-primary" />}
                             label="Configuraciones"
@@ -118,8 +118,8 @@ const Dashboard = () => {
                         size="compact"
                     />
 
-                    {/* Módulo de Panel Escuela (Solo SuperAdmin) */}
-                    {role === 'SuperAdministrador' && (
+                    {/* Módulo de Panel Escuela (Solo Dueño/SuperAdmin) */}
+                    {(role === 'SuperAdministrador' || role === 'Dueño') && (
                         <ModuleCard
                             icon={<School size={60} />}
                             label="Panel de Escuela"

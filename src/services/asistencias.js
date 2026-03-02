@@ -18,10 +18,10 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada.');
 
-    // Verificar rol del usuario
+    // Verificar rol del usuario y sucursal
     const { data: usuarioDB, error: userError } = await supabase
         .from('usuarios')
-        .select('rol')
+        .select('rol, sucursal_id')
         .eq('id', user.id)
         .single();
 
@@ -49,8 +49,15 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA')
-        .eq('profesor_asignado_id', targetEntrenadorId)
-        .order('apellidos', { ascending: true });
+        .eq('profesor_asignado_id', targetEntrenadorId);
+
+    if (usuarioDB.rol !== 'Dueño' && usuarioDB.rol !== 'SuperAdministrador') {
+        if (usuarioDB.sucursal_id) {
+            query = query.eq('sucursal_id', usuarioDB.sucursal_id);
+        }
+    }
+
+    query = query.order('apellidos', { ascending: true });
 
     if (canchaId) query = query.eq('cancha_id', canchaId);
     if (horarioId) query = query.eq('horario_id', horarioId);
@@ -146,6 +153,12 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { existe: false, cantidad: 0 };
 
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('rol, sucursal_id')
+        .eq('id', user.id)
+        .single();
+
     // Si no hay filtros de cancha/horario, verificar globalmente (para admins)
     if (!canchaId && !horarioId) {
         const { count, error } = await supabase
@@ -164,6 +177,12 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
         .select('id')
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
+
+    if (userProfile && userProfile.rol !== 'Dueño' && userProfile.rol !== 'SuperAdministrador') {
+        if (userProfile.sucursal_id) {
+            alumnosQuery = alumnosQuery.eq('sucursal_id', userProfile.sucursal_id);
+        }
+    }
 
     if (canchaId) alumnosQuery = alumnosQuery.eq('cancha_id', canchaId);
     if (horarioId) alumnosQuery = alumnosQuery.eq('horario_id', horarioId);

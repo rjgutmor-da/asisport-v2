@@ -113,6 +113,7 @@ export const AuthProvider = ({ children }) => {
         role,
         loading,
         escuelaId: userProfile?.escuela_id || null,
+        sucursalId: userProfile?.sucursal_id || null, // Exportar sucursalId
         isAdmin: role === 'Administrador' || role === 'Dueño' || role === 'SuperAdministrador',
         isOwner: role === 'Dueño',
         isCoach: role === 'Entrenador',

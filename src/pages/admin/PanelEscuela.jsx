@@ -180,6 +180,13 @@ const PanelEscuela = () => {
                             <p className="text-text-secondary text-sm">Canchas y horarios</p>
                         </button>
                         <button
+                            onClick={() => navigate('/admin/sucursales')}
+                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
+                        >
+                            <p className="font-semibold">Sucursales</p>
+                            <p className="text-text-secondary text-sm">Gestionar sedes y ubicaciones</p>
+                        </button>
+                        <button
                             onClick={() => navigate('/alumnos')}
                             className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
                         >

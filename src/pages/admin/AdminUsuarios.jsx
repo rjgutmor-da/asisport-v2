@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserCog, Shield, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
-import { getUsuarios, updateUserRole, toggleUserStatus } from '../../services/usuarios';
+import { getUsuarios, updateUserRole, toggleUserStatus, updateUserSucursal } from '../../services/usuarios';
+import { getSucursales } from '../../services/sucursales';
 import Select from '../../components/ui/Select';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +13,7 @@ const AdminUsuarios = () => {
     const { user: currentUser } = useAuth(); // Para no editarse a sí mismo si no quiere
 
     const [usuarios, setUsuarios] = useState([]);
+    const [sucursales, setSucursales] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const rolesOptions = [
@@ -22,16 +24,20 @@ const AdminUsuarios = () => {
     ];
 
     useEffect(() => {
-        loadUsuarios();
+        loadData();
     }, []);
 
-    const loadUsuarios = async () => {
+    const loadData = async () => {
         try {
-            const data = await getUsuarios();
-            setUsuarios(data);
+            const [usuariosData, sucursalesData] = await Promise.all([
+                getUsuarios(),
+                getSucursales()
+            ]);
+            setUsuarios(usuariosData);
+            setSucursales(sucursalesData || []);
         } catch (error) {
             console.error(error);
-            addToast('Error al cargar usuarios', 'error');
+            addToast('Error al cargar datos', 'error');
         } finally {
             setLoading(false);
         }
@@ -50,10 +56,21 @@ const AdminUsuarios = () => {
 
             await updateUserRole(userId, newRole);
             addToast('Rol actualizado correctamente', 'success');
-            loadUsuarios();
+            loadData();
         } catch (error) {
             console.error(error);
             addToast(error.message || 'Error al actualizar rol', 'error');
+        }
+    };
+
+    const handleSucursalChange = async (userId, sucursalId) => {
+        try {
+            await updateUserSucursal(userId, sucursalId);
+            addToast('Sucursal actualizada correctamente', 'success');
+            loadData();
+        } catch (error) {
+            console.error(error);
+            addToast(error.message || 'Error al actualizar sucursal', 'error');
         }
     };
 
@@ -61,7 +78,7 @@ const AdminUsuarios = () => {
         try {
             await toggleUserStatus(userId, currentStatus);
             addToast(`Usuario ${currentStatus ? 'desactivado' : 'activado'}`, 'success');
-            loadUsuarios();
+            loadData();
         } catch (error) {
             console.error(error);
             addToast('Error al cambiar estado', 'error');
@@ -101,17 +118,30 @@ const AdminUsuarios = () => {
                                         <div className="font-medium text-white">{u.nombres} {u.apellidos}</div>
                                         <div className="text-sm text-text-secondary">{u.email}</div>
                                     </td>
-                                    <td className="p-4">
-                                        <select
-                                            value={u.rol || ''}
-                                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                            className="bg-background border border-border text-white text-sm rounded p-2 focus:border-primary outline-none"
-                                            disabled={u.id === currentUser?.id} // Evitar auto-quitarse permisos accidentalmente (básico)
-                                        >
-                                            {rolesOptions.map(opt => (
-                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex flex-col gap-2">
+                                            <select
+                                                value={u.rol || ''}
+                                                onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                                className="bg-background border border-border text-white text-sm rounded p-2 focus:border-primary outline-none"
+                                                disabled={u.id === currentUser?.id}
+                                            >
+                                                {rolesOptions.map(opt => (
+                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            <select
+                                                value={u.sucursal_id || ''}
+                                                onChange={(e) => handleSucursalChange(u.id, e.target.value)}
+                                                className="bg-background border border-border text-white text-sm rounded p-2 focus:border-primary outline-none"
+                                                disabled={u.id === currentUser?.id || u.rol === 'Dueño'}
+                                            >
+                                                <option value="">Todas las sucursales</option>
+                                                {sucursales.map(suc => (
+                                                    <option key={suc.id} value={suc.id}>{suc.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center">
                                         {u.activo ? (
@@ -142,11 +172,11 @@ const AdminUsuarios = () => {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+                    </tbody>
+                </table>
         </div>
+            </main >
+        </div >
     );
 };
 
