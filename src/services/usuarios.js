@@ -78,3 +78,55 @@ export const updateUserSucursal = async (userId, sucursalId) => {
     if (error) throw error;
     return data;
 };
+
+export const createUserDirectly = async (userData) => {
+    // 1. Obtener contexto del usuario actual
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado');
+
+    const escuelaId = await obtenerEscuelaId();
+
+    // 2. Cliente secundario para no cerrar la sesión actual
+    const { createClient } = await import('@supabase/supabase-js');
+    const tempClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+
+    // 3. Crear usuario en Auth de Supabase
+    const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: userData.email.trim(),
+        password: userData.password,
+    });
+
+    if (authError) {
+        throw new Error('Error al crear usuario en Supabase: ' + authError.message);
+    }
+
+    if (!authData.user) {
+        throw new Error('No se devolvió un usuario tras el registro.');
+    }
+
+    // 4. Upsert en la tabla 'usuarios' (por si un trigger ya lo creó)
+    const newUserData = {
+        id: authData.user.id,
+        email: userData.email.trim(),
+        nombres: userData.nombres.trim(),
+        apellidos: userData.apellidos.trim(),
+        rol: userData.rol,
+        sucursal_id: userData.sucursal_id || null,
+        escuela_id: escuelaId,
+        activo: true
+    };
+
+    const { error: dbError } = await supabase
+        .from('usuarios')
+        .upsert(newUserData);
+
+    if (dbError) {
+        throw new Error('El usuario se creó pero hubo un error al guardar sus datos de perfil: ' + dbError.message);
+    }
+
+    return true;
+};
