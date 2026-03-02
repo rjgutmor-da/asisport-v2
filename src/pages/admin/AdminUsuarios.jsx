@@ -118,6 +118,7 @@ const AdminUsuarios = () => {
                                         <div className="font-medium text-white">{u.nombres} {u.apellidos}</div>
                                         <div className="text-sm text-text-secondary">{u.email}</div>
                                     </td>
+                                    <td className="p-4">
                                         <div className="flex flex-col gap-2">
                                             <select
                                                 value={u.rol || ''}
@@ -129,7 +130,7 @@ const AdminUsuarios = () => {
                                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                 ))}
                                             </select>
-                                            
+
                                             <select
                                                 value={u.sucursal_id || ''}
                                                 onChange={(e) => handleSucursalChange(u.id, e.target.value)}
@@ -172,9 +173,9 @@ const AdminUsuarios = () => {
                                     </td>
                                 </tr>
                             ))}
-                    </tbody>
-                </table>
-        </div>
+                        </tbody>
+                    </table>
+                </div>
             </main >
         </div >
     );
