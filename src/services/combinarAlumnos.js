@@ -171,10 +171,9 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     }
 
 
-    // 7. Archivar el alumno origen directamente (más seguro que intentar eliminar)
     const { error: errArchivar } = await supabase
         .from('alumnos')
-        .update({ archivado: true, estado: 'Fusionado' })
+        .update({ archivado: true })
         .eq('id', origenId);
 
     if (errArchivar) {
