@@ -169,7 +169,7 @@ const PanelEscuela = () => {
                             onClick={() => navigate('/admin/usuarios')}
                             className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
                         >
-                            <p className="font-semibold">Administrar Usuarios</p>
+                            <p className="font-semibold">Admin Usuarios</p>
                             <p className="text-text-secondary text-sm">Gestionar roles y permisos</p>
                         </button>
                         <button

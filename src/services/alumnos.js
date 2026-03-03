@@ -412,3 +412,54 @@ export const getAlumnosArchivados = async (userRol, userId) => {
     }));
 };
 
+/**
+ * Verifica si existen alumnos con la misma fecha de nacimiento y similitud en nombres/apellidos
+ * @param {string} nombres - Nombres del nuevo alumno
+ * @param {string} apellidos - Apellidos del nuevo alumno
+ * @param {string} fechaNacimiento - Fecha de nacimiento (YYYY-MM-DD)
+ * @returns {Promise<Array>} - Lista de posibles duplicados encontrados
+ */
+export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimiento) => {
+    try {
+        const escuelaId = await obtenerEscuelaId();
+
+        // 1. Buscar todos los alumnos activos en la escuela con la misma fecha de nacimiento
+        const { data: posibles, error } = await supabase
+            .from('alumnos')
+            .select('id, nombres, apellidos, fecha_nacimiento')
+            .eq('escuela_id', escuelaId)
+            .eq('fecha_nacimiento', fechaNacimiento)
+            .is('archivado', false)
+            .neq('estado', 'ELIMINADO SISTEMA');
+
+        if (error) throw error;
+        if (!posibles || posibles.length === 0) return [];
+
+        // 2. Normalizar el texto ingresado
+        const normalize = (str) => {
+            return str
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Quitar tildes
+                .trim();
+        };
+
+        const inputNormalizado = normalize(`${nombres} ${apellidos}`);
+        const palabrasInput = inputNormalizado.split(/\s+/).filter(p => p.length > 2); // Solo palabras de +2 letras
+
+        // 3. Filtrar aquellos que tengan coincidencia de palabras
+        const duplicadosEncontrados = posibles.filter(alumno => {
+            const alumnoNormalizado = normalize(`${alumno.nombres} ${alumno.apellidos}`);
+            const palabrasAlumno = alumnoNormalizado.split(/\s+/);
+
+            // Verifica si alguna palabra significativa del input está en el nombre del alumno existente
+            return palabrasInput.some(palabra => palabrasAlumno.includes(palabra));
+        });
+
+        return duplicadosEncontrados;
+    } catch (error) {
+        console.error("Error al buscar posibles duplicados:", error);
+        return []; // En caso de error, permitimos continuar sin bloquear
+    }
+};
+

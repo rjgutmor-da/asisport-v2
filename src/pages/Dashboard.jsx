@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { isOwner, role } = useAuth();
+    const { role } = useAuth();
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -30,8 +30,8 @@ const Dashboard = () => {
                     <button
                         className="p-2 hover:bg-surface rounded-md transition-fast"
                         onClick={() => {
-                            if (role === 'Dueño') {
-                                navigate('/admin/usuarios');
+                            if (role === 'SuperAdministrador') {
+                                navigate('/admin/escuela');
                             } else {
                                 navigate('/admin/configuraciones');
                             }
@@ -90,15 +90,7 @@ const Dashboard = () => {
                         />
                     )}
 
-                    {/* Módulo de Admin Usuarios (Solo Dueño) */}
-                    {isOwner && (
-                        <ModuleCard
-                            icon={<Settings size={60} />}
-                            label="Admin Usuarios"
-                            onClick={() => navigate('/admin/usuarios')}
-                            size="compact"
-                        />
-                    )}
+
 
                     {/* Módulo de Configuraciones (Admin/Dueño/SuperAdmin) */}
                     {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
@@ -118,8 +110,8 @@ const Dashboard = () => {
                         size="compact"
                     />
 
-                    {/* Módulo de Panel Escuela (Solo Dueño/SuperAdmin) */}
-                    {(role === 'SuperAdministrador' || role === 'Dueño') && (
+                    {/* Módulo de Panel Escuela (Solo SuperAdmin) */}
+                    {role === 'SuperAdministrador' && (
                         <ModuleCard
                             icon={<School size={60} />}
                             label="Panel de Escuela"

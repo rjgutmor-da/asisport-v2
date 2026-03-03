@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
-import { createAlumno } from '../../../services/alumnos';
+import { createAlumno, checkPosiblesDuplicados } from '../../../services/alumnos';
 
 /**
  * Hook para manejar la lógica de registro de alumnos
@@ -124,6 +124,25 @@ export const useRegistroAlumno = (onSuccess) => {
 
         setSubmitting(true);
         try {
+            // Validación de posibles duplicados
+            const duplicados = await checkPosiblesDuplicados(
+                formData.nombres,
+                formData.apellidos,
+                formData.fecha_nacimiento
+            );
+
+            if (duplicados.length > 0) {
+                const nombresDuplicados = duplicados.map(d => `${d.nombres} ${d.apellidos}`).join(', ');
+                const confirmar = window.confirm(
+                    `⚠️ Posible alumno duplicado detectado.\n\nYa existe(n) un alumno(s) en la escuela con nombre o apellido similar y la misma fecha de nacimiento:\n- ${nombresDuplicados}\n\n¿Estás seguro de que deseas registrar este alumno?`
+                );
+
+                if (!confirmar) {
+                    setSubmitting(false);
+                    return; // El usuario canceló el registro
+                }
+            }
+
             const newAlumno = await createAlumno(formData, photoFile);
             if (onSuccess) onSuccess(newAlumno);
         } catch (error) {
