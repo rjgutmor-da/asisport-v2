@@ -30,7 +30,7 @@ const Dashboard = () => {
                     <button
                         className="p-2 hover:bg-surface rounded-md transition-fast"
                         onClick={() => {
-                            if (role === 'SuperAdministrador') {
+                            if (role === 'SuperAdministrador' || role === 'Dueño') {
                                 navigate('/admin/escuela');
                             } else {
                                 navigate('/admin/configuraciones');
@@ -110,8 +110,8 @@ const Dashboard = () => {
                         size="compact"
                     />
 
-                    {/* Módulo de Panel Escuela (Solo SuperAdmin) */}
-                    {role === 'SuperAdministrador' && (
+                    {/* Módulo de Panel Escuela (Solo SuperAdmin/Dueño) */}
+                    {(role === 'SuperAdministrador' || role === 'Dueño') && (
                         <ModuleCard
                             icon={<School size={60} />}
                             label="Panel de Escuela"

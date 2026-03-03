@@ -134,32 +134,7 @@ const PanelEscuela = () => {
                     </div>
                 </div>
 
-                {/* Información sobre Gestión de Usuarios */}
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
-                    <div className="flex gap-3">
-                        <Info size={24} className="text-blue-400 flex-shrink-0 mt-1" />
-                        <div>
-                            <h3 className="text-lg font-semibold text-white mb-2">Gestión de Usuarios</h3>
-                            <p className="text-text-secondary text-sm mb-3">
-                                Para agregar nuevos usuarios a la escuela, sigue estos pasos:
-                            </p>
-                            <ol className="list-decimal list-inside space-y-2 text-text-secondary text-sm">
-                                <li>Ve al <b className="text-white">Dashboard de Supabase</b></li>
-                                <li>Navega a <b className="text-white">Authentication → Users</b></li>
-                                <li>Haz clic en <b className="text-white">"Invite User"</b></li>
-                                <li>Ingresa el <b className="text-white">email del usuario</b></li>
-                                <li>El usuario recibirá un email de invitación</li>
-                                <li>Después asigna el rol en <b className="text-white">Admin → Usuarios</b></li>
-                            </ol>
-                            <div className="mt-4 p-3 bg-warning/10 border border-warning/30 rounded">
-                                <p className="text-warning text-xs">
-                                    <b>Nota:</b> La funcionalidad de invitación directa desde esta interfaz requiere configuración adicional
-                                    con Edge Functions de Supabase. Por ahora, usa el método manual descrito arriba.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 {/* Acceso rápido */}
                 <div className="bg-surface border border-border rounded-lg p-6">

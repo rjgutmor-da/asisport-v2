@@ -79,13 +79,13 @@ function App() {
                         } />
 
                         <Route path="/admin/usuarios" element={
-                            <ProtectedRoute allowedRoles={['SuperAdministrador']}>
+                            <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
                                 <AdminUsuarios />
                             </ProtectedRoute>
                         } />
 
                         <Route path="/admin/escuela" element={
-                            <ProtectedRoute allowedRoles={['SuperAdministrador']}>
+                            <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
                                 <PanelEscuela />
                             </ProtectedRoute>
                         } />
