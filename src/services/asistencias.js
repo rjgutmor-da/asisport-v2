@@ -81,7 +81,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
     }));
 };
 
-export const registrarAsistenciasPorLote = async (asistencias, fecha) => {
+export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntrenadorId = null) => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const [y, m, d] = fecha.split('-').map(Number);
@@ -93,7 +93,15 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha) => {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada.');
-    const entrenadorId = user.id;
+
+    let entrenadorId = user.id;
+
+    if (targetEntrenadorId && targetEntrenadorId !== user.id) {
+        const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
+        if (usuarioDB && ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol)) {
+            entrenadorId = targetEntrenadorId;
+        }
+    }
 
     const alumnoIds = asistencias.map(a => a.alumnoId);
     if (alumnoIds.length === 0) return { exitosos: 0, fallidos: 0 };

@@ -203,10 +203,11 @@ export const useAsistencias = () => {
                 // O si es reenvío y borró todo...
             }
 
-            const resultados = await registrarAsistenciasPorLote(asistencias, selectedDate);
+            const resultados = await registrarAsistenciasPorLote(asistencias, selectedDate, selectedEntrenador);
 
             if (resultados.fallidos > 0) {
-                addToast(`Hubo errores: ${resultados.fallidos} fallidos`, 'warning');
+                const errorStr = resultados.errores.length > 0 ? JSON.stringify(resultados.errores[0]) : '';
+                addToast(`Hubo errores: ${resultados.fallidos} fallidos. Detalle: ${errorStr}`, 'warning');
             } else {
                 // Éxito
                 if (enviosRealizados === 1) {
