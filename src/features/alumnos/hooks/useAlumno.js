@@ -3,6 +3,7 @@ import { useToast } from '../../../components/ui/Toast';
 import { supabase } from '../../../lib/supabaseClient';
 import imageCompression from 'browser-image-compression';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
+import { getSucursales } from '../../../services/sucursales';
 
 /**
  * Hook para manejar la lógica de detalle y edición de un alumno.
@@ -24,6 +25,7 @@ export const useAlumno = (id) => {
     const [canchas, setCanchas] = useState([]);
     const [horarios, setHorarios] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [sucursales, setSucursales] = useState([]);
 
     // Estado del formulario de edición
     const [formData, setFormData] = useState({});
@@ -72,15 +74,17 @@ export const useAlumno = (id) => {
                 setFormData(alumnoConTotales);
 
                 // Cargar datos maestros en paralelo
-                const [canchasData, horariosData, entrenadoresData] = await Promise.all([
+                const [canchasData, horariosData, entrenadoresData, sucursalesData] = await Promise.all([
                     getCanchas(),
                     getHorarios(),
-                    getEntrenadores()
+                    getEntrenadores(),
+                    getSucursales()
                 ]);
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 // Solo entrenadores (ya filtrados en el servicio), no administradores
                 setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
+                setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
 
             } catch (error) {
                 console.error(error);
@@ -228,12 +232,13 @@ export const useAlumno = (id) => {
                     telefono_padre: formData.telefono_padre,
                     nombre_madre: formData.nombre_madre,
                     telefono_madre: formData.telefono_madre,
-                    telefono_deportista: formData.telefono_deportista,
+                    whatsapp_preferido: formData.whatsapp_preferido,
                     colegio: formData.colegio,
                     direccion: formData.direccion,
                     cancha_id: formData.cancha_id === "" ? null : formData.cancha_id,
                     horario_id: formData.horario_id === "" ? null : formData.horario_id,
                     profesor_asignado_id: formData.profesor_asignado_id === "" ? null : formData.profesor_asignado_id,
+                    sucursal_id: formData.sucursal_id === "" ? null : formData.sucursal_id,
                     es_arquero: formData.es_arquero,
                     foto_url: fotoUrl
                 })
@@ -294,7 +299,7 @@ export const useAlumno = (id) => {
         saving,
         formData,
         photoFile,
-        maestros: { canchas, horarios, entrenadores },
+        maestros: { canchas, horarios, entrenadores, sucursales },
 
         setEditing,
         handleChange,

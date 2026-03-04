@@ -72,7 +72,7 @@ const Login = () => {
                 <div className="text-center">
                     <h1 className="text-3xl font-black text-white mb-2">AsiSport</h1>
                     <p className="text-text-secondary">
-                        Ingresa a tu cuenta para gestionar tu escuela
+                        Toma asistencia en 60 segundos y vuelve a entrenar
                     </p>
                 </div>
 

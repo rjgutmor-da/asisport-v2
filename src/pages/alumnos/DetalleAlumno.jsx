@@ -33,7 +33,7 @@ const DetalleAlumno = () => {
         saving,
         formData,
         photoFile,
-        maestros: { canchas, horarios, entrenadores },
+        maestros: { canchas, horarios, entrenadores, sucursales },
         setEditing,
         handleChange,
         setPhotoFile,
@@ -309,6 +309,38 @@ const DetalleAlumno = () => {
                                 disabled={!editing}
                             />
                         </div>
+
+                        <div className="mt-4 pt-2 border-t border-border/50">
+                            <p className="text-sm font-medium text-text-secondary mb-3">
+                                ¿Qué número se usará para contacto por WhatsApp?
+                            </p>
+                            <div className="flex items-center gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="whatsapp_preferido"
+                                        value="padre"
+                                        checked={formData.whatsapp_preferido === 'padre'}
+                                        onChange={handleChange}
+                                        disabled={!editing}
+                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary disabled:opacity-50"
+                                    />
+                                    <span className="text-sm text-white">Padre</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="whatsapp_preferido"
+                                        value="madre"
+                                        checked={formData.whatsapp_preferido === 'madre'}
+                                        onChange={handleChange}
+                                        disabled={!editing}
+                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary disabled:opacity-50"
+                                    />
+                                    <span className="text-sm text-white">Madre</span>
+                                </label>
+                            </div>
+                        </div>
                     </section>
 
                     {/* Información de Entrenamiento */}
@@ -336,15 +368,20 @@ const DetalleAlumno = () => {
                             />
                         </div>
 
+                        {sucursales.length > 0 && (
+                            <div className="grid grid-cols-1 gap-4">
+                                <Select
+                                    label="Sucursal"
+                                    name="sucursal_id"
+                                    value={formData.sucursal_id || ''}
+                                    options={[{ value: '', label: 'Sin asignar' }, ...sucursales]}
+                                    onChange={handleChange}
+                                    disabled={!editing}
+                                />
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                label="Teléfono del Deportista"
-                                name="telefono_deportista"
-                                type="tel"
-                                value={formData.telefono_deportista || ''}
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
                             <Input
                                 label="Colegio"
                                 name="colegio"
@@ -352,9 +389,6 @@ const DetalleAlumno = () => {
                                 onChange={handleChange}
                                 disabled={!editing}
                             />
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4">
                             <Input
                                 label="Dirección"
                                 name="direccion"

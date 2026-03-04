@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
+import { getSucursales } from '../../../services/sucursales';
 import { createAlumno, checkPosiblesDuplicados } from '../../../services/alumnos';
 
 /**
@@ -19,6 +20,7 @@ export const useRegistroAlumno = (onSuccess) => {
     const [canchas, setCanchas] = useState([]);
     const [horarios, setHorarios] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
+    const [sucursales, setSucursales] = useState([]);
 
     // Estado del formulario
     const [formData, setFormData] = useState({
@@ -30,12 +32,13 @@ export const useRegistroAlumno = (onSuccess) => {
         telefono_padre: '',
         nombre_madre: '',
         telefono_madre: '',
-        telefono_deportista: '',
+        whatsapp_preferido: 'padre',
         colegio: '',
         direccion: '',
         cancha_id: '',
         horario_id: '',
         profesor_asignado_id: '',
+        sucursal_id: '',
         es_arquero: false
     });
 
@@ -46,14 +49,16 @@ export const useRegistroAlumno = (onSuccess) => {
     useEffect(() => {
         const loadMaestros = async () => {
             try {
-                const [canchasData, horariosData, entrenadoresData] = await Promise.all([
+                const [canchasData, horariosData, entrenadoresData, sucursalesData] = await Promise.all([
                     getCanchas(),
                     getHorarios(),
-                    getEntrenadores()
+                    getEntrenadores(),
+                    getSucursales()
                 ]);
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
+                setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
 
                 // Si el usuario es Entrenador, auto-asignar como profesor
                 if (isCoach && userProfile?.id) {
@@ -159,7 +164,7 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
-        maestros: { canchas, horarios, entrenadores },
+        maestros: { canchas, horarios, entrenadores, sucursales },
 
         handleChange,
         setPhotoFile,

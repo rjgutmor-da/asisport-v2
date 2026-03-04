@@ -18,8 +18,15 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
     // Obtener información del representante (Padre o Madre)
     // Inteligencia robusta para detectar teléfonos válidos vs nombres
     const getRepresentanteInfo = () => {
-        const pNombre = alumno.nombre_padre || alumno.nombre_madre || '';
-        const pTelef = alumno.telefono_padre || alumno.telefono_madre || '';
+        const preferido = alumno.whatsapp_preferido || 'padre';
+
+        const pNombre = preferido === 'madre'
+            ? (alumno.nombre_madre || alumno.nombre_padre || '')
+            : (alumno.nombre_padre || alumno.nombre_madre || '');
+
+        const pTelef = preferido === 'madre'
+            ? (alumno.telefono_madre || alumno.telefono_padre || '')
+            : (alumno.telefono_padre || alumno.telefono_madre || '');
 
         // Función auxiliar: Un string es teléfono si tiene entre 7 y 15 dígitos
         const isPhone = (str) => {
