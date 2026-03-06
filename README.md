@@ -146,6 +146,10 @@ node dar_acceso.js
 
 # Resetear base de datos (solo desarrollo)
 node reset_database.js
+
+# Corregir políticas de seguridad (RLS) para alumnos
+# Ejecutar este SQL en el Editor SQL de Supabase:
+# scripts/fix_alumnos_rls_definitivo.sql
 ```
 
 ---

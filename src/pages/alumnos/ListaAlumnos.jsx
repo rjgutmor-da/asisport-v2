@@ -386,7 +386,7 @@ const ListaAlumnos = () => {
                                 return (
                                     <div key={alumno.id} className="relative group">
                                         <AlumnoCard
-                                            alumno={{ ...alumno, asistencias: asistenciasCount }}
+                                            alumno={alumno}
                                             onClick={() => handleAlumnoClick(alumno)}
                                         />
                                         {/* Botón archivar en la tarjeta (solo Admin) */}
@@ -427,7 +427,7 @@ const ListaAlumnos = () => {
                                             />
                                         </th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase">Alumno</th>
-                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-auto">Asist. mes</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-auto">Asist. Sem</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Sub</th>
                                         {esAdmin && (
                                             <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-16 md:w-20">Acciones</th>
