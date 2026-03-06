@@ -24,6 +24,8 @@ const TabBar = () => {
         return item.roles.includes(role);
     });
 
+    if (location.pathname === '/asistencia') return null;
+
     return (
         <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border h-[60px] pb-2 pt-2 px-4 flex justify-between items-center z-50 md:hidden overflow-x-auto">
             {filteredNavItems.map((item) => {
