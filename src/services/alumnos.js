@@ -201,8 +201,8 @@ export const getAlumnos = async (filtros = {}) => {
             created_at,
             cancha:canchas(nombre),
             horario:horarios(hora),
-            asistencias_normales(id, fecha, estado),
-            asistencias_arqueros(id, fecha, estado)
+            asistencias_normales(count),
+            asistencias_arqueros(count)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
@@ -242,6 +242,18 @@ export const getAlumnos = async (filtros = {}) => {
     // Ordenamiento
     query = query.order('apellidos', { ascending: true });
 
+    // FEAT: B2B Optimization - Filtros para optimizar trayendo solo asistencias de este mes requeridas
+    const hoy = new Date();
+    const anoActual = hoy.getFullYear();
+    const mesFormat = String(hoy.getMonth() + 1).padStart(2, '0');
+    const primerDiaMes = `${anoActual}-${mesFormat}-01`;
+
+    query = query
+        .gte('asistencias_normales.fecha', primerDiaMes)
+        .in('asistencias_normales.estado', ['Presente', 'Licencia'])
+        .gte('asistencias_arqueros.fecha', primerDiaMes)
+        .in('asistencias_arqueros.estado', ['Presente', 'Licencia']);
+
     const { data, error } = await query;
 
     if (error) {
@@ -249,22 +261,18 @@ export const getAlumnos = async (filtros = {}) => {
         throw new Error('No pudimos cargar los datos. Intenta nuevamente.');
     }
 
-    // Calcular totales de asistencias del mes actual y aplicar filtro de sub
-    const hoy = new Date();
-    const anoActual = hoy.getFullYear();
-    const mesActualStr = `${anoActual}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-
     let resultado = data.map(alumno => {
-        const asisN = (alumno.asistencias_normales || []).filter(a =>
-            a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
-        ).length;
-        const asisA = (alumno.asistencias_arqueros || []).filter(a =>
-            a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
-        ).length;
+        // Obtenemos los counts escalares desde el backend. Si el backend manda count (array de un item debido al mapeo relacional de Supabase) extraemos el valor numérico.
+        // Ojo, en subconsultas con filtros en el chain principal (.gte() etc) a relaciones left-join
+        // Supabase mapea asistencias_normales como array vacio si no hay coincidencias directas con el gte
+        // Por lo cual validamos el valor.
+
+        const countN = alumno.asistencias_normales?.[0]?.count || 0;
+        const countA = alumno.asistencias_arqueros?.[0]?.count || 0;
 
         return {
             ...alumno,
-            asistencias_count: asisN + asisA
+            asistencias_count: countN + countA
         };
     });
 
@@ -408,11 +416,17 @@ export const getAlumnosArchivados = async (userRol, userId) => {
     }
 
     // Calcular totales de asistencias
-    return data.map(alumno => ({
-        ...alumno,
-        asistencias_count: (alumno.asistencias_normales?.length || 0) +
-            (alumno.asistencias_arqueros?.length || 0)
-    }));
+    // Limpieza de memoria (RAM) - evitamos mandar mega-arreglos de asistencias al frontend
+    return data.map(alumno => {
+        const total = (alumno.asistencias_normales?.length || 0) + (alumno.asistencias_arqueros?.length || 0);
+        const clon = { ...alumno };
+        delete clon.asistencias_normales;
+        delete clon.asistencias_arqueros;
+        return {
+            ...clon,
+            asistencias_count: total
+        };
+    });
 };
 
 /**

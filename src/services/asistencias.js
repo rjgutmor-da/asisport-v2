@@ -4,157 +4,170 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
 
 export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId = null, entrenadorId = null) => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const [y, m, d] = fecha.split('-').map(Number);
-    const fechaSeleccionada = new Date(y, m - 1, d);
+    let userIdForLog = 'unknown';
+    try {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const [y, m, d] = fecha.split('-').map(Number);
+        const fechaSeleccionada = new Date(y, m - 1, d);
 
-    if (fechaSeleccionada > hoy) {
-        throw new Error('No se pueden registrar asistencias para fechas futuras.');
-    }
-
-    const escuelaId = await obtenerEscuelaId();
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Sesión expirada.');
-
-    // Verificar rol del usuario y sucursal
-    const { data: usuarioDB, error: userError } = await supabase
-        .from('usuarios')
-        .select('rol, sucursal_id')
-        .eq('id', user.id)
-        .single();
-
-    if (userError) throw userError;
-
-    const esAdmin = ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol);
-    let targetEntrenadorId = user.id;
-
-    if (esAdmin && entrenadorId) {
-        targetEntrenadorId = entrenadorId;
-    } else if (esAdmin && !entrenadorId) {
-        // Opción: Si es admin y no selecciona entrenador, forzamos a cargar sus asignados (si los tuviera)
-        // O podríamos retornar vacío para obligar a seleccionar.
-        // Mantenemos user.id por defecto.
-        targetEntrenadorId = user.id;
-    }
-
-    let query = supabase
-        .from('alumnos')
-        .select(`
-            id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
-            cancha:canchas(id, nombre),
-            horario:horarios(id, hora)
-        `)
-        .eq('escuela_id', escuelaId)
-        .eq('archivado', false)
-        .neq('estado', 'ELIMINADO SISTEMA')
-        .eq('profesor_asignado_id', targetEntrenadorId);
-
-    if (usuarioDB.rol !== 'Dueño' && usuarioDB.rol !== 'SuperAdministrador') {
-        if (usuarioDB.sucursal_id) {
-            query = query.eq('sucursal_id', usuarioDB.sucursal_id);
+        if (fechaSeleccionada > hoy) {
+            throw new Error('No se pueden registrar asistencias para fechas futuras.');
         }
+
+        const escuelaId = await obtenerEscuelaId();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Sesión expirada.');
+        userIdForLog = user.id;
+
+        // Verificar rol del usuario y sucursal
+        const { data: usuarioDB, error: userError } = await supabase
+            .from('usuarios')
+            .select('rol, sucursal_id')
+            .eq('id', user.id)
+            .single();
+
+        if (userError) throw userError;
+
+        const esAdmin = ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol);
+        let targetEntrenadorId = user.id;
+
+        if (esAdmin && entrenadorId) {
+            targetEntrenadorId = entrenadorId;
+        } else if (esAdmin && !entrenadorId) {
+            targetEntrenadorId = user.id;
+        }
+
+        let query = supabase
+            .from('alumnos')
+            .select(`
+                id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
+                cancha:canchas(id, nombre),
+                horario:horarios(id, hora)
+            `)
+            .eq('escuela_id', escuelaId)
+            .eq('archivado', false)
+            .neq('estado', 'ELIMINADO SISTEMA')
+            .eq('profesor_asignado_id', targetEntrenadorId);
+
+        if (usuarioDB.rol !== 'Dueño' && usuarioDB.rol !== 'SuperAdministrador') {
+            if (usuarioDB.sucursal_id) {
+                query = query.eq('sucursal_id', usuarioDB.sucursal_id);
+            }
+        }
+
+        query = query.order('apellidos', { ascending: true });
+
+        if (canchaId) query = query.eq('cancha_id', canchaId);
+        if (horarioId) query = query.eq('horario_id', horarioId);
+
+        const { data: alumnos, error: alumnosError } = await query;
+        if (alumnosError) throw alumnosError;
+
+        const { data: asistenciasNormales, error: anError } = await supabase
+            .from('asistencias_normales')
+            .select('alumno_id, estado, id')
+            .eq('fecha', fecha)
+            .in('alumno_id', alumnos.map(a => a.id));
+
+        if (anError) throw anError;
+
+        const normalesMap = new Map(asistenciasNormales.map(a => [a.alumno_id, a]));
+
+        return alumnos.map(alumno => ({
+            ...alumno,
+            asistenciaNormal: normalesMap.get(alumno.id) || null
+        }));
+    } catch (error) {
+        console.error(`[Error B2B Asistencias] getAlumnosParaAsistencia falló. UserID: ${userIdForLog}`, error);
+        throw error;
     }
-
-    query = query.order('apellidos', { ascending: true });
-
-    if (canchaId) query = query.eq('cancha_id', canchaId);
-    if (horarioId) query = query.eq('horario_id', horarioId);
-
-    const { data: alumnos, error: alumnosError } = await query;
-    if (alumnosError) throw alumnosError;
-
-    const { data: asistenciasNormales, error: anError } = await supabase
-        .from('asistencias_normales')
-        .select('alumno_id, estado, id')
-        .eq('fecha', fecha)
-        .in('alumno_id', alumnos.map(a => a.id));
-
-    if (anError) throw anError;
-
-    const normalesMap = new Map(asistenciasNormales.map(a => [a.alumno_id, a]));
-
-    return alumnos.map(alumno => ({
-        ...alumno,
-        asistenciaNormal: normalesMap.get(alumno.id) || null
-    }));
 };
 
 export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntrenadorId = null) => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const [y, m, d] = fecha.split('-').map(Number);
-    const fechaSeleccionada = new Date(y, m - 1, d);
+    let userIdForLog = 'unknown';
+    try {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const [y, m, d] = fecha.split('-').map(Number);
+        const fechaSeleccionada = new Date(y, m - 1, d);
 
-    if (fechaSeleccionada > hoy) {
-        throw new Error('No se pueden registrar asistencias para fechas futuras.');
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Sesión expirada.');
-
-    let entrenadorId = user.id;
-
-    if (targetEntrenadorId && targetEntrenadorId !== user.id) {
-        const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
-        if (usuarioDB && ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol)) {
-            entrenadorId = targetEntrenadorId;
+        if (fechaSeleccionada > hoy) {
+            throw new Error('No se pueden registrar asistencias para fechas futuras.');
         }
-    }
 
-    const alumnoIds = asistencias.map(a => a.alumnoId);
-    if (alumnoIds.length === 0) return { exitosos: 0, fallidos: 0 };
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Sesión expirada.');
+        userIdForLog = user.id;
 
-    const { data: existentes, error: checkError } = await supabase
-        .from('asistencias_normales')
-        .select('id, alumno_id')
-        .eq('fecha', fecha)
-        .in('alumno_id', alumnoIds);
+        let entrenadorId = user.id;
 
-    if (checkError) throw checkError;
-
-    const existentesMap = new Map(existentes.map(e => [e.alumno_id, e.id]));
-    const updates = [];
-    const inserts = [];
-
-    asistencias.forEach(({ alumnoId, estado }) => {
-        if (existentesMap.has(alumnoId)) {
-            // Editamos estado pero mantenemos el entrenador_id original para no quitarle la autoría a quien lo creó
-            updates.push({ id: existentesMap.get(alumnoId), alumno_id: alumnoId, estado });
-        } else {
-            inserts.push({ alumno_id: alumnoId, fecha, estado, entrenador_id: entrenadorId });
+        if (targetEntrenadorId && targetEntrenadorId !== user.id) {
+            const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
+            if (usuarioDB && ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol)) {
+                entrenadorId = targetEntrenadorId;
+            }
         }
-    });
 
-    const resultados = { exitosos: 0, fallidos: 0, errores: [] };
+        const alumnoIds = asistencias.map(a => a.alumnoId);
+        if (alumnoIds.length === 0) return { exitosos: 0, fallidos: 0 };
 
-    if (updates.length > 0) {
-        const updatePromises = updates.map(u =>
-            supabase.from('asistencias_normales').update({ estado: u.estado }).eq('id', u.id)
-        );
-        const updateResults = await Promise.allSettled(updatePromises);
-        updateResults.forEach((r, i) => {
-            if (r.status === 'fulfilled' && !r.value.error) resultados.exitosos++;
-            else {
-                resultados.fallidos++;
-                console.error("Error actualizando asistencia DB:", r.value?.error);
-                resultados.errores.push({ alumnoId: updates[i].alumno_id, error: r.value?.error?.message || 'Error' });
+        const { data: existentes, error: checkError } = await supabase
+            .from('asistencias_normales')
+            .select('id, alumno_id')
+            .eq('fecha', fecha)
+            .in('alumno_id', alumnoIds);
+
+        if (checkError) throw checkError;
+
+        const existentesMap = new Map(existentes.map(e => [e.alumno_id, e.id]));
+        const updates = [];
+        const inserts = [];
+
+        asistencias.forEach(({ alumnoId, estado }) => {
+            if (existentesMap.has(alumnoId)) {
+                // Editamos estado pero mantenemos el entrenador_id original para no quitarle la autoría a quien lo creó
+                updates.push({ id: existentesMap.get(alumnoId), alumno_id: alumnoId, estado });
+            } else {
+                inserts.push({ alumno_id: alumnoId, fecha, estado, entrenador_id: entrenadorId });
             }
         });
-    }
 
-    if (inserts.length > 0) {
-        const { error } = await supabase.from('asistencias_normales').insert(inserts);
-        if (error) {
-            resultados.fallidos += inserts.length;
-            resultados.errores.push({ tipo: 'insert_batch', error: error.message });
-        } else {
-            resultados.exitosos += inserts.length;
+        const resultados = { exitosos: 0, fallidos: 0, errores: [] };
+
+        if (updates.length > 0) {
+            const updatePromises = updates.map(u =>
+                supabase.from('asistencias_normales').update({ estado: u.estado }).eq('id', u.id)
+            );
+            const updateResults = await Promise.allSettled(updatePromises);
+            updateResults.forEach((r, i) => {
+                if (r.status === 'fulfilled' && !r.value.error) resultados.exitosos++;
+                else {
+                    resultados.fallidos++;
+                    // Error Log con metadata B2B
+                    console.error(`[Data Integrity Error] Fallo al actualizar asistencia ID: ${updates[i].id} generada por User: ${userIdForLog}.`, r.value?.error || r.reason);
+                    resultados.errores.push({ alumnoId: updates[i].alumno_id, error: r.value?.error?.message || 'Error' });
+                }
+            });
         }
-    }
 
-    return resultados;
+        if (inserts.length > 0) {
+            const { error } = await supabase.from('asistencias_normales').insert(inserts);
+            if (error) {
+                resultados.fallidos += inserts.length;
+                console.error(`[Data Integrity Error] Inserción masiva de asistencias falló. Lote creado por User: ${userIdForLog}. Error: ${error.message}`);
+                resultados.errores.push({ tipo: 'insert_batch', error: error.message });
+            } else {
+                resultados.exitosos += inserts.length;
+            }
+        }
+
+        return resultados;
+    } catch (error) {
+        console.error(`[Error B2B Asistencias] registrarAsistenciasPorLote falló por completo. UserID: ${userIdForLog}`, error);
+        throw error;
+    }
 };
 
 export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = null) => {
@@ -232,9 +245,12 @@ export const getAsistenciasUltimos7Dias = async (alumnoIds) => {
     const fechaInicio = hace7Dias.toISOString().split('T')[0];
     const fechaFin = hoy.toISOString().split('T')[0];
 
+    const escuelaId = await obtenerEscuelaId();
+
     const { data, error } = await supabase
         .from('asistencias_normales')
-        .select('alumno_id, fecha, estado')
+        .select('alumno_id, fecha, estado, alumnos!inner(escuela_id)')
+        .eq('alumnos.escuela_id', escuelaId)
         .in('alumno_id', alumnoIds)
         .gte('fecha', fechaInicio)
         .lte('fecha', fechaFin);
@@ -272,17 +288,23 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
 
     let query = supabase
         .from('asistencias_normales')
-        .select('*')
+        .select('*, alumnos!inner(escuela_id)')
+        .eq('alumnos.escuela_id', escuelaId)
         .gte('fecha', fechaInicio)
         .lte('fecha', fechaFin);
 
-    // Si tenemos escuela, filtrar (aunque RLS debería encargarse)
-    // De momento confiamos en el endpoint.
+    // Si tenemos escuela, filtramos explícitamente doble aseguramiento B2B
 
     const { data, error } = await query;
 
     if (error) {
         throw error;
     }
-    return data;
+
+    // Limpiamos el nodo anidado de escuela_id para no alterar el contrato original
+    return data.map(d => {
+        const clon = { ...d };
+        delete clon.alumnos;
+        return clon;
+    });
 };
