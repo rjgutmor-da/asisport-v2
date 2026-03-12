@@ -12,6 +12,7 @@ import {
     toggleCanchaStatus,
     toggleHorarioStatus
 } from '../../services/maestros';
+import { getSucursales } from '../../services/sucursales';
 
 const Configuraciones = () => {
     const navigate = useNavigate();
@@ -23,8 +24,13 @@ const Configuraciones = () => {
     // Estado de Canchas
     const [canchas, setCanchas] = useState([]);
     const [newCanchaName, setNewCanchaName] = useState('');
+    const [newCanchaSucursal, setNewCanchaSucursal] = useState('');
     const [editingCancha, setEditingCancha] = useState(null);
     const [editCanchaName, setEditCanchaName] = useState('');
+    const [editCanchaSucursal, setEditCanchaSucursal] = useState('');
+
+    // Estado de Sucursales (para el selector)
+    const [sucursales, setSucursales] = useState([]);
 
     // Estado de Horarios
     const [horarios, setHorarios] = useState([]);
@@ -38,12 +44,15 @@ const Configuraciones = () => {
 
     const loadData = async () => {
         try {
-            const [chs, hrs] = await Promise.all([
+            // Cargamos canchas, horarios y sucursales en paralelo
+            const [chs, hrs, sucs] = await Promise.all([
                 getAllCanchas(),
-                getAllHorarios()
+                getAllHorarios(),
+                getSucursales()
             ]);
             setCanchas(chs);
             setHorarios(hrs);
+            setSucursales(sucs || []);
         } catch (error) {
             console.error(error);
             addToast('Error al cargar datos', 'error');
@@ -58,12 +67,14 @@ const Configuraciones = () => {
 
     const handleCreateCancha = async (e) => {
         e.preventDefault();
-        if (!newCanchaName.trim()) return;
+        if (!newCanchaName.trim() || !newCanchaSucursal) return;
 
         try {
-            await createCancha(newCanchaName);
+            // Se pasa el nombre y la sucursal seleccionada
+            await createCancha(newCanchaName, newCanchaSucursal);
             addToast('Cancha creada correctamente', 'success');
             setNewCanchaName('');
+            setNewCanchaSucursal('');
             loadData();
         } catch (error) {
             addToast(error.message, 'error');
@@ -73,21 +84,26 @@ const Configuraciones = () => {
     const startEditCancha = (cancha) => {
         setEditingCancha(cancha.id);
         setEditCanchaName(cancha.nombre);
+        // Pre-cargar la sucursal actual de la cancha
+        setEditCanchaSucursal(cancha.sucursal_id || '');
     };
 
     const cancelEditCancha = () => {
         setEditingCancha(null);
         setEditCanchaName('');
+        setEditCanchaSucursal('');
     };
 
     const handleUpdateCancha = async (id) => {
-        if (!editCanchaName.trim()) return;
+        if (!editCanchaName.trim() || !editCanchaSucursal) return;
 
         try {
-            await updateCancha(id, editCanchaName);
+            // Se pasa el nombre y la sucursal actualizada
+            await updateCancha(id, editCanchaName, editCanchaSucursal);
             addToast('Cancha actualizada correctamente', 'success');
             setEditingCancha(null);
             setEditCanchaName('');
+            setEditCanchaSucursal('');
             loadData();
         } catch (error) {
             addToast(error.message, 'error');
@@ -212,14 +228,27 @@ const Configuraciones = () => {
                         {/* Formulario de Creación */}
                         <div className="bg-surface border border-border rounded-lg p-4">
                             <h2 className="text-lg font-bold text-white mb-4">Agregar Nueva Cancha</h2>
-                            <form onSubmit={handleCreateCancha} className="flex gap-3">
+                            <form onSubmit={handleCreateCancha} className="flex flex-col md:flex-row gap-3">
                                 <input
                                     type="text"
                                     placeholder="Nombre de la cancha"
                                     value={newCanchaName}
                                     onChange={(e) => setNewCanchaName(e.target.value)}
                                     className="flex-1 bg-background border border-border text-white px-3 py-2 rounded-md focus:border-primary outline-none"
+                                    required
                                 />
+                                {/* Selector obligatorio de sucursal */}
+                                <select
+                                    value={newCanchaSucursal}
+                                    onChange={(e) => setNewCanchaSucursal(e.target.value)}
+                                    className="flex-1 bg-background border border-border text-white px-3 py-2 rounded-md focus:border-primary outline-none"
+                                    required
+                                >
+                                    <option value="">-- Selecciona una sucursal --</option>
+                                    {sucursales.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                                    ))}
+                                </select>
                                 <button
                                     type="submit"
                                     className="bg-primary text-white px-4 py-2 rounded-md font-semibold hover:bg-orange-600 transition-colors flex items-center gap-2"
@@ -228,6 +257,11 @@ const Configuraciones = () => {
                                     Crear
                                 </button>
                             </form>
+                            {sucursales.length === 0 && (
+                                <p className="text-xs text-yellow-400 mt-2">
+                                    ⚠️ No hay sucursales registradas. Primero crea una sucursal desde "Gestión de Sucursales".
+                                </p>
+                            )}
                         </div>
 
                         {/* Tabla de Canchas */}
@@ -236,6 +270,7 @@ const Configuraciones = () => {
                                 <thead className="bg-background/50 border-b border-border">
                                     <tr>
                                         <th className="p-4 font-bold text-text-secondary">Nombre</th>
+                                        <th className="p-4 font-bold text-text-secondary">Sucursal</th>
                                         <th className="p-4 font-bold text-text-secondary text-center">Estado</th>
                                         <th className="p-4 font-bold text-text-secondary text-right">Acciones</th>
                                     </tr>
@@ -243,7 +278,7 @@ const Configuraciones = () => {
                                 <tbody>
                                     {canchas.length === 0 ? (
                                         <tr>
-                                            <td colSpan="3" className="p-8 text-center text-text-secondary">
+                                            <td colSpan="4" className="p-8 text-center text-text-secondary">
                                                 No hay canchas registradas
                                             </td>
                                         </tr>
@@ -261,6 +296,25 @@ const Configuraciones = () => {
                                                         />
                                                     ) : (
                                                         <span className="text-white font-medium">{cancha.nombre}</span>
+                                                    )}
+                                                </td>
+                                                {/* Columna de sucursal con selector al editar */}
+                                                <td className="p-4">
+                                                    {editingCancha === cancha.id ? (
+                                                        <select
+                                                            value={editCanchaSucursal}
+                                                            onChange={(e) => setEditCanchaSucursal(e.target.value)}
+                                                            className="bg-background border border-border text-white px-2 py-1 rounded text-sm focus:border-primary outline-none"
+                                                        >
+                                                            <option value="">-- Sucursal --</option>
+                                                            {sucursales.map((s) => (
+                                                                <option key={s.id} value={s.id}>{s.nombre}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <span className="text-text-secondary text-sm">
+                                                            {cancha.sucursal?.nombre || <span className="text-yellow-500 text-xs">Sin sucursal</span>}
+                                                        </span>
                                                     )}
                                                 </td>
                                                 <td className="p-4 text-center">

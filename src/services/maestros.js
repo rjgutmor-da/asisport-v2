@@ -164,7 +164,8 @@ export const getAllCanchas = async () => {
 
     const { data, error } = await supabase
         .from('canchas')
-        .select('*')
+        // Se incluye la sucursal relacionada para mostrarla en la UI
+        .select('*, sucursal:sucursales(id, nombre)')
         .eq('escuela_id', escuelaId)
         .order('nombre', { ascending: true });
 
@@ -176,23 +177,27 @@ export const getAllCanchas = async () => {
  * Crear nueva cancha
  * Regla #18: Solo Admin/SuperAdmin pueden gestionar canchas
  */
-export const createCancha = async (nombre) => {
+export const createCancha = async (nombre, sucursalId = null) => {
     if (!nombre || nombre.trim() === '') {
         throw new Error('El nombre de la cancha es obligatorio.');
+    }
+    if (!sucursalId) {
+        throw new Error('Debes seleccionar una sucursal para la cancha.');
     }
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Validar duplicados
+    // Validar duplicados dentro de la misma sucursal
     const { data: existing } = await supabase
         .from('canchas')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
+        .eq('sucursal_id', sucursalId)
         .maybeSingle();
 
     if (existing) {
-        throw new Error('Ya existe una cancha con este nombre.');
+        throw new Error('Ya existe una cancha con este nombre en esa sucursal.');
     }
 
     const { data, error } = await supabase
@@ -200,6 +205,7 @@ export const createCancha = async (nombre) => {
         .insert([{
             nombre: nombre.trim(),
             escuela_id: escuelaId,
+            sucursal_id: sucursalId,
             activo: true
         }])
         .select()
@@ -212,29 +218,33 @@ export const createCancha = async (nombre) => {
 /**
  * Actualizar nombre de cancha
  */
-export const updateCancha = async (id, nombre) => {
+export const updateCancha = async (id, nombre, sucursalId = null) => {
     if (!nombre || nombre.trim() === '') {
         throw new Error('El nombre de la cancha es obligatorio.');
+    }
+    if (!sucursalId) {
+        throw new Error('Debes seleccionar una sucursal para la cancha.');
     }
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Validar duplicados (excepto la misma cancha)
+    // Validar duplicados (excepto la misma cancha, dentro de la misma sucursal)
     const { data: existing } = await supabase
         .from('canchas')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
+        .eq('sucursal_id', sucursalId)
         .neq('id', id)
         .maybeSingle();
 
     if (existing) {
-        throw new Error('Ya existe una cancha con este nombre.');
+        throw new Error('Ya existe una cancha con este nombre en esa sucursal.');
     }
 
     const { data, error } = await supabase
         .from('canchas')
-        .update({ nombre: nombre.trim() })
+        .update({ nombre: nombre.trim(), sucursal_id: sucursalId })
         .eq('id', id)
         .eq('escuela_id', escuelaId)
         .select()
