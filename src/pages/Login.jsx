@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
@@ -120,7 +120,7 @@ const Login = () => {
                 </div>
 
                 <p className="text-center text-text-secondary text-sm">
-                    ¿Olvidaste tu contraseña? <a href="#" className="text-primary hover:underline">Recupérala aquí</a>
+                    ¿Olvidaste tu contraseña? <Link to="/recuperar-contrasena" className="text-primary hover:underline">Recupérala aquí</Link>
                 </p>
             </div>
         </div>

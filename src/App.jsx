@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
+import RecuperarContrasena from './pages/RecuperarContrasena'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import RegistroAlumno from './pages/alumnos/RegistroAlumno'
 import ListaAlumnos from './pages/alumnos/ListaAlumnos'
@@ -23,6 +25,8 @@ function App() {
                 <Router>
                     <Routes>
                         <Route path="/login" element={<Login />} />
+                        <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
                         <Route path="/dashboard" element={
                             <ProtectedRoute>
