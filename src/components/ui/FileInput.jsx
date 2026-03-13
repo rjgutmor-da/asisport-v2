@@ -106,7 +106,7 @@ const FileInput = ({ label, name, onChange, error }) => {
         setLocalError('');
         setPreview(null);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             streamRef.current = stream;
             setShowWebcam(true);
 

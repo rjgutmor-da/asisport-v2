@@ -240,7 +240,7 @@ export const getAlumnos = async (filtros = {}) => {
     }
 
     // Ordenamiento
-    query = query.order('apellidos', { ascending: true });
+    query = query.order('created_at', { ascending: false });
 
     // FEAT: B2B Optimization - Filtros para optimizar trayendo solo asistencias de este mes requeridas
     const hoy = new Date();

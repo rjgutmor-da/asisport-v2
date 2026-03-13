@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
 import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
@@ -31,6 +32,7 @@ const ListaAlumnos = () => {
     const {
         loading,
         alumnos,
+        todosLosAlumnosFiltrados,
         allAlumnos,
         activeFilter,
         searchTerm,
@@ -180,6 +182,53 @@ const ListaAlumnos = () => {
                             <span className="hidden md:inline">Combinar</span>
                         </button>
                     )}
+
+                    {/* Botón Lista de Buena Fe */}
+                    <button
+                        onClick={() => {
+                            const alumnosParaReporte = todosLosAlumnosFiltrados;
+                            if (alumnosParaReporte.length === 0) return;
+
+                            const headers = [
+                                ['LISTA DE BUENA FE - ASISPORT'],
+                                [`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`],
+                                [`Filtros: ${[
+                                    selectedCanchas.length > 0 ? `Canchas: ${selectedCanchas.map(id => canchas.find(c => c.value === id)?.label).join(', ')}` : '',
+                                    selectedHorarios.length > 0 ? `Horarios: ${selectedHorarios.map(id => horarios.find(h => h.value === id)?.label).join(', ')}` : '',
+                                    selectedSubs.length > 0 ? `Categorías: ${selectedSubs.map(s => `Sub ${s}`).join(', ')}` : '',
+                                    selectedEntrenador ? `Entrenador: ${entrenadores.find(e => e.value === selectedEntrenador)?.label}` : ''
+                                ].filter(Boolean).join(' | ') || 'Ninguno'}`],
+                                [],
+                                ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad']
+                            ];
+
+                            const dataRows = alumnosParaReporte.map(a => [
+                                a.nombres,
+                                a.apellidos,
+                                new Date(a.fecha_nacimiento).toLocaleDateString('es-ES'),
+                                a.carnet_identidad || '-'
+                            ]);
+
+                            const ws = XLSX.utils.aoa_to_sheet([...headers, ...dataRows]);
+                            
+                            // Ajustar anchos
+                            ws['!cols'] = [
+                                { wch: 30 }, // Nombres
+                                { wch: 30 }, // Apellidos
+                                { wch: 20 }, // Fecha Nacimiento
+                                { wch: 20 }  // CI
+                            ];
+
+                            const wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, "Lista de Buena Fe");
+                            XLSX.writeFile(wb, `Lista_Buena_Fe_${new Date().toISOString().split('T')[0]}.xlsx`);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-success/10 text-success border border-success/30 rounded-md text-sm font-bold hover:bg-success/20 transition-colors"
+                        title="Exportar Lista de Buena Fe"
+                    >
+                        <FileSpreadsheet size={16} />
+                        <span className="hidden md:inline">Lista Buena Fe</span>
+                    </button>
 
                     {selectedAlumnos.length > 0 && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">

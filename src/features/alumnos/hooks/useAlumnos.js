@@ -160,7 +160,7 @@ export const useAlumnos = () => {
         const sorted = [...filtered].sort((a, b) => {
             if (a.estado === 'Aprobado' && b.estado === 'Pendiente') return -1;
             if (a.estado === 'Pendiente' && b.estado === 'Aprobado') return 1;
-            return new Date(a.created_at) - new Date(b.created_at);
+            return new Date(b.created_at) - new Date(a.created_at);
         });
 
         // Paginación
@@ -329,6 +329,7 @@ export const useAlumnos = () => {
         // Estado
         loading,
         alumnos: paginatedAlumnos,
+        todosLosAlumnosFiltrados: filteredAndSortedAlumnos,
         allAlumnos, // Lista completa sin filtrar (para el modal de combinar)
         totalAlumnos: filteredAndSortedAlumnos.length,
         totalPages,
