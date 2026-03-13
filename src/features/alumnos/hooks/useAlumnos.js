@@ -158,8 +158,6 @@ export const useAlumnos = () => {
 
         // Ordenamiento interno fijo
         const sorted = [...filtered].sort((a, b) => {
-            if (a.estado === 'Aprobado' && b.estado === 'Pendiente') return -1;
-            if (a.estado === 'Pendiente' && b.estado === 'Aprobado') return 1;
             return new Date(b.created_at) - new Date(a.created_at);
         });
 
