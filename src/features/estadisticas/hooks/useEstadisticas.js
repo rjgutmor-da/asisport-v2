@@ -140,14 +140,18 @@ export const useEstadisticas = () => {
     }, [dateRange, addToast]);
 
     /**
-     * Lógica de filtrado en memoria. 
+     * Lógica de filtrado en memoria optimizada con Map indexado.
      * Procesa la lista de asistencias y las filtra según los criterios elegidos por el usuario.
+     * Usa un Map para búsqueda O(1) en vez de Array.find() O(n) por cada asistencia.
      */
     const filteredData = useMemo(() => {
-        if (!asistencias.length) return [];
+        if (!asistencias.length || !alumnos.length) return [];
+
+        // Crear Map indexado para búsqueda O(1) — evita O(n²) con Array.find()
+        const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
 
         return asistencias.filter(asistencia => {
-            const alumno = alumnos.find(a => a.id === asistencia.alumno_id);
+            const alumno = alumnosMap.get(asistencia.alumno_id);
             if (!alumno) return false;
 
             // Filtrado por Entrenador (Múltiple)

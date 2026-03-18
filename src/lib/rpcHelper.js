@@ -11,10 +11,12 @@
  */
 
 import { supabase } from './supabaseClient';
+import { cacheService } from './cacheService';
 
 // Configuración
 const RPC_TIMEOUT_MS = 8000;   // Timeout por defecto para RPCs
 const LOG_ENABLED = import.meta.env.DEV; // Solo en desarrollo
+const ESCUELA_CACHE_TTL = 30 * 60 * 1000; // 30 minutos — el escuela_id no cambia durante la sesión
 
 /**
  * Logger condicional — solo muestra mensajes en modo desarrollo
@@ -82,6 +84,10 @@ export async function ejecutarRPC(rpcName, params = {}, timeoutMs = RPC_TIMEOUT_
  * @throws {Error} - Si no se puede obtener la escuela
  */
 export async function obtenerEscuelaId() {
+    // Verificar caché antes de ejecutar el RPC
+    const cached = cacheService.get('escuela_id');
+    if (cached) return cached;
+
     const escuelaId = await ejecutarRPC('current_user_escuela_id');
 
     if (!escuelaId) {
@@ -89,5 +95,7 @@ export async function obtenerEscuelaId() {
         throw new Error('No se pudo obtener la escuela del usuario.');
     }
 
+    // Cachear por 30 minutos — el escuela_id no cambia durante la sesión
+    cacheService.set('escuela_id', escuelaId, ESCUELA_CACHE_TTL);
     return escuelaId;
 }

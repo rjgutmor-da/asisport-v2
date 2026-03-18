@@ -1,0 +1,182 @@
+[
+  {
+    "nombres": "Lionel",
+    "apellidos": "Messi",
+    "fecha_nacimiento": "1987-06-24",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762932159_messi.png"
+  },
+  {
+    "nombres": "Julian",
+    "apellidos": "Alvarez",
+    "fecha_nacimiento": "2000-01-31",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762933117_julian_alvarez.png"
+  },
+  {
+    "nombres": "Marcelo",
+    "apellidos": "Martins",
+    "fecha_nacimiento": "1987-06-18",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762934397_martins.png"
+  },
+  {
+    "nombres": "Roberto",
+    "apellidos": "Fernandez",
+    "fecha_nacimiento": "1999-07-12",
+    "foto_url": null
+  },
+  {
+    "nombres": "Neymar",
+    "apellidos": "Jr",
+    "fecha_nacimiento": "1992-02-05",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762934987_neymar.png"
+  },
+  {
+    "nombres": "Vinicius",
+    "apellidos": "Jr",
+    "fecha_nacimiento": "2000-07-12",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762935581_vinicius.png"
+  },
+  {
+    "nombres": "Rodrygo",
+    "apellidos": "Goes",
+    "fecha_nacimiento": "2001-01-09",
+    "foto_url": null
+  },
+  {
+    "nombres": "Arturo",
+    "apellidos": "Vidal",
+    "fecha_nacimiento": "1987-05-22",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762936217_arturo_vidal.png"
+  },
+  {
+    "nombres": "Ben",
+    "apellidos": "Brereton",
+    "fecha_nacimiento": "1999-04-18",
+    "foto_url": null
+  },
+  {
+    "nombres": "Luis",
+    "apellidos": "Diaz",
+    "fecha_nacimiento": "1997-01-13",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762936735_luis_diaz.png"
+  },
+  {
+    "nombres": "Radamel",
+    "apellidos": "Falcao",
+    "fecha_nacimiento": "1986-02-10",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762937292_radamel_falcao.png"
+  },
+  {
+    "nombres": "Moises",
+    "apellidos": "Caicedo",
+    "fecha_nacimiento": "2001-11-02",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762937803_caicedo.png"
+  },
+  {
+    "nombres": "Piero",
+    "apellidos": "Hincapie",
+    "fecha_nacimiento": "2002-01-09",
+    "foto_url": null
+  },
+  {
+    "nombres": "Miguel",
+    "apellidos": "Almiron",
+    "fecha_nacimiento": "1994-02-10",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762938265_almiron.png"
+  },
+  {
+    "nombres": "Gustavo",
+    "apellidos": "Gomez",
+    "fecha_nacimiento": "1993-05-06",
+    "foto_url": null
+  },
+  {
+    "nombres": "Julio",
+    "apellidos": "Enciso",
+    "fecha_nacimiento": "2004-01-23",
+    "foto_url": null
+  },
+  {
+    "nombres": "Paolo",
+    "apellidos": "Guerrero",
+    "fecha_nacimiento": "1984-01-01",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762938718_guerrero.png"
+  },
+  {
+    "nombres": "Gianluca",
+    "apellidos": "Lapadula",
+    "fecha_nacimiento": "1990-02-07",
+    "foto_url": null
+  },
+  {
+    "nombres": "Luis",
+    "apellidos": "Advincula",
+    "fecha_nacimiento": "1990-03-02",
+    "foto_url": null
+  },
+  {
+    "nombres": "Luis",
+    "apellidos": "Suarez",
+    "fecha_nacimiento": "1987-01-24",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762939882_suarez.png"
+  },
+  {
+    "nombres": "Darwin",
+    "apellidos": "Nuñez",
+    "fecha_nacimiento": "1999-06-24",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762940454_darwin_nunez.png"
+  },
+  {
+    "nombres": "Salomon",
+    "apellidos": "Rondon",
+    "fecha_nacimiento": "1989-09-16",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762940946_rondon.png"
+  },
+  {
+    "nombres": "Tomas",
+    "apellidos": "Rincon",
+    "fecha_nacimiento": "1988-01-13",
+    "foto_url": null
+  },
+  {
+    "nombres": "Angel",
+    "apellidos": "Di Maria",
+    "fecha_nacimiento": "1988-02-14",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762941490_dimaria.png"
+  },
+  {
+    "nombres": "Alexis",
+    "apellidos": "Sanchez",
+    "fecha_nacimiento": "1988-12-19",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762942029_alexis.png"
+  },
+  {
+    "nombres": "Federico",
+    "apellidos": "Valverde",
+    "fecha_nacimiento": "1998-07-22",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762943137_valverde.png"
+  },
+  {
+    "nombres": "Carlos",
+    "apellidos": "Lampe",
+    "fecha_nacimiento": "1987-03-17",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762943716_lampe.png"
+  },
+  {
+    "nombres": "James",
+    "apellidos": "Rodriguez",
+    "fecha_nacimiento": "1991-07-12",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762944251_james.png"
+  },
+  {
+    "nombres": "Enner",
+    "apellidos": "Valencia",
+    "fecha_nacimiento": "1989-11-04",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762944751_valencia.png"
+  },
+  {
+    "nombres": "Yeferson",
+    "apellidos": "Soteldo",
+    "fecha_nacimiento": "1997-06-30",
+    "foto_url": "https://uqrmmotcbnyazmadzfvd.supabase.co/storage/v1/object/public/avatars/fotos_alumnos/demo_1773762945298_soteldo.png"
+  }
+]

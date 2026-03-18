@@ -79,7 +79,7 @@ export const useAlumnos = () => {
                 subAnios: selectedSubs,
             };
 
-            // Cargar alumnos y listas de filtros inteligentes (según rol)
+            // Cargar alumnos y listas de filtros inteligentes (según rol) en paralelo
             const [alumnsData, canchasData, horariosData, entrenadoresData] = await Promise.all([
                 getAlumnos(filtrosServidor),
                 getCanchasParaEntrenador(user?.id, role),
@@ -100,10 +100,13 @@ export const useAlumnos = () => {
             )].sort((a, b) => a - b);
             setSubs(subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` })));
 
-            // Cargar historial de asistencia solo para los alumnos retornados
+            // Cargar historial de asistencia en BACKGROUND (no bloquea la UI)
+            // La lista de alumnos se muestra inmediatamente, los indicadores de asistencia
+            // aparecen cuando estén listos.
             if (alumnsData.length > 0) {
-                const history = await getAsistenciasUltimos7Dias(alumnsData.map(a => a.id));
-                setAsistenciaHistory(history);
+                getAsistenciasUltimos7Dias(alumnsData.map(a => a.id))
+                    .then(history => setAsistenciaHistory(history))
+                    .catch(err => console.error('Error cargando historial de asistencias:', err));
             } else {
                 setAsistenciaHistory({});
             }

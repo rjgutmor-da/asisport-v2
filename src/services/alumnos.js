@@ -388,8 +388,8 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             created_at,
             cancha:canchas(nombre),
             horario:horarios(hora),
-            asistencias_normales(id),
-            asistencias_arqueros(id)
+            asistencias_normales(count),
+            asistencias_arqueros(count)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', true)
@@ -415,16 +415,13 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         throw new Error('No pudimos cargar los alumnos archivados.');
     }
 
-    // Calcular totales de asistencias
-    // Limpieza de memoria (RAM) - evitamos mandar mega-arreglos de asistencias al frontend
+    // Calcular totales de asistencias usando count (sin descargar IDs completos)
     return data.map(alumno => {
-        const total = (alumno.asistencias_normales?.length || 0) + (alumno.asistencias_arqueros?.length || 0);
-        const clon = { ...alumno };
-        delete clon.asistencias_normales;
-        delete clon.asistencias_arqueros;
+        const countN = alumno.asistencias_normales?.[0]?.count || 0;
+        const countA = alumno.asistencias_arqueros?.[0]?.count || 0;
         return {
-            ...clon,
-            asistencias_count: total
+            ...alumno,
+            asistencias_count: countN + countA
         };
     });
 };
