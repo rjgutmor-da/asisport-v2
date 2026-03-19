@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
@@ -17,7 +17,8 @@ export const useRegistroAlumno = (onSuccess) => {
     const [submitting, setSubmitting] = useState(false);
 
     // Datos maestros
-    const [canchas, setCanchas] = useState([]);
+    const [canchas, setCanchas] = useState([]); // Todas las canchas (con sucursal_id)
+    const [canchasRaw, setCanchasRaw] = useState([]); // Datos crudos para el filtro
     const [horarios, setHorarios] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
     const [sucursales, setSucursales] = useState([]);
@@ -55,7 +56,9 @@ export const useRegistroAlumno = (onSuccess) => {
                     getEntrenadores(),
                     getSucursales()
                 ]);
-                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
+                // Guardamos los datos crudos para poder filtrar por sucursal_id
+                setCanchasRaw(canchasData);
+                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre, sucursal_id: c.sucursal_id })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
                 setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
@@ -74,6 +77,15 @@ export const useRegistroAlumno = (onSuccess) => {
         loadMaestros();
     }, [addToast, isCoach, userProfile]);
 
+    /**
+     * Canchas filtradas según sucursal seleccionada.
+     * Si no hay sucursal seleccionada, se muestran todas.
+     */
+    const canchasFiltradas = useMemo(() => {
+        if (!formData.sucursal_id) return canchas;
+        return canchas.filter(c => c.sucursal_id === formData.sucursal_id);
+    }, [formData.sucursal_id, canchas]);
+
     // Manejo de cambios en inputs
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -82,6 +94,13 @@ export const useRegistroAlumno = (onSuccess) => {
         if (name === 'carnet_identidad') {
             const onlyNums = value.replace(/[^0-9]/g, '');
             setFormData(prev => ({ ...prev, [name]: onlyNums }));
+        } else if (name === 'sucursal_id') {
+            // Al cambiar la sucursal, limpiar la cancha seleccionada para que el usuario reelija
+            setFormData(prev => ({
+                ...prev,
+                sucursal_id: value,
+                cancha_id: ''
+            }));
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -164,7 +183,7 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
-        maestros: { canchas, horarios, entrenadores, sucursales },
+        maestros: { canchas: canchasFiltradas, horarios, entrenadores, sucursales },
 
         handleChange,
         setPhotoFile,

@@ -197,6 +197,42 @@ const RegistroAlumno = () => {
                             Información Adicional
                         </h2>
 
+                        {/* Colegio y Dirección primero */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input
+                                label="Colegio"
+                                name="colegio"
+                                value={formData.colegio}
+                                onChange={handleChange}
+                                placeholder="Opcional"
+                            />
+                            <Input
+                                label="Dirección del Domicilio"
+                                name="direccion"
+                                value={formData.direccion}
+                                onChange={handleChange}
+                                placeholder="Ej: Av. Principal #123, Zona Norte"
+                            />
+                        </div>
+
+                        {/* Sucursal como filtro de canchas */}
+                        {sucursales.length > 0 && (
+                            <div className="grid grid-cols-1 gap-4">
+                                <Select
+                                    label="Sucursal"
+                                    name="sucursal_id"
+                                    value={formData.sucursal_id}
+                                    options={[{ value: '', label: 'Todas las sucursales' }, ...sucursales]}
+                                    onChange={handleChange}
+                                    error={errors.sucursal_id}
+                                />
+                                <p className="text-xs text-text-secondary -mt-2">
+                                    Selecciona una sucursal para filtrar las canchas disponibles
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Cancha y Horario filtrados por Sucursal */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Select
                                 label="Cancha de Entrenamiento *"
@@ -216,20 +252,7 @@ const RegistroAlumno = () => {
                             />
                         </div>
 
-                        {sucursales.length > 0 && (
-                            <div className="grid grid-cols-1 gap-4">
-                                <Select
-                                    label="Sucursal"
-                                    name="sucursal_id"
-                                    value={formData.sucursal_id}
-                                    options={[{ value: '', label: 'Sin asignar' }, ...sucursales]}
-                                    onChange={handleChange}
-                                    error={errors.sucursal_id}
-                                />
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             <Select
                                 label="Profesor Asignado *"
                                 name="profesor_asignado_id"
@@ -239,22 +262,7 @@ const RegistroAlumno = () => {
                                 error={errors.profesor_asignado_id}
                                 disabled={isCoach}
                             />
-                            <Input
-                                label="Colegio"
-                                name="colegio"
-                                value={formData.colegio}
-                                onChange={handleChange}
-                                placeholder="Opcional"
-                            />
                         </div>
-
-                        <Input
-                            label="Dirección"
-                            name="direccion"
-                            value={formData.direccion}
-                            onChange={handleChange}
-                            placeholder="Opcional"
-                        />
                     </section>
 
                     {/* Botón Guardar */}
