@@ -131,15 +131,17 @@ export const getHorariosParaEntrenador = async (userId = null, userRole = null) 
 };
 
 export const getEntrenadores = async () => {
-    // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('entrenadores');
+    // Se usa 'entrenadores_v2' como clave de caché para forzar recarga fresca
+    // que incluya el campo sucursal_id (nuevo desde el filtrado por sucursal)
+    const cached = cacheService.get('entrenadores_v2');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
+    // Se incluye sucursal_id para poder filtrar entrenadores por sucursal en el formulario de registro
     const { data, error } = await supabase
         .from('usuarios')
-        .select('id, nombres, apellidos')
+        .select('id, nombres, apellidos, sucursal_id')
         .eq('escuela_id', escuelaId)
         .eq('rol', 'Entrenador')
         .eq('activo', true);
@@ -147,7 +149,7 @@ export const getEntrenadores = async () => {
     if (error) throw error;
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('entrenadores', data);
+    cacheService.set('entrenadores_v2', data);
     return data;
 };
 

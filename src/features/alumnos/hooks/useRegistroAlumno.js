@@ -20,6 +20,7 @@ export const useRegistroAlumno = (onSuccess) => {
     const [canchas, setCanchas] = useState([]); // Todas las canchas (con sucursal_id)
     const [canchasRaw, setCanchasRaw] = useState([]); // Datos crudos para el filtro
     const [horarios, setHorarios] = useState([]);
+    // entrenadores: lista completa con sucursal_id incluido para poder filtrar
     const [entrenadores, setEntrenadores] = useState([]);
     const [sucursales, setSucursales] = useState([]);
 
@@ -60,7 +61,12 @@ export const useRegistroAlumno = (onSuccess) => {
                 setCanchasRaw(canchasData);
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre, sucursal_id: c.sucursal_id })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
-                setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
+                // Se conserva sucursal_id en cada entrenador para utilizarlo en el filtro por sucursal
+                setEntrenadores(entrenadoresData.map(e => ({
+                    value: e.id,
+                    label: `${e.nombres} ${e.apellidos}`,
+                    sucursal_id: e.sucursal_id
+                })));
                 setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
 
                 // Si el usuario es Entrenador, auto-asignar como profesor
@@ -86,6 +92,19 @@ export const useRegistroAlumno = (onSuccess) => {
         return canchas.filter(c => c.sucursal_id === formData.sucursal_id);
     }, [formData.sucursal_id, canchas]);
 
+    /**
+     * Entrenadores filtrados según la sucursal seleccionada.
+     * Un entrenador sin sucursal asignada (sucursal_id === null) se muestra siempre,
+     * ya que se considera disponible para todas las sucursales.
+     * Si no hay sucursal seleccionada en el formulario, se muestran todos.
+     */
+    const entrenadorFiltrados = useMemo(() => {
+        if (!formData.sucursal_id) return entrenadores;
+        return entrenadores.filter(
+            e => !e.sucursal_id || e.sucursal_id === formData.sucursal_id
+        );
+    }, [formData.sucursal_id, entrenadores]);
+
     // Manejo de cambios en inputs
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -95,11 +114,13 @@ export const useRegistroAlumno = (onSuccess) => {
             const onlyNums = value.replace(/[^0-9]/g, '');
             setFormData(prev => ({ ...prev, [name]: onlyNums }));
         } else if (name === 'sucursal_id') {
-            // Al cambiar la sucursal, limpiar la cancha seleccionada para que el usuario reelija
+            // Al cambiar la sucursal, limpiar cancha y profesor para que el usuario reelija
             setFormData(prev => ({
                 ...prev,
                 sucursal_id: value,
-                cancha_id: ''
+                cancha_id: '',
+                // Solo limpiar el profesor si el usuario actual no es Coach (en ese caso ya está auto-asignado)
+                ...(!isCoach && { profesor_asignado_id: '' })
             }));
         } else {
             setFormData(prev => ({
@@ -183,7 +204,7 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
-        maestros: { canchas: canchasFiltradas, horarios, entrenadores, sucursales },
+        maestros: { canchas: canchasFiltradas, horarios, entrenadores: entrenadorFiltrados, sucursales },
 
         handleChange,
         setPhotoFile,

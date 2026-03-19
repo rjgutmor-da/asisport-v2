@@ -227,7 +227,7 @@ const RegistroAlumno = () => {
                                     error={errors.sucursal_id}
                                 />
                                 <p className="text-xs text-text-secondary -mt-2">
-                                    Selecciona una sucursal para filtrar las canchas disponibles
+                                    Selecciona una sucursal para filtrar las canchas y profesores disponibles
                                 </p>
                             </div>
                         )}
