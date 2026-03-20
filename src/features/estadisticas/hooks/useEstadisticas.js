@@ -274,9 +274,9 @@ export const useEstadisticas = () => {
     }, [dateRange]);
 
     /**
-     * Obtiene dinámicamente todas las categorías (Sub-X) disponibles basadas en los alumnos activos.
+     * Obtiene todas las categorías (Sub-X) posibles basadas en la escuela.
      */
-    const availableCategorias = useMemo(() => {
+    const masterCategorias = useMemo(() => {
         const currentYear = new Date().getFullYear();
         const subs = new Set();
         alumnos.forEach(alumno => {
@@ -291,6 +291,48 @@ export const useEstadisticas = () => {
             .map(sub => ({ value: `Sub-${sub}`, label: `Sub-${sub}` }));
     }, [alumnos]);
 
+    // --- OPCIONES DINÁMICAS (CROSS-FILTERING) ---
+    const dynamicOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+
+        const getAlumnosFilteredByOthers = (excludeFilter) => {
+            let temp = alumnos;
+            if (excludeFilter !== 'entrenador' && selectedEntrenadores.length > 0) {
+                temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+            }
+            if (excludeFilter !== 'categoria' && selectedCategorias.length > 0) {
+                temp = temp.filter(a => {
+                    const sub = currentYear - new Date(a.fecha_nacimiento).getFullYear();
+                    return selectedCategorias.includes(`Sub-${sub}`);
+                });
+            }
+            if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
+                temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
+            }
+            if (excludeFilter !== 'cancha' && selectedCanchas.length > 0) {
+                temp = temp.filter(a => selectedCanchas.includes(a.cancha_id));
+            }
+            return temp;
+        };
+
+        const filteredForEntrenador = getAlumnosFilteredByOthers('entrenador');
+        const filteredForSub = getAlumnosFilteredByOthers('categoria');
+        const filteredForHorario = getAlumnosFilteredByOthers('horario');
+        const filteredForCancha = getAlumnosFilteredByOthers('cancha');
+
+        const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
+        const validSubsValues = new Set(filteredForSub.map(a => `Sub-${currentYear - new Date(a.fecha_nacimiento).getFullYear()}`));
+        const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
+        const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
+
+        return {
+            entrenadores: entrenadores.map(opt => ({ ...opt, disabled: !validEntrenadoresIds.has(opt.value) })),
+            availableCategorias: masterCategorias.map(opt => ({ ...opt, disabled: !validSubsValues.has(opt.value) })),
+            horarios: horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
+            canchas: canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
+        };
+    }, [alumnos, entrenadores, canchas, horarios, masterCategorias, selectedEntrenadores, selectedCategorias, selectedHorarios, selectedCanchas]);
+
     return {
         // Estado de carga y métricas
         loading,
@@ -299,11 +341,8 @@ export const useEstadisticas = () => {
         exportData,
         dateRangeText,
 
-        // Maestros para combos
-        canchas,
-        horarios,
-        entrenadores,
-        availableCategorias,
+        // Maestros cruzados (Cross-filtering)
+        ...dynamicOptions,
 
         // Controladores de filtros
         dateRangeOption, setDateRangeOption,

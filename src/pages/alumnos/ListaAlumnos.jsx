@@ -51,7 +51,7 @@ const ListaAlumnos = () => {
             subs,
             selectedCanchas,
             selectedHorarios,
-            selectedEntrenador,
+            selectedEntrenadores,
             selectedSubs
         },
         getAsistenciaResumen,
@@ -59,7 +59,7 @@ const ListaAlumnos = () => {
         setCurrentPage,
         setSelectedCanchas,
         setSelectedHorarios,
-        setSelectedEntrenador,
+        setSelectedEntrenadores,
         setSelectedSubs,
         handleFilterChange,
         handleSearchChange,
@@ -196,7 +196,7 @@ const ListaAlumnos = () => {
                                     selectedCanchas.length > 0 ? `Canchas: ${selectedCanchas.map(id => canchas.find(c => c.value === id)?.label).join(', ')}` : '',
                                     selectedHorarios.length > 0 ? `Horarios: ${selectedHorarios.map(id => horarios.find(h => h.value === id)?.label).join(', ')}` : '',
                                     selectedSubs.length > 0 ? `Categorías: ${selectedSubs.map(s => `Sub ${s}`).join(', ')}` : '',
-                                    selectedEntrenador ? `Entrenador: ${entrenadores.find(e => e.value === selectedEntrenador)?.label}` : ''
+                                    selectedEntrenadores.length > 0 ? `Entrenadores: ${selectedEntrenadores.map(id => entrenadores.find(e => e.value === id)?.label).join(', ')}` : ''
                                 ].filter(Boolean).join(' | ') || 'Ninguno'}`],
                                 [],
                                 ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad']
@@ -379,25 +379,18 @@ const ListaAlumnos = () => {
 
                     {/* Filtros Inteligentes Multi-selección */}
                     <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                        {/* Filtro Cancha */}
-                        <MultiSelectFilter
-                            label="Cancha"
-                            placeholder="Todas las Canchas"
-                            options={canchas}
-                            selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
-                        />
+                        {/* 1. Filtro Entrenador — solo para admins */}
+                        {esAdmin && (
+                            <MultiSelectFilter
+                                label="Entrenador"
+                                placeholder="Todos los Entrenadores"
+                                options={entrenadores}
+                                selectedValues={selectedEntrenadores}
+                                onChange={setSelectedEntrenadores}
+                            />
+                        )}
 
-                        {/* Filtro Horario */}
-                        <MultiSelectFilter
-                            label="Horario"
-                            placeholder="Todos los Horarios"
-                            options={horarios}
-                            selectedValues={selectedHorarios}
-                            onChange={setSelectedHorarios}
-                        />
-
-                        {/* Filtro Sub */}
+                        {/* 2. Filtro Sub */}
                         <MultiSelectFilter
                             label="Categoría (Sub)"
                             placeholder="Todos los Sub"
@@ -406,16 +399,23 @@ const ListaAlumnos = () => {
                             onChange={setSelectedSubs}
                         />
 
-                        {/* Filtro Entrenador — solo para admins */}
-                        {esAdmin && (
-                            <MultiSelectFilter
-                                label="Entrenador"
-                                placeholder="Todos los Entrenadores"
-                                options={entrenadores}
-                                selectedValues={selectedEntrenador ? [selectedEntrenador] : []}
-                                onChange={(vals) => setSelectedEntrenador(vals[vals.length - 1] || '')}
-                            />
-                        )}
+                        {/* 3. Filtro Horario */}
+                        <MultiSelectFilter
+                            label="Horario"
+                            placeholder="Todos los Horarios"
+                            options={horarios}
+                            selectedValues={selectedHorarios}
+                            onChange={setSelectedHorarios}
+                        />
+
+                        {/* 4. Filtro Cancha */}
+                        <MultiSelectFilter
+                            label="Cancha"
+                            placeholder="Todas las Canchas"
+                            options={canchas}
+                            selectedValues={selectedCanchas}
+                            onChange={setSelectedCanchas}
+                        />
                     </div>
                 </div>
 

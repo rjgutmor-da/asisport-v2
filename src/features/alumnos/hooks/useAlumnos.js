@@ -26,17 +26,19 @@ export const useAlumnos = () => {
     const [activeFilter, setActiveFilter] = useState('todos');
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
-    // Filtros dinámicos (listas de opciones disponibles)
-    const [canchas, setCanchas] = useState([]);
-    const [horarios, setHorarios] = useState([]);
-    const [entrenadores, setEntrenadores] = useState([]);
-    const [subs, setSubs] = useState([]); // Opciones de Sub derivadas de los alumnos cargados
+    // Opciones maestras (todas las posibles para esta escuela/rol)
+    const [maestros, setMaestros] = useState({
+        canchas: [],
+        horarios: [],
+        entrenadores: [],
+        subs: []
+    });
 
     // Filtros seleccionados (arrays para multi-selección)
     const [selectedCanchas, setSelectedCanchas] = useState([]);   // array de IDs
     const [selectedHorarios, setSelectedHorarios] = useState([]); // array de IDs
-    const [selectedEntrenador, setSelectedEntrenador] = useState(''); // string única (solo para admins)
-    const [selectedSubs, setSelectedSubs] = useState([]);          // array de números (año de sub, ej. 14, 15...)
+    const [selectedEntrenadores, setSelectedEntrenadores] = useState([]); // array de IDs (ahora multi-selección para ser inteligente)
+    const [selectedSubs, setSelectedSubs] = useState([]);          // array de números
 
     // Modo de vista y selección
     const [viewMode, setViewMode] = useState('list'); // 'list' o 'grid'
@@ -55,60 +57,40 @@ export const useAlumnos = () => {
     // Saber si es entrenador (no admin)
     const esEntrenador = role === 'Entrenador' || role === 'Entrenarqueros';
 
-    // Generar las fechas de los últimos 7 días
-    const last7Days = useMemo(() => {
-        const dates = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            dates.push(date.toISOString().split('T')[0]);
-        }
-        return dates;
-    }, []);
-
-    // Cargar alumnos y opciones de filtros al montar o cambiar filtros de cancha/horario
+    // Cargar datos iniciales (Alumnos + Maestros)
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            // Pasar filtros como arrays al servicio
-            const filtrosServidor = {
-                userId: user?.id,
-                userRole: role,
-                canchaIds: selectedCanchas,
-                horarioIds: selectedHorarios,
-                subAnios: selectedSubs,
-            };
-
-            // Cargar alumnos y listas de filtros inteligentes (según rol) en paralelo
+            // Cargamos todos los alumnos disponibles para este usuario/rol de una vez
+            // para poder filtrar "de ida y vuelta" eficientemente en memoria.
             const [alumnsData, canchasData, horariosData, entrenadoresData] = await Promise.all([
-                getAlumnos(filtrosServidor),
+                getAlumnos({ userId: user?.id, userRole: role }), // Traer todos los activos
                 getCanchasParaEntrenador(user?.id, role),
                 getHorariosParaEntrenador(user?.id, role),
                 isAdmin ? getEntrenadores() : Promise.resolve([])
             ]);
 
             setAlumnos(alumnsData);
-            setAllAlumnos(alumnsData); // Guardar copia completa para el modal de combinar
-            setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
-            setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
-            setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
+            setAllAlumnos(alumnsData);
 
-            // Calcular Subs únicas a partir de los alumnos cargados (inteligente por entrenador)
+            // Calcular Subs únicas a partir de los alumnos cargados
             const anoActual = 2026;
             const subsUnicas = [...new Set(
                 alumnsData.map(a => anoActual - new Date(a.fecha_nacimiento).getUTCFullYear())
             )].sort((a, b) => a - b);
-            setSubs(subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` })));
 
-            // Cargar historial de asistencia en BACKGROUND (no bloquea la UI)
-            // La lista de alumnos se muestra inmediatamente, los indicadores de asistencia
-            // aparecen cuando estén listos.
+            setMaestros({
+                canchas: canchasData.map(c => ({ value: c.id, label: c.nombre })),
+                horarios: horariosData.map(h => ({ value: h.id, label: h.hora })),
+                entrenadores: entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })),
+                subs: subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` }))
+            });
+
+            // Cargar historial de asistencia
             if (alumnsData.length > 0) {
                 getAsistenciasUltimos7Dias(alumnsData.map(a => a.id))
                     .then(history => setAsistenciaHistory(history))
                     .catch(err => console.error('Error cargando historial de asistencias:', err));
-            } else {
-                setAsistenciaHistory({});
             }
 
         } catch (error) {
@@ -117,7 +99,7 @@ export const useAlumnos = () => {
         } finally {
             setLoading(false);
         }
-    }, [addToast, user, role, isAdmin, selectedCanchas, selectedHorarios, selectedSubs]);
+    }, [addToast, user, role, isAdmin]);
 
     useEffect(() => {
         if (user) {
@@ -125,31 +107,13 @@ export const useAlumnos = () => {
         }
     }, [loadData, user]);
 
-    // Filtrado, búsqueda, ordenamiento y paginación con useMemo
-    const { filteredAndSortedAlumnos, paginatedAlumnos, totalPages } = useMemo(() => {
-        // Nota: El filtrado por rol, cancha, horario y sub ya se hizo en el servidor.
-        // Aquí solo quedan: filtros de estado, búsqueda por nombre, y filtro por entrenador (solo admin).
+    // =========================================================================
+    // LÓGICA DE FILTRADO INTELIGENTE (CROSS-FILTERING)
+    // =========================================================================
+    
+    // 1. Filtrar alumnos según todas las selecciones
+    const filteredAndSortedAlumnos = useMemo(() => {
         let filtered = alumnos;
-
-        // Filtro por estado/tipo
-        switch (activeFilter) {
-            case 'pendientes':
-                filtered = filtered.filter(a => a.estado === 'Pendiente');
-                break;
-            case 'arqueros':
-                filtered = filtered.filter(a => a.es_arquero === true);
-                break;
-            default:
-                // 'todos' - sin filtro adicional
-                break;
-        }
-
-        // Filtro por entrenador (solo para admins, selección única)
-        if (selectedEntrenador) {
-            filtered = filtered.filter(a =>
-                a.profesor_asignado_id === selectedEntrenador
-            );
-        }
 
         // Búsqueda por nombre
         if (searchTerm.trim()) {
@@ -159,52 +123,116 @@ export const useAlumnos = () => {
             );
         }
 
-        // Ordenamiento interno fijo
-        const sorted = [...filtered].sort((a, b) => {
-            return new Date(b.created_at) - new Date(a.created_at);
-        });
+        // Filtro por estado/tipo
+        if (activeFilter === 'pendientes') {
+            filtered = filtered.filter(a => a.estado === 'Pendiente');
+        } else if (activeFilter === 'arqueros') {
+            filtered = filtered.filter(a => a.es_arquero === true);
+        }
 
-        // Paginación
-        const total = Math.ceil(sorted.length / itemsPerPage);
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginated = sorted.slice(startIndex, startIndex + itemsPerPage);
+        // Filtros Maestros
+        if (selectedEntrenadores.length > 0) {
+            filtered = filtered.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+        }
+        if (selectedSubs.length > 0) {
+            const anoActual = 2026;
+            filtered = filtered.filter(a => {
+                const sub = anoActual - new Date(a.fecha_nacimiento).getUTCFullYear();
+                return selectedSubs.includes(sub);
+            });
+        }
+        if (selectedHorarios.length > 0) {
+            filtered = filtered.filter(a => selectedHorarios.includes(a.horario_id));
+        }
+        if (selectedCanchas.length > 0) {
+            filtered = filtered.filter(a => selectedCanchas.includes(a.cancha_id));
+        }
+
+        // Ordenamiento
+        return [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }, [alumnos, searchTerm, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
+
+    // 2. Calcular opciones DISPONIBLES para cada filtro (la magia del "ida y vuelta")
+    const dynamicOptions = useMemo(() => {
+        const anoActual = 2026;
+
+        // Función para filtrar alumnos excluyendo UN filtro específico
+        const getAlumnosFilteredByOthers = (excludeFilter) => {
+            let temp = alumnos;
+            
+            // Siempre aplicar búsqueda y estado
+            if (searchTerm.trim()) {
+                const search = searchTerm.toLowerCase();
+                temp = temp.filter(a => `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search));
+            }
+            if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
+            if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
+
+            // Filtros cruzados
+            if (excludeFilter !== 'entrenador' && selectedEntrenadores.length > 0) {
+                temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+            }
+            if (excludeFilter !== 'sub' && selectedSubs.length > 0) {
+                temp = temp.filter(a => {
+                    const sub = anoActual - new Date(a.fecha_nacimiento).getUTCFullYear();
+                    return selectedSubs.includes(sub);
+                });
+            }
+            if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
+                temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
+            }
+            if (excludeFilter !== 'cancha' && selectedCanchas.length > 0) {
+                temp = temp.filter(a => selectedCanchas.includes(a.cancha_id));
+            }
+            return temp;
+        };
+
+        const filteredForEntrenador = getAlumnosFilteredByOthers('entrenador');
+        const filteredForSub = getAlumnosFilteredByOthers('sub');
+        const filteredForHorario = getAlumnosFilteredByOthers('horario');
+        const filteredForCancha = getAlumnosFilteredByOthers('cancha');
+
+        // Extraer valores únicos presentes en esos conjuntos
+        const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
+        const validSubsValues = new Set(filteredForSub.map(a => anoActual - new Date(a.fecha_nacimiento).getUTCFullYear()));
+        const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
+        const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
 
         return {
-            filteredAndSortedAlumnos: sorted,
-            paginatedAlumnos: paginated,
+            entrenadores: maestros.entrenadores.map(opt => ({ ...opt, disabled: !validEntrenadoresIds.has(opt.value) })),
+            subs: maestros.subs.map(opt => ({ ...opt, disabled: !validSubsValues.has(opt.value) })),
+            horarios: maestros.horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
+            canchas: maestros.canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
+        };
+    }, [alumnos, maestros, searchTerm, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
+
+    // 3. Paginación sobre el resultado final
+    const { paginatedAlumnos, totalPages } = useMemo(() => {
+        const total = Math.ceil(filteredAndSortedAlumnos.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return {
+            paginatedAlumnos: filteredAndSortedAlumnos.slice(startIndex, startIndex + itemsPerPage),
             totalPages: total
         };
-    }, [alumnos, activeFilter, selectedEntrenador, searchTerm, currentPage, itemsPerPage]);
+    }, [filteredAndSortedAlumnos, currentPage, itemsPerPage]);
 
     // =========================================================================
-    // Cálculo de asistencia últimos 7 días para un alumno
+    // Handlers y Auxiliares
     // =========================================================================
+
     const getAsistenciaResumen = (alumnoId) => {
         const history = asistenciaHistory[alumnoId] || {};
-        return Object.values(history).filter(estado =>
-            estado === 'Presente' || estado === 'Licencia'
-        ).length;
+        return Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
     };
 
-    // =========================================================================
-    // Handlers
-    // =========================================================================
-
-    const handleFilterChange = (filter) => {
-        setActiveFilter(filter);
-        setCurrentPage(1);
-    };
-
-    const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value);
-        setCurrentPage(1);
-    };
+    const handleFilterChange = (filter) => { setActiveFilter(filter); setCurrentPage(1); };
+    const handleSearchChange = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
 
     const handleClearFilters = () => {
         setActiveFilter('todos');
         setSelectedCanchas([]);
         setSelectedHorarios([]);
-        setSelectedEntrenador('');
+        setSelectedEntrenadores([]);
         setSelectedSubs([]);
         setSearchTerm('');
         setCurrentPage(1);
@@ -212,13 +240,8 @@ export const useAlumnos = () => {
     };
 
     const toggleAlumnoSelection = (id) => {
-        const alumno = alumnos.find(a => a.id === id);
-        if (!alumno) return;
-
         const history = asistenciaHistory[id] || {};
-        const asistencias = Object.values(history).filter(estado =>
-            estado === 'Presente' || estado === 'Licencia'
-        ).length;
+        const asistencias = Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
 
         setSelectedAlumnos(prev => {
             const isSelected = prev.includes(id);
@@ -233,30 +256,22 @@ export const useAlumnos = () => {
     const handleSelectAll = (currentPageAlumnos) => {
         const pageIds = currentPageAlumnos.filter(a => {
             const history = asistenciaHistory[a.id] || {};
-            const asistencias = Object.values(history).filter(estado =>
-                estado === 'Presente' || estado === 'Licencia'
-            ).length;
+            const asistencias = Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
             return asistencias >= 2;
         }).map(a => a.id);
 
         const allSelected = pageIds.length > 0 && pageIds.every(id => selectedAlumnos.includes(id));
-
         if (allSelected) {
             setSelectedAlumnos(prev => prev.filter(id => !pageIds.includes(id)));
         } else {
             setSelectedAlumnos(prev => [...new Set([...prev, ...pageIds])]);
-            if (pageIds.length < currentPageAlumnos.length) {
-                addToast('Solo se seleccionaron los alumnos con 2 o más asistencias.', 'info');
-            }
         }
     };
 
     const sendBulkWhatsApp = () => {
         if (selectedAlumnos.length === 0) return;
-
         const selectedData = alumnos.filter(a => selectedAlumnos.includes(a.id));
         const namesList = selectedData.map((a, index) => `${index + 1}. ${a.nombres}`).join('\n');
-
         const message = encodeURIComponent(`${introMessage}\n\n${namesList}`);
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
@@ -264,108 +279,74 @@ export const useAlumnos = () => {
     const aprobarTodos = async () => {
         const pendientes = alumnos.filter(a => a.estado === 'Pendiente');
         if (pendientes.length === 0) return;
-
         try {
             const { supabase } = await import('../../../lib/supabaseClient');
-            const { error } = await supabase
-                .from('alumnos')
-                .update({ estado: 'Aprobado' })
-                .in('id', pendientes.map(a => a.id));
-
+            const { error } = await supabase.from('alumnos').update({ estado: 'Aprobado' }).in('id', pendientes.map(a => a.id));
             if (error) throw error;
-
             addToast(`${pendientes.length} alumnos aprobados correctamente`, 'success');
-            loadData(); // Recargar lista
+            loadData();
             return true;
         } catch (error) {
-            console.error(error);
             addToast('Error al aprobar alumnos', 'error');
             return false;
         }
     };
 
-    // =========================================================================
-    // Archivar un alumno individual desde la lista
-    // =========================================================================
     const handleArchivarAlumno = async (alumnoId) => {
         try {
             await archivarAlumno(alumnoId);
             addToast('Alumno archivado correctamente', 'success');
-            await loadData(); // Recargar la lista para reflejar el cambio
+            await loadData();
             return true;
         } catch (error) {
-            console.error(error);
             addToast(error.message || 'Error al archivar alumno', 'error');
             return false;
         }
     };
 
-    // =========================================================================
-    // Combinar alumnos duplicados
-    // =========================================================================
     const handleCombinarAlumnos = async (destinoId, origenId) => {
         try {
             await combinarAlumnos(destinoId, origenId);
             addToast('Alumnos combinados correctamente', 'success');
-            await loadData(); // Recargar la lista completa
+            await loadData();
             return true;
         } catch (error) {
-            console.error(error);
             addToast(error.message || 'Error al combinar alumnos', 'error');
-            throw error; // Re-lanzar para que el modal maneje el error
+            throw error;
         }
     };
 
-    // =========================================================================
-    // Verificar si hay filtros activos (para mostrar botón limpiar)
-    // =========================================================================
-    const hayFiltrosActivos = activeFilter !== 'todos'
-        || selectedCanchas.length > 0
-        || selectedHorarios.length > 0
-        || selectedEntrenador
-        || selectedSubs.length > 0
-        || searchTerm;
+    const hayFiltrosActivos = activeFilter !== 'todos' || selectedCanchas.length > 0 || selectedHorarios.length > 0 || selectedEntrenadores.length > 0 || selectedSubs.length > 0 || searchTerm;
 
     return {
-        // Estado
         loading,
         alumnos: paginatedAlumnos,
         todosLosAlumnosFiltrados: filteredAndSortedAlumnos,
-        allAlumnos, // Lista completa sin filtrar (para el modal de combinar)
+        allAlumnos,
         totalAlumnos: filteredAndSortedAlumnos.length,
         totalPages,
         currentPage,
         asistenciaHistory,
-        last7Days,
         esEntrenador,
-
-        // Estado de Filtros
         viewMode,
         activeFilter,
         searchTerm,
         selectedAlumnos,
         hayFiltrosActivos,
         filtrosMaestros: {
-            canchas,
-            horarios,
-            entrenadores,
-            subs,              // Opciones dinámicas de Sub
+            ...dynamicOptions,
             selectedCanchas,
             selectedHorarios,
-            selectedEntrenador,
+            selectedEntrenadores,
             selectedSubs,
         },
-
-        // Setters (para binding directo)
         setViewMode,
         setCurrentPage,
         setSelectedCanchas: (val) => { setSelectedCanchas(val); setCurrentPage(1); },
         setSelectedHorarios: (val) => { setSelectedHorarios(val); setCurrentPage(1); },
-        setSelectedEntrenador: (val) => { setSelectedEntrenador(val); setCurrentPage(1); },
+        setSelectedEntrenadores: (val) => { setSelectedEntrenadores(val); setCurrentPage(1); },
         setSelectedSubs: (val) => { setSelectedSubs(val); setCurrentPage(1); },
         getAsistenciaResumen,
-
-        // Handlers
         handleFilterChange,
         handleSearchChange,
         handleClearFilters,

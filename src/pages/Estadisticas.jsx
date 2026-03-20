@@ -24,7 +24,8 @@ const Estadisticas = () => {
         selectedEntrenadores, setSelectedEntrenadores,
         selectedCanchas, setSelectedCanchas,
         selectedHorarios, setSelectedHorarios,
-        selectedCategorias, setSelectedCategorias
+        selectedCategorias, setSelectedCategorias,
+        alumnos
     } = useEstadisticas();
 
     const [showFilters, setShowFilters] = React.useState(false);
@@ -108,6 +109,62 @@ const Estadisticas = () => {
     };
 
 
+    // Exportar Lista de Buena Fe (solo alumnos filtrados)
+    const handleExportBuenaFe = () => {
+        // Obtenemos los alumnos únicos que coinciden con los filtros actuales
+        // A diferencia del reporte de asistencias, aquí queremos el listado de deportistas.
+        if (!alumnos || alumnos.length === 0) return;
+
+        // Filtrar alumnos manualmente basándose en los mismos criterios del hook
+        // o mejor aún, usar los alumnos que "están" en filteredData (asistencias)
+        const alumnosIdsEnAsistencias = new Set(exportData.students.map(s => s.alumno_id || null));
+        
+        // Si no hay asistencias en el periodo, pero hay filtros maestros, 
+        // podríamos querer la lista de inscritos. Pero el usuario pide "Lista de Buena Fe" 
+        // usualmente se refiere a los convocados/activos. 
+        // Usaremos los alumnos que resultan del filtrado maestro del hook.
+        
+        const currentYear = new Date().getFullYear();
+        let filtrados = alumnos;
+
+        if (selectedEntrenadores.length > 0) filtrados = filtrados.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+        if (selectedCategorias.length > 0) {
+            filtrados = filtrados.filter(a => {
+                const sub = currentYear - new Date(a.fecha_nacimiento).getFullYear();
+                return selectedCategorias.includes(`Sub-${sub}`);
+            });
+        }
+        if (selectedHorarios.length > 0) filtrados = filtrados.filter(a => selectedHorarios.includes(a.horario_id));
+        if (selectedCanchas.length > 0) filtrados = filtrados.filter(a => selectedCanchas.includes(a.cancha_id));
+
+        if (filtrados.length === 0) {
+            alert("No hay alumnos que coincidan con los filtros seleccionados.");
+            return;
+        }
+
+        const headers = [
+            ['LISTA DE BUENA FE - ASISPORT'],
+            [`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`],
+            [`Rango: ${dateRangeText}`],
+            [],
+            ['Nombres', 'Apellidos', 'Fecha de Nacimiento', 'Carnet Identidad']
+        ];
+
+        const dataRows = filtrados.map(a => [
+            a.nombres,
+            a.apellidos,
+            new Date(a.fecha_nacimiento).toLocaleDateString('es-ES'),
+            a.carnet_identidad || '-'
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet([...headers, ...dataRows]);
+        ws['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 20 }];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Lista de Buena Fe");
+        XLSX.writeFile(wb, `Lista_Buena_Fe_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
@@ -125,13 +182,25 @@ const Estadisticas = () => {
                     >
                         <Filter size={20} />
                     </button>
+                    
+                    {/* Botón Lista de Buena Fe */}
+                    <button
+                        onClick={handleExportBuenaFe}
+                        className="flex items-center gap-2 bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all"
+                        title="Exportar Lista de Buena Fe"
+                    >
+                        <FileSpreadsheet size={18} />
+                        <span className="hidden md:inline">Lista Buena Fe</span>
+                    </button>
+
                     <button
                         onClick={handleExport}
                         disabled={loading || !exportData.students || exportData.students.length === 0}
                         className="flex items-center gap-2 bg-success/10 text-success border border-success/20 hover:bg-success/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Exportar Reporte de Asistencias"
                     >
-                        <FileSpreadsheet size={18} />
-                        <span className="hidden md:inline">Exportar Excel</span>
+                        <Download size={18} />
+                        <span className="hidden md:inline">Reporte Asistencias</span>
                     </button>
                 </div>
             </header>
@@ -146,7 +215,7 @@ const Estadisticas = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {/* Rango de Fechas */}
+                        {/* 1. Rango de Fechas */}
                         <div className="space-y-1">
                             <label className="text-xs text-text-secondary">Rango de Fechas</label>
                             <select
@@ -164,7 +233,7 @@ const Estadisticas = () => {
                             </select>
                         </div>
 
-                        {/* Entrenador (Multi-select) */}
+                        {/* 2. Entrenador (Multi-select) */}
                         <MultiSelectFilter
                             label="Entrenador"
                             options={entrenadores}
@@ -173,16 +242,16 @@ const Estadisticas = () => {
                             placeholder="Todos"
                         />
 
-                        {/* Cancha (Multi-select) */}
+                        {/* 3. Categoría (Multi-select) */}
                         <MultiSelectFilter
-                            label="Cancha"
-                            options={canchas}
-                            selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
+                            label="Categoría (Sub)"
+                            options={availableCategorias}
+                            selectedValues={selectedCategorias}
+                            onChange={setSelectedCategorias}
                             placeholder="Todas"
                         />
 
-                        {/* Horario (Multi-select) */}
+                        {/* 4. Horario (Multi-select) */}
                         <MultiSelectFilter
                             label="Horario"
                             options={horarios}
@@ -191,12 +260,12 @@ const Estadisticas = () => {
                             placeholder="Todos"
                         />
 
-                        {/* Categoría (Multi-select) */}
+                        {/* 5. Cancha (Multi-select) */}
                         <MultiSelectFilter
-                            label="Categoría (Sub)"
-                            options={availableCategorias}
-                            selectedValues={selectedCategorias}
-                            onChange={setSelectedCategorias}
+                            label="Cancha"
+                            options={canchas}
+                            selectedValues={selectedCanchas}
+                            onChange={setSelectedCanchas}
                             placeholder="Todas"
                         />
                     </div>

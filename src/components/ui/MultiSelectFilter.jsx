@@ -82,17 +82,30 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
                     {/* Opciones individuales */}
                     {options.map(option => {
                         const isSelected = selectedValues.some(v => v == option.value);
+                        const isDisabled = option.disabled;
+
                         return (
                             <button
                                 key={option.value}
                                 type="button"
+                                disabled={isDisabled}
                                 onClick={() => handleToggle(option.value)}
-                                className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-primary/10 transition-colors"
+                                className={`
+                                    w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors
+                                    ${isDisabled ? 'opacity-40 cursor-not-allowed grayscale' : 'hover:bg-primary/10'}
+                                `}
                             >
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-border'}`}>
+                                <div className={`
+                                    w-4 h-4 rounded border flex items-center justify-center transition-colors 
+                                    ${isSelected ? 'bg-primary border-primary' : 'border-border'}
+                                    ${isDisabled ? 'bg-background grayscale' : ''}
+                                `}>
                                     {isSelected && <Check size={12} className="text-white" />}
                                 </div>
-                                <span className={isSelected ? 'text-primary font-medium' : 'text-white'}>
+                                <span className={`
+                                    ${isSelected ? 'text-primary font-medium' : 'text-white'}
+                                    ${isDisabled ? 'text-text-secondary line-through' : ''}
+                                `}>
                                     {option.label}
                                 </span>
                             </button>
