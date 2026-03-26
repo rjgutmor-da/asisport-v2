@@ -4,13 +4,15 @@ import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getSucursales } from '../../../services/sucursales';
 import { createAlumno, checkPosiblesDuplicados } from '../../../services/alumnos';
-
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../../hooks/useMasterData';
 /**
  * Hook para manejar la lógica de registro de alumnos
  */
 export const useRegistroAlumno = (onSuccess) => {
     const { addToast } = useToast();
     const { user, userProfile, isCoach } = useAuth();
+    const queryClient = useQueryClient();
 
     // Estados de carga
     const [loadingMaestros, setLoadingMaestros] = useState(true);
@@ -189,6 +191,7 @@ export const useRegistroAlumno = (onSuccess) => {
             }
 
             const newAlumno = await createAlumno(formData, photoFile);
+            queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
             if (onSuccess) onSuccess(newAlumno);
         } catch (error) {
             console.error(error);

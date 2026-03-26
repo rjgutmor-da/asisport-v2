@@ -1,9 +1,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
-import { getAlumnos } from '../../../services/alumnos';
 import { getAsistenciasRango } from '../../../services/asistencias';
-import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
+import { useMasterData } from '../../../hooks/useMasterData';
 
 /**
  * Hook personalizado para gestionar la lógica del módulo de Estadísticas.
@@ -12,14 +11,34 @@ import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maes
  */
 export const useEstadisticas = () => {
     const { addToast } = useToast();
-    const [loading, setLoading] = useState(true);
+
+    // --- DATOS MAESTROS (React Query en caché) ---
+    const { 
+        alumnos, 
+        entrenadores: rawEntrenadores, 
+        canchas: rawCanchas, 
+        horarios: rawHorarios, 
+        isLoading: isLoadingMasters, 
+        isError 
+    } = useMasterData();
+
+    // Transformamos los datos para que el componente MultiSelectFilter pueda consumirlos fácilmente
+    const canchas = useMemo(() => rawCanchas.map(c => ({ value: c.id, label: c.nombre })), [rawCanchas]);
+    const horarios = useMemo(() => rawHorarios.map(h => ({ value: h.id, label: h.hora })), [rawHorarios]);
+    const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
+
+    useEffect(() => {
+        if (isError) {
+            console.error("Error cargando datos maestros desde la caché.");
+            addToast("Error al cargar datos iniciales", "error");
+        }
+    }, [isError, addToast]);
+
+    const [loadingAsistencias, setLoadingAsistencias] = useState(true);
+    const loading = isLoadingMasters || loadingAsistencias;
 
     // --- ESTADOS DE DATOS ---
-    const [alumnos, setAlumnos] = useState([]);      // Listado completo de alumnos
     const [asistencias, setAsistencias] = useState([]); // Asistencias en el rango de fechas seleccionado
-    const [canchas, setCanchas] = useState([]);        // Maestro de canchas disponibles
-    const [horarios, setHorarios] = useState([]);      // Maestro de horarios disponibles
-    const [entrenadores, setEntrenadores] = useState([]);// Maestro de entrenadores de la escuela
 
     // --- ESTADOS DE FILTROS ---
     const [dateRangeOption, setDateRangeOption] = useState('mes_anterior'); // Opción de pre-ajuste de fecha
@@ -29,32 +48,6 @@ export const useEstadisticas = () => {
     const [selectedCanchas, setSelectedCanchas] = useState([]);
     const [selectedHorarios, setSelectedHorarios] = useState([]);
     const [selectedCategorias, setSelectedCategorias] = useState([]);
-
-    /**
-     * Efecto inicial para cargar los datos maestros de la escuela.
-     * Estos datos se utilizan para poblar los filtros de selección.
-     */
-    useEffect(() => {
-        const loadMasterData = async () => {
-            try {
-                const [alumnosData, canchasData, horariosData, entrenadoresData] = await Promise.all([
-                    getAlumnos(),
-                    getCanchas(),
-                    getHorarios(),
-                    getEntrenadores()
-                ]);
-                setAlumnos(alumnosData);
-                // Transformamos los datos para que el componente MultiSelectFilter pueda consumirlos fácilmente
-                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
-                setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
-                setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
-            } catch (error) {
-                console.error("Error cargando datos maestros:", error);
-                addToast("Error al cargar datos iniciales", "error");
-            }
-        };
-        loadMasterData();
-    }, [addToast]);
 
     /**
      * Calcula dinámicamente el objeto de rango de fechas { start, end } basado en la opción seleccionada.
@@ -118,7 +111,7 @@ export const useEstadisticas = () => {
      */
     useEffect(() => {
         const loadAsistencias = async () => {
-            setLoading(true);
+            setLoadingAsistencias(true);
             try {
                 const startStr = dateRange.start.toISOString().split('T')[0];
                 const endStr = dateRange.end.toISOString().split('T')[0];
@@ -130,7 +123,7 @@ export const useEstadisticas = () => {
                 addToast("Error al cargar asistencias", "error");
                 setAsistencias([]);
             } finally {
-                setLoading(false);
+                setLoadingAsistencias(false);
             }
         };
 

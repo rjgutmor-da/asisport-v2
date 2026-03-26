@@ -21,6 +21,8 @@ const PanelEscuela = lazy(() => import('./pages/admin/PanelEscuela'))
 const GestorSucursales = lazy(() => import('./pages/admin/GestorSucursales'))
 const Asistencia = lazy(() => import('./pages/Asistencia'))
 
+import { useAlumnosRealtime } from './hooks/useAlumnosRealtime'
+
 // Componente de carga reutilizable para Suspense
 const PageLoader = () => (
     <div className="flex h-screen items-center justify-center bg-background">
@@ -32,6 +34,8 @@ const PageLoader = () => (
 )
 
 function App() {
+    useAlumnosRealtime(); // Activar cache invalidation realtime silent
+
     return (
         <AuthProvider>
             <ToastProvider>

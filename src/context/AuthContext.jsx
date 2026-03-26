@@ -2,18 +2,35 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { cacheService } from '../lib/cacheService';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../hooks/useMasterData';
+import { getAlumnos } from '../services/alumnos';
+import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
 
 const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
+    const queryClient = useQueryClient();
     const [user, setUser] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
-    // Ref para evitar problemas de closure obsoleta
     const currentUserIdRef = useRef(null);
+
+    const prefetchMasterData = async () => {
+        try {
+            await Promise.all([
+                queryClient.prefetchQuery({ queryKey: queryKeys.alumnos, queryFn: getAlumnos }),
+                queryClient.prefetchQuery({ queryKey: queryKeys.entrenadores, queryFn: getEntrenadores }),
+                queryClient.prefetchQuery({ queryKey: queryKeys.canchas, queryFn: getCanchas }),
+                queryClient.prefetchQuery({ queryKey: queryKeys.horarios, queryFn: getHorarios }),
+            ]);
+        } catch (error) {
+            console.error('Error en prefetchMasterData:', error);
+        }
+    };
 
     // Obtener perfil de usuario con timeout de protección
     const fetchUserProfile = async (userId) => {
@@ -64,6 +81,7 @@ export const AuthProvider = ({ children }) => {
                     setUser(session.user);
                     currentUserIdRef.current = session.user.id;
                     await fetchUserProfile(session.user.id);
+                    prefetchMasterData(); // PREFETCH en mount si hay sesión
                 } else {
                     setUser(null);
                     setUserProfile(null);
@@ -88,9 +106,8 @@ export const AuthProvider = ({ children }) => {
                 if (session.user.id !== currentUserIdRef.current) {
                     currentUserIdRef.current = session.user.id;
                     setUser(session.user);
-                    // NO ponemos loading=true aquí para no bloquear la UI
-                    // El perfil se carga en background
                     await fetchUserProfile(session.user.id);
+                    prefetchMasterData(); // PREFETCH tras nuevo login
                 }
             } else {
                 // Logout — limpiar caché de datos maestros
@@ -99,6 +116,7 @@ export const AuthProvider = ({ children }) => {
                 setUserProfile(null);
                 setRole(null);
                 cacheService.clear();
+                queryClient.clear(); // Limpiar caché de react-query en DB en logout
             }
             // Siempre asegurar que loading sea false después de procesar
             setLoading(false);
