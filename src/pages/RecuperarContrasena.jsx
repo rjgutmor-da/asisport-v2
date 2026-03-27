@@ -18,16 +18,23 @@ const RecuperarContrasena = () => {
         setMessage(null);
 
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
                 redirectTo: `${window.location.origin}/reset-password`,
             });
 
-            if (error) throw error;
+            if (error) {
+                if (error.message.includes('rate limit') || error.message.includes('Too many')) {
+                    throw new Error('Demasiados intentos. Por favor espera unos minutos antes de volver a intentarlo.');
+                }
+                throw error;
+            }
             
-            setMessage('Se ha enviado un correo con instrucciones para restablecer tu contraseña.');
+            // Por seguridad, siempre mostramos el mismo mensaje independientemente
+            // de si el correo existe o no en el sistema
+            setMessage('Si el correo está registrado, recibirás un enlace para restablecer tu contraseña. Revisa también tu carpeta de spam.');
         } catch (err) {
             console.error('Error al solicitar recuperación:', err);
-            setError(err.message || 'Error al conectar con el servidor.');
+            setError(err.message || 'Error al conectar con el servidor. Intenta nuevamente.');
         } finally {
             setLoading(false);
         }

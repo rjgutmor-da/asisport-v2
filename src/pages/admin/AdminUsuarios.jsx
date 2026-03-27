@@ -104,10 +104,15 @@ const AdminUsuarios = () => {
             return;
         }
 
+        if (formData.password.length < 6) {
+            addToast('La contraseña debe tener al menos 6 caracteres.', 'error');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await createUserDirectly(formData);
-            addToast('Usuario creado y activado correctamente.', 'success');
+            addToast(`✓ Usuario ${formData.email} creado correctamente. Ya puede iniciar sesión.`, 'success');
             setFormData({
                 nombres: '',
                 apellidos: '',

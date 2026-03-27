@@ -149,12 +149,12 @@ export const useRegistroAlumno = (onSuccess) => {
         if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
         if (!formData.profesor_asignado_id) newErrors.profesor_asignado_id = 'Selecciona un profesor asignado';
 
-        // Validación Representante Legal (Regla #8)
-        const padreCompleto = formData.nombre_padre && formData.telefono_padre;
-        const madreCompleto = formData.nombre_madre && formData.telefono_madre;
+        // Validación Representante Legal: solo el nombre es obligatorio, el teléfono es opcional
+        const tieneNombrePadre = formData.nombre_padre && formData.nombre_padre.trim();
+        const tieneNombreMadre = formData.nombre_madre && formData.nombre_madre.trim();
 
-        if (!padreCompleto && !madreCompleto) {
-            newErrors.representante = 'Debe registrar al menos un representante legal completo (Padre o Madre con nombre y teléfono).';
+        if (!tieneNombrePadre && !tieneNombreMadre) {
+            newErrors.representante = 'Debe registrar al menos un representante legal (Padre o Madre con su nombre).';
         }
 
         setErrors(newErrors);

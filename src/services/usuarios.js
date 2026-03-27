@@ -86,6 +86,12 @@ export const createUserDirectly = async (userData) => {
 
     const escuelaId = await obtenerEscuelaId();
 
+    // Validar campos requeridos antes de llamar a la API
+    if (!userData.email?.trim()) throw new Error('El correo electrónico es obligatorio.');
+    if (!userData.password || userData.password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
+    if (!userData.nombres?.trim()) throw new Error('El nombre es obligatorio.');
+    if (!userData.apellidos?.trim()) throw new Error('Los apellidos son obligatorios.');
+
     // 2. Cliente secundario para no cerrar la sesión actual
     const { createClient } = await import('@supabase/supabase-js');
     const tempClient = createClient(
@@ -95,23 +101,37 @@ export const createUserDirectly = async (userData) => {
     );
 
     // 3. Crear usuario en Auth de Supabase
+    const emailLimpio = userData.email.trim().toLowerCase();
     const { data: authData, error: authError } = await tempClient.auth.signUp({
-        email: userData.email.trim(),
+        email: emailLimpio,
         password: userData.password,
     });
 
     if (authError) {
-        throw new Error('Error al crear usuario en Supabase: ' + authError.message);
+        // Traducir errores comunes al español
+        if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
+            throw new Error(`El correo ${emailLimpio} ya está registrado en el sistema.`);
+        }
+        if (authError.message.includes('invalid email')) {
+            throw new Error('El formato del correo electrónico no es válido.');
+        }
+        if (authError.message.includes('Password')) {
+            throw new Error('La contraseña no cumple los requisitos mínimos (al menos 6 caracteres).');
+        }
+        throw new Error('Error al crear la cuenta: ' + authError.message);
     }
 
     if (!authData.user) {
-        throw new Error('No se devolvió un usuario tras el registro.');
+        // Supabase a veces devuelve sin user si el email ya existe pero no está confirmado
+        throw new Error(`El correo ${emailLimpio} ya existe en el sistema. Si el usuario no ha confirmado su correo, puede reenviar el correo de confirmación.`);
     }
 
-    // 4. Upsert en la tabla 'usuarios' (por si un trigger ya lo creó)
+    const authUserId = authData.user.id;
+
+    // 4. Guardar el perfil en la tabla 'usuarios'
     const newUserData = {
-        id: authData.user.id,
-        email: userData.email.trim(),
+        id: authUserId,
+        email: emailLimpio,
         nombres: userData.nombres.trim(),
         apellidos: userData.apellidos.trim(),
         rol: userData.rol,
@@ -122,11 +142,17 @@ export const createUserDirectly = async (userData) => {
 
     const { error: dbError } = await supabase
         .from('usuarios')
-        .upsert(newUserData);
+        .upsert(newUserData, { onConflict: 'id' });
 
     if (dbError) {
-        throw new Error('El usuario se creó pero hubo un error al guardar sus datos de perfil: ' + dbError.message);
+        // Si falla el perfil, el usuario de auth ya fue creado. Informar claramente.
+        console.error('Error al guardar perfil, el usuario de Auth fue creado con ID:', authUserId);
+        throw new Error(
+            'La cuenta se creó pero no se pudo guardar el perfil. ' +
+            'Contacte al administrador o intente desde "Recuperar contraseña". ' +
+            'Detalle técnico: ' + dbError.message
+        );
     }
 
-    return true;
+    return { id: authUserId, email: emailLimpio };
 };

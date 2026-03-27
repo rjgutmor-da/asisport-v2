@@ -126,14 +126,14 @@ const RegistroAlumno = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
-                                label="Nombre del Padre"
+                                label="Nombre del Padre *"
                                 name="nombre_padre"
                                 value={formData.nombre_padre}
                                 onChange={handleChange}
                                 placeholder="Nombre completo"
                             />
                             <Input
-                                label="Teléfono Padre"
+                                label="Teléfono Padre (Opcional)"
                                 name="telefono_padre"
                                 value={formData.telefono_padre}
                                 onChange={handleChange}
@@ -144,14 +144,14 @@ const RegistroAlumno = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
-                                label="Nombre de la Madre"
+                                label="Nombre de la Madre *"
                                 name="nombre_madre"
                                 value={formData.nombre_madre}
                                 onChange={handleChange}
                                 placeholder="Nombre completo"
                             />
                             <Input
-                                label="Teléfono Madre"
+                                label="Teléfono Madre (Opcional)"
                                 name="telefono_madre"
                                 value={formData.telefono_madre}
                                 onChange={handleChange}
