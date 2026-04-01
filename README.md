@@ -151,8 +151,12 @@ node reset_database.js
 # Ejecutar estos SQL en el Editor SQL de Supabase si es necesario:
 # scripts/fix_alumnos_rls_definitivo.sql (para alumnos)
 # supabase/migrations/20260326_fix_usuarios_rls.sql (para gestión de usuarios)
+# supabase/migrations/20260401_sync_alumnos_entrenadores.sql (para sincronización automática de entrenadores)
 
 ```
+
+### ⚙️ Automatizaciones del Backend (Supabase)
+- **Sincronización de Entrenadores:** Se ha implementado un trigger (`trigger_sync_alumnos_entrenadores`) en la tabla `alumnos`. Cada vez que se actualiza o crea el `profesor_asignado_id` en el perfil del alumno, el sistema automáticamente actualiza los permisos de visibilidad en la tabla `alumnos_entrenadores`. Esto asegura que los entrenadores vean a sus alumnos correctamente sin necesidad de realizar cambios manuales adicionales.
 
 ---
 
