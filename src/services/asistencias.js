@@ -281,29 +281,40 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
     // Opcional: filtrar por escuela
     const escuelaId = await obtenerEscuelaId();
 
-    // Query básica: traer asistencias en rango
-    // Nota: idealmente hacer join con alumnos para traer info básica, 
-    // pero como traemos alumnos aparte en el hook, aquí solo necesitamos IDs y datos de asistencia.
-    // Sin embargo, para agilizar reporte, confirmar que pertenecen al entrenador/escuela.
+    // Implementando paginación para superar el límite de 1000 registros estricto de Supabase API (PostgREST)
+    let allData = [];
+    let isFetching = true;
+    let from = 0;
+    const step = 1000;
 
-    let query = supabase
-        .from('asistencias_normales')
-        .select('*, alumnos!inner(escuela_id)')
-        .eq('alumnos.escuela_id', escuelaId)
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin)
-        .limit(10000); // Aumentar el límite a 10000 para soportar reportes de escuelas grandes durante un mes completo (aprox 3000 registros/mes)
+    while (isFetching) {
+        const { data, error } = await supabase
+            .from('asistencias_normales')
+            .select('*, alumnos!inner(escuela_id)')
+            .eq('alumnos.escuela_id', escuelaId)
+            .gte('fecha', fechaInicio)
+            .lte('fecha', fechaFin)
+            .range(from, from + step - 1);
 
-    // Si tenemos escuela, filtramos explícitamente doble aseguramiento B2B
+        if (error) {
+            throw error;
+        }
 
-    const { data, error } = await query;
-
-    if (error) {
-        throw error;
+        if (data && data.length > 0) {
+            allData = [...allData, ...data];
+            from += step;
+            
+            // Si trajimos menos de 1000 registros, ya llegamos al final
+            if (data.length < step) {
+                isFetching = false;
+            }
+        } else {
+            isFetching = false;
+        }
     }
 
     // Limpiamos el nodo anidado de escuela_id para no alterar el contrato original
-    return data.map(d => {
+    return allData.map(d => {
         const clon = { ...d };
         delete clon.alumnos;
         return clon;
