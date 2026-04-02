@@ -113,8 +113,16 @@ export const useEstadisticas = () => {
         const loadAsistencias = async () => {
             setLoadingAsistencias(true);
             try {
-                const startStr = dateRange.start.toISOString().split('T')[0];
-                const endStr = dateRange.end.toISOString().split('T')[0];
+                // Función auxiliar para extraer YYYY-MM-DD sin problemas de zona horaria UTC
+                const toLocalDateString = (d) => {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                const startStr = toLocalDateString(dateRange.start);
+                const endStr = toLocalDateString(dateRange.end);
 
                 const data = await getAsistenciasRango(startStr, endStr);
                 setAsistencias(data || []);

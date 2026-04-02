@@ -1,4 +1,4 @@
-﻿import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
@@ -291,7 +291,8 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
         .select('*, alumnos!inner(escuela_id)')
         .eq('alumnos.escuela_id', escuelaId)
         .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin);
+        .lte('fecha', fechaFin)
+        .limit(10000); // Aumentar el límite a 10000 para soportar reportes de escuelas grandes durante un mes completo (aprox 3000 registros/mes)
 
     // Si tenemos escuela, filtramos explícitamente doble aseguramiento B2B
 
