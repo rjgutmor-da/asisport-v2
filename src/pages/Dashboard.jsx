@@ -45,18 +45,27 @@ const Dashboard = () => {
             {/* Contenedor principal Responsive */}
             <div className="px-4 space-y-4 md:px-8 md:grid md:grid-cols-2 md:gap-8 md:space-y-0 max-w-7xl mx-auto">
 
-                {/* Columna Izquierda (Desktop) / Top (Mobile) - Hero Action */}
-                <div className="md:flex md:flex-col md:justify-center">
+                {/* Columna Izquierda (Asistencia + Brand) */}
+                <div className="md:flex md:flex-col items-center gap-8 pt-0">
                     <HeroCard
                         icon={<ClipboardCheck size={80} className="md:w-28 md:h-28" />}
                         label="Asistencia"
                         onClick={() => navigate('/asistencia')}
-                        className="min-h-[200px] md:min-h-[400px]"
+                        className="min-h-[250px] md:min-h-[440px]"
                     />
+                    
+                    {/* Brand Section: Logo + Phrase (Combined Image) */}
+                    <div className="flex flex-col items-center text-center pb-8">
+                        <img 
+                            src="/src/assets/LogoPlaneta.png" 
+                            alt="Planeta FC - por un Planeta mejor un Planeta de Fútbol" 
+                            className="w-56 h-auto md:w-80 transition-transform hover:scale-105 duration-300"
+                        />
+                    </div>
                 </div>
 
-                {/* Columna Derecha (Desktop) / Bottom (Mobile) - Grid de Módulos */}
-                <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-2 md:content-center">
+                {/* Columna Derecha - Grid de Módulos */}
+                <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-2 md:content-start pt-0">
                     <ModuleCard
                         icon={<UserPlus size={60} />}
                         label="Registro Alumnos"
