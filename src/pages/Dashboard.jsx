@@ -5,6 +5,7 @@ import HeroCard from '../components/dashboard/HeroCard';
 import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
 import { useAuth } from '../context/AuthContext';
+import LogoPlaneta from '../assets/LogoPlaneta.png';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -46,20 +47,20 @@ const Dashboard = () => {
             <div className="px-4 space-y-4 md:px-8 md:grid md:grid-cols-2 md:gap-8 md:space-y-0 max-w-7xl mx-auto">
 
                 {/* Columna Izquierda (Asistencia + Brand) */}
-                <div className="md:flex md:flex-col items-center gap-8 pt-0">
+                <div className="md:flex md:flex-col items-center gap-2 md:gap-8 pt-0">
                     <HeroCard
-                        icon={<ClipboardCheck size={80} className="md:w-28 md:h-28" />}
+                        icon={<ClipboardCheck size={48} className="md:size-28" />}
                         label="Asistencia"
                         onClick={() => navigate('/asistencia')}
-                        className="min-h-[250px] md:min-h-[440px]"
+                        className="min-h-[140px] md:min-h-[440px]"
                     />
                     
                     {/* Brand Section: Logo + Phrase (Combined Image) */}
-                    <div className="flex flex-col items-center text-center pb-8">
+                    <div className="flex flex-col items-center text-center pb-2 md:pb-8">
                         <img 
-                            src="/src/assets/LogoPlaneta.png" 
-                            alt="Planeta FC - por un Planeta mejor un Planeta de Fútbol" 
-                            className="w-56 h-auto md:w-80 transition-transform hover:scale-105 duration-300"
+                            src={LogoPlaneta} 
+                            alt="Logo Planeta FC" 
+                            className="w-40 h-auto md:w-80 transition-transform hover:scale-105 duration-300"
                         />
                     </div>
                 </div>
