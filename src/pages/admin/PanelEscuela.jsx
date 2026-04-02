@@ -57,125 +57,105 @@ const PanelEscuela = () => {
                 </h1>
             </header>
 
-            <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-                {/* Información de la Escuela */}
+            <main className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+                {/* Información de la Escuela - Premium Hero Card */}
                 {escuela && (
-                    <div className="bg-surface border border-border rounded-lg p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <School size={28} className="text-primary" />
-                            <h2 className="text-2xl font-bold text-white">{escuela.nombre}</h2>
-                        </div>
+                    <div className="bg-surface border border-border/40 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                                    <School size={40} className="text-primary" />
+                                </div>
+                                <h2 className="text-4xl font-extrabold text-white tracking-tight leading-none uppercase">{escuela.nombre}</h2>
+                            </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <p className="text-text-secondary mb-1">ID de Escuela</p>
-                                <p className="text-white font-mono bg-background px-2 py-1 rounded border border-border inline-block">
+                            <div className="space-y-2">
+                                <p className="text-text-secondary text-sm font-medium tracking-wide">ID de Escuela</p>
+                                <p className="text-white/80 font-mono text-sm inline-block py-1 pr-1">
                                     {escuela.id}
                                 </p>
                             </div>
-                            {escuela.direccion && (
-                                <div>
-                                    <p className="text-text-secondary mb-1">Dirección</p>
-                                    <p className="text-white">{escuela.direccion}</p>
-                                </div>
-                            )}
-                            {escuela.telefono && (
-                                <div>
-                                    <p className="text-text-secondary mb-1">Teléfono</p>
-                                    <p className="text-white">{escuela.telefono}</p>
-                                </div>
-                            )}
-                            {escuela.email && (
-                                <div>
-                                    <p className="text-text-secondary mb-1">Email</p>
-                                    <p className="text-white">{escuela.email}</p>
-                                </div>
-                            )}
                         </div>
+                        {/* Background subtle decoration */}
+                        <div className="absolute -top-12 -right-12 bg-primary/5 w-64 h-64 rounded-full blur-3xl pointer-events-none"></div>
                     </div>
                 )}
 
-                {/* Estadísticas */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-surface border border-border rounded-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-primary/20 p-3 rounded-lg">
-                                <GraduationCap size={24} className="text-primary" />
-                            </div>
-                            <div>
-                                <p className="text-text-secondary text-sm">Alumnos Activos</p>
-                                <p className="text-white text-3xl font-bold">{stats.alumnosActivos}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-surface border border-border rounded-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-success/20 p-3 rounded-lg">
-                                <UserCheck size={24} className="text-success" />
-                            </div>
-                            <div>
-                                <p className="text-text-secondary text-sm">Entrenadores</p>
-                                <p className="text-white text-3xl font-bold">{stats.entrenadoresActivos}</p>
+                {/* Estadísticas - Grid de 3 Columnas Estilizadas */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-surface border border-border/40 rounded-xl p-8 transition-all hover:border-primary/30 group shadow-lg">
+                        <div className="flex flex-col gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-orange-500/10 p-4 rounded-xl group-hover:bg-orange-500/20 transition-colors">
+                                    <GraduationCap size={32} className="text-orange-500" />
+                                </div>
+                                <div>
+                                    <p className="text-text-secondary text-sm font-medium">Alumnos Activos</p>
+                                    <p className="text-white text-4xl font-black">{stats.alumnosActivos}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-surface border border-border rounded-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="bg-blue-500/20 p-3 rounded-lg">
-                                <Users size={24} className="text-blue-400" />
+                    <div className="bg-surface border border-border/40 rounded-xl p-8 transition-all hover:border-success/30 group shadow-lg">
+                        <div className="flex flex-col gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-success/10 p-4 rounded-xl group-hover:bg-success/20 transition-colors">
+                                    <UserCheck size={32} className="text-success" />
+                                </div>
+                                <div>
+                                    <p className="text-text-secondary text-sm font-medium">Entrenadores</p>
+                                    <p className="text-white text-4xl font-black">{stats.entrenadoresActivos}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-text-secondary text-sm">Usuarios Totales</p>
-                                <p className="text-white text-3xl font-bold">{stats.usuariosActivos}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-surface border border-border/40 rounded-xl p-8 transition-all hover:border-blue-500/30 group shadow-lg">
+                        <div className="flex flex-col gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-blue-500/10 p-4 rounded-xl group-hover:bg-blue-500/20 transition-colors">
+                                    <Users size={32} className="text-blue-400" />
+                                </div>
+                                <div>
+                                    <p className="text-text-secondary text-sm font-medium">Usuarios Totales</p>
+                                    <p className="text-white text-4xl font-black">{stats.usuariosActivos}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Acceso rápido - Grid de tarjetas grandes tipo Dashborad */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button
+                        onClick={() => navigate('/admin/sucursales')}
+                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                    >
+                        <div className="text-white flex flex-col items-center gap-6">
+                            <h3 className="text-2xl font-bold tracking-tight">Sucursales</h3>
+                            <p className="text-text-secondary text-base max-w-[200px]">Gestionar sedes y ubicaciones</p>
+                        </div>
+                    </button>
 
+                    <button
+                        onClick={() => navigate('/admin/usuarios')}
+                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                    >
+                        <div className="text-white flex flex-col items-center gap-6">
+                            <h3 className="text-2xl font-bold tracking-tight">Usuarios</h3>
+                            <p className="text-text-secondary text-base max-w-[200px]">Gestionar roles y permisos</p>
+                        </div>
+                    </button>
 
-                {/* Acceso rápido */}
-                <div className="bg-surface border border-border rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Accesos Rápidos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <button
-                            onClick={() => navigate('/admin/usuarios')}
-                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
-                        >
-                            <p className="font-semibold">Admin Usuarios</p>
-                            <p className="text-text-secondary text-sm">Gestionar roles y permisos</p>
-                        </button>
-                        <button
-                            onClick={() => navigate('/admin/configuraciones')}
-                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
-                        >
-                            <p className="font-semibold">Configuraciones</p>
-                            <p className="text-text-secondary text-sm">Canchas y horarios</p>
-                        </button>
-                        <button
-                            onClick={() => navigate('/admin/sucursales')}
-                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
-                        >
-                            <p className="font-semibold">Sucursales</p>
-                            <p className="text-text-secondary text-sm">Gestionar sedes y ubicaciones</p>
-                        </button>
-                        <button
-                            onClick={() => navigate('/alumnos')}
-                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
-                        >
-                            <p className="font-semibold">Lista de Alumnos</p>
-                            <p className="text-text-secondary text-sm">Ver todos los alumnos activos</p>
-                        </button>
-                        <button
-                            onClick={() => navigate('/estadisticas')}
-                            className="px-4 py-3 bg-background border border-border text-white rounded-md hover:border-primary transition-colors text-left"
-                        >
-                            <p className="font-semibold">Estadísticas</p>
-                            <p className="text-text-secondary text-sm">Métricas y reportes</p>
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => navigate('/admin/configuraciones')}
+                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                    >
+                        <div className="text-white flex flex-col items-center gap-6">
+                            <h3 className="text-2xl font-bold tracking-tight line-clamp-2">Canchas y Horarios</h3>
+                        </div>
+                    </button>
                 </div>
             </main>
         </div>

@@ -104,27 +104,41 @@ Para información más detallada, consulta:
 - **[Guía de Usuario](./GUIA_USUARIO.md)** - Manual de uso para usuarios finales
 - **[Queries de Supabase](./docs/supabase-queries.md)** - Consultas SQL útiles
 
+### 🎨 Novedades de Diseño (v2.1)
+- **Dashboard Limpio**: Se eliminó el acceso directo a *Configuraciones* para centralizar la gestión administrativa en el Panel de Escuela.
+- **Hero Card Unificado**: La tarjeta de *Asistencia* ahora tiene un diseño estándar con borde gris claro, manteniendo la estética minimalista y profesional.
+- **Panel de Escuela Premium**: Rediseño completo con tarjetas minimalistas, estadísticas de alto impacto y accesos directos de gran formato para:
+    - **Sucursales**: Gestión de sedes.
+    - **Usuarios**: Control de roles.
+    - **Canchas y Horarios**: Configuración de maestros (anteriormente en el dashboard).
+
+---
+
+## 🏗 Arquitectura del Proyecto
+
+El proyecto sigue una arquitectura **Monolito Modular**:
+
+-   `src/features/`: Lógica de negocio (Hooks, Componentes específicos).
+-   `src/pages/`: Orquestación de vistas principales.
+-   `src/services/`: Comunicación centralizada con Supabase.
+-   `src/components/`: Componentes UI reutilizables y atómicos.
+
 ---
 
 ## 🎯 Estado Actual del Proyecto
 
-**Versión:** MVP 1.0  
-**Estado:** ✅ **FUNCIONAL - Listo para Producción**
+**Versión:** 2.1 (Diseño Premium)  
+**Estado:** ✅ **FUNCIONAL - Revisión Estética Completada**
 
-### Módulos Completados (100%)
-- ✅ Autenticación y Seguridad
-- ✅ Gestión de Alumnos (Registro, Lista, Detalle)
-- ✅ Gestión de Asistencias
-- ✅ Cumpleaños
-- ✅ Estadísticas y Reportes
-- ✅ Panel de Administración
+### Módulos Actualizados
+- ✅ **Dashboard**: Remoción de marcos naranjas en HeroCards y limpieza de módulos.
+- ✅ **Panel Escuela**: Integración de configuraciones y rediseño de UI.
+- ✅ **Seguridad**: RLS verificado para multi-inquilino.
 
 ### Próximos Pasos
-1. 🚀 Desplegar en producción (Vercel/Netlify)
-2. 🏫 Configurar primera escuela cliente
-3. 👥 Crear usuarios del staff
-4. 📊 Período de prueba (1-2 semanas)
-5. ⚽ Implementar módulo de Convocatorias (Fase 2)
+1. 🚀 Validar diseño final con el usuario.
+2. 🧹 Remover mocks de autenticación temporales.
+3. 🏫 Configurar primera escuela cliente real.
 
 Para más detalles, consulta [ESTADO_ACTUAL_Y_PROXIMOS_PASOS.md](./docs/ESTADO_ACTUAL_Y_PROXIMOS_PASOS.md)
 

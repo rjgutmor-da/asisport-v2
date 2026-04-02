@@ -15,15 +15,15 @@ const Dashboard = () => {
             {/* Header */}
             <header className="flex items-center justify-between pt-4 px-4 pb-4 md:px-8 md:py-6 max-w-7xl mx-auto w-full">
                 <div className="flex items-center gap-8">
-                    <h1 className="text-[39px] font-black text-white">
+                    <h1 className="text-[39px] font-black text-primary">
                         AsiSport
                     </h1>
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-6">
-                        <button onClick={() => navigate('/dashboard')} className="text-primary font-bold text-[23px]">Inicio</button>
-                        <button onClick={() => navigate('/asistencia')} className="text-text-secondary hover:text-white font-medium text-[23px] transition-colors">Asistencia</button>
-                        <button onClick={() => navigate('/alumnos')} className="text-text-secondary hover:text-white font-medium text-[23px] transition-colors">Alumnos</button>
-                        <button onClick={() => navigate('/alumnos/cumpleanos')} className="text-text-secondary hover:text-white font-medium text-[23px] transition-colors">Cumpleaños</button>
+                        <button onClick={() => navigate('/dashboard')} className="text-white font-bold text-[23px] hover:text-primary transition-colors">Inicio</button>
+                        <button onClick={() => navigate('/asistencia')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Asistencia</button>
+                        <button onClick={() => navigate('/alumnos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Alumnos</button>
+                        <button onClick={() => navigate('/alumnos/cumpleanos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Cumpleaños</button>
                     </nav>
                 </div>
                 {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
@@ -92,15 +92,6 @@ const Dashboard = () => {
 
 
 
-                    {/* Módulo de Configuraciones (Admin/Dueño/SuperAdmin) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
-                        <ModuleCard
-                            icon={<Settings size={60} />}
-                            label="Configuraciones"
-                            onClick={() => navigate('/admin/configuraciones')}
-                            size="compact"
-                        />
-                    )}
 
                     {/* Módulo de Alumnos Archivados */}
                     <ModuleCard
