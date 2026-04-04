@@ -43,11 +43,11 @@ const Dashboard = () => {
                 )}
             </header>
 
-            {/* Contenedor principal Responsive */}
-            <div className="px-4 space-y-4 md:px-8 md:grid md:grid-cols-2 md:gap-8 md:space-y-0 max-w-7xl mx-auto">
+            {/* Contenedor principal Responsive - Se añade padding superior en PC para bajar las tarjetas */}
+            <div className="px-4 space-y-10 md:space-y-0 md:px-8 md:grid md:grid-cols-2 md:gap-12 max-w-7xl mx-auto md:pt-16 pb-12">
 
-                {/* Columna Izquierda (Asistencia + Brand) */}
-                <div className="md:flex md:flex-col items-center gap-2 md:gap-8 pt-0">
+                {/* Columna Izquierda (Asistencia + Brand) - Ajustada para separar logo en móvil */}
+                <div className="flex flex-col items-center gap-10 md:gap-8 pt-0 w-full">
                     <HeroCard
                         icon={<ClipboardCheck size={48} className="md:size-28" />}
                         label="Asistencia"
@@ -56,11 +56,11 @@ const Dashboard = () => {
                     />
                     
                     {/* Brand Section: Logo + Phrase (Combined Image) */}
-                    <div className="flex flex-col items-center text-center pb-2 md:pb-8">
+                    <div className="flex flex-col items-center text-center">
                         <img 
                             src={LogoPlaneta} 
                             alt="Logo Planeta FC" 
-                            className="w-40 h-auto md:w-80 transition-transform hover:scale-105 duration-300"
+                            className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
                         />
                     </div>
                 </div>

@@ -11,6 +11,7 @@ const HeroCard = ({ icon, label, onClick, className = '' }) => {
                 rounded-md 
                 p-md md:p-xl 
                 flex flex-col items-center justify-center gap-2 md:gap-md
+                hover:border-primary 
                 active:scale-[0.98]
                 hover:-translate-y-[1px]
                 hover:shadow-lg
