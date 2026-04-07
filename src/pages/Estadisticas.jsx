@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Filter, Users, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Download, Filter, Users, FileSpreadsheet, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useEstadisticas } from '../features/estadisticas/hooks/useEstadisticas';
 import StatCard from '../features/estadisticas/components/StatCard';
@@ -29,6 +29,36 @@ const Estadisticas = () => {
     } = useEstadisticas();
 
     const [showFilters, setShowFilters] = React.useState(false);
+    const [showReportModal, setShowReportModal] = React.useState(false);
+    const [selectedFields, setSelectedFields] = React.useState(['nombreCompleto', 'telefono', 'fecha_nacimiento']);
+
+    const availableFields = [
+        { id: 'nombreCompleto', label: 'Nombre Completo' },
+        { id: 'telefono', label: 'Teléfono' },
+        { id: 'fecha_nacimiento', label: 'Fecha de Nacimiento' },
+        { id: 'carnet_identidad', label: 'Carnet de Identidad' },
+        { id: 'colegio', label: 'Colegio' },
+        { id: 'direccion', label: 'Dirección' },
+        { id: 'estado', label: 'Estado' },
+        { id: 'es_arquero', label: 'Es Arquero' },
+        { id: 'cancha', label: 'Cancha' },
+        { id: 'horario', label: 'Horario' },
+        { id: 'entrenador', label: 'Entrenador Asignado' },
+        { id: 'nombre_padre', label: 'Nombre del Padre' },
+        { id: 'telefono_padre', label: 'Teléfono Padre' },
+        { id: 'nombre_madre', label: 'Nombre de la Madre' },
+        { id: 'telefono_madre', label: 'Teléfono Madre' }
+    ];
+
+    const toggleField = (id) => {
+        if (selectedFields.includes(id)) {
+            if (selectedFields.length > 1) {
+                setSelectedFields(selectedFields.filter(f => f !== id));
+            }
+        } else {
+            setSelectedFields([...selectedFields, id]);
+        }
+    };
 
     // Exportar a Excel con formato detallado por fechas
     const handleExport = () => {
@@ -109,23 +139,12 @@ const Estadisticas = () => {
     };
 
 
-    // Exportar Lista de Buena Fe (solo alumnos filtrados)
-    const handleExportBuenaFe = () => {
-        // Obtenemos los alumnos únicos que coinciden con los filtros actuales
-        // A diferencia del reporte de asistencias, aquí queremos el listado de deportistas.
+    // Exportar Reporte Personalizado de Alumnos
+    const handleExportAlumnosPersonalizado = () => {
         if (!alumnos || alumnos.length === 0) return;
 
-        // Filtrar alumnos manualmente basándose en los mismos criterios del hook
-        // o mejor aún, usar los alumnos que "están" en filteredData (asistencias)
-        const alumnosIdsEnAsistencias = new Set(exportData.students.map(s => s.alumno_id || null));
-        
-        // Si no hay asistencias en el periodo, pero hay filtros maestros, 
-        // podríamos querer la lista de inscritos. Pero el usuario pide "Lista de Buena Fe" 
-        // usualmente se refiere a los convocados/activos. 
-        // Usaremos los alumnos que resultan del filtrado maestro del hook.
-        
-        const currentYear = new Date().getFullYear();
         let filtrados = alumnos;
+        const currentYear = new Date().getFullYear();
 
         if (selectedEntrenadores.length > 0) filtrados = filtrados.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
         if (selectedCategorias.length > 0) {
@@ -142,27 +161,38 @@ const Estadisticas = () => {
             return;
         }
 
-        const headers = [
-            ['LISTA DE BUENA FE - ASISPORT'],
-            [`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`],
-            [`Rango: ${dateRangeText}`],
-            [],
-            ['Nombres', 'Apellidos', 'Fecha de Nacimiento', 'Carnet Identidad']
-        ];
+        const headers = selectedFields.map(id => availableFields.find(f => f.id === id)?.label || id);
+        
+        const dataRows = filtrados.map(a => {
+            return selectedFields.map(fieldId => {
+                switch (fieldId) {
+                    case 'nombreCompleto': return `${a.nombres} ${a.apellidos}`;
+                    case 'telefono': 
+                        return a.whatsapp_preferido === 'madre' 
+                            ? (a.telefono_madre || a.telefono_padre || a.telefono_deportista || '-')
+                            : (a.telefono_padre || a.telefono_madre || a.telefono_deportista || '-');
+                    case 'fecha_nacimiento': return a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString('es-ES') : '-';
+                    case 'cancha': return canchas.find(c => c.value === a.cancha_id)?.label || '-';
+                    case 'horario': return horarios.find(h => h.value === a.horario_id)?.label || '-';
+                    case 'entrenador': return entrenadores.find(e => e.value === a.profesor_asignado_id)?.label || '-';
+                    case 'es_arquero': return a.es_arquero ? 'Sí' : 'No';
+                    default: return a[fieldId] || '-';
+                }
+            });
+        });
 
-        const dataRows = filtrados.map(a => [
-            a.nombres,
-            a.apellidos,
-            new Date(a.fecha_nacimiento).toLocaleDateString('es-ES'),
-            a.carnet_identidad || '-'
-        ]);
+        const title = [['REPORTE DE ALUMNOS PERSONALIZADO - ASISPORT']];
+        const info = [[`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`], []];
 
-        const ws = XLSX.utils.aoa_to_sheet([...headers, ...dataRows]);
-        ws['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 20 }];
-
+        const ws = XLSX.utils.aoa_to_sheet([...title, ...info, headers, ...dataRows]);
+        
+        // Ajustar anchos
+        ws['!cols'] = selectedFields.map(() => ({ wch: 20 }));
+        
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Lista de Buena Fe");
-        XLSX.writeFile(wb, `Lista_Buena_Fe_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Alumnos");
+        XLSX.writeFile(wb, `Reporte_Alumnos_${new Date().toISOString().split('T')[0]}.xlsx`);
+        setShowReportModal(false);
     };
 
     return (
@@ -183,14 +213,14 @@ const Estadisticas = () => {
                         <Filter size={20} />
                     </button>
                     
-                    {/* Botón Lista de Buena Fe */}
+                    {/* Botón Reporte Alumnos Personalizado */}
                     <button
-                        onClick={handleExportBuenaFe}
-                        className="flex items-center gap-2 bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all"
-                        title="Exportar Lista de Buena Fe"
+                        onClick={() => setShowReportModal(true)}
+                        className="flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all"
+                        title="Configurar y Exportar Reporte de Alumnos"
                     >
-                        <FileSpreadsheet size={18} />
-                        <span className="hidden md:inline">Lista Buena Fe</span>
+                        <Users size={18} />
+                        <span className="hidden md:inline">Reporte Alumnos</span>
                     </button>
 
                     <button
@@ -204,6 +234,66 @@ const Estadisticas = () => {
                     </button>
                 </div>
             </header>
+
+            {/* Modal de Reporte Personalizado */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-surface border border-border rounded-xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 border-b border-border flex items-center justify-between bg-background/50">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                                <FileSpreadsheet className="text-primary" size={20} />
+                                Configurar Reporte de Alumnos
+                            </h3>
+                            <button onClick={() => setShowReportModal(false)} className="text-text-secondary hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-text-secondary">
+                                Selecciona los campos que deseas incluir en el reporte Excel. Los marcados en naranja son obligatorios o recomendados.
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto p-1 custom-scrollbar">
+                                {availableFields.map(field => (
+                                    <button
+                                        key={field.id}
+                                        onClick={() => toggleField(field.id)}
+                                        className={`flex items-center gap-3 px-3 py-2 rounded-md border text-left transition-all ${
+                                            selectedFields.includes(field.id)
+                                                ? 'bg-primary/20 border-primary text-white shadow-sm'
+                                                : 'bg-background border-border text-text-secondary hover:border-text-secondary'
+                                        }`}
+                                    >
+                                        <div className={`w-4 h-4 rounded flex items-center justify-center border ${
+                                            selectedFields.includes(field.id) ? 'bg-primary border-primary' : 'border-border'
+                                        }`}>
+                                            {selectedFields.includes(field.id) && <X size={10} className="text-white" />}
+                                        </div>
+                                        <span className="text-xs font-medium">{field.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 bg-background/50 border-t border-border flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowReportModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-white hover:bg-surface rounded-md transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleExportAlumnosPersonalizado}
+                                className="px-6 py-2 bg-primary text-white text-sm font-bold rounded-md hover:bg-orange-600 transition-shadow shadow-lg shadow-primary/20"
+                            >
+                                Generar Reporte Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
 

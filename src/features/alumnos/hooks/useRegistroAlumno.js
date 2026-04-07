@@ -190,7 +190,13 @@ export const useRegistroAlumno = (onSuccess) => {
                 }
             }
 
-            const newAlumno = await createAlumno(formData, photoFile);
+            const cleanFormData = {
+                ...formData,
+                nombres: formData.nombres.trim().replace(/\s+/g, ' '),
+                apellidos: formData.apellidos.trim().replace(/\s+/g, ' ')
+            };
+
+            const newAlumno = await createAlumno(cleanFormData, photoFile);
             queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
             if (onSuccess) onSuccess(newAlumno);
         } catch (error) {

@@ -224,8 +224,8 @@ export const useAlumno = (id) => {
             const { data, error } = await supabase
                 .from('alumnos')
                 .update({
-                    nombres: formData.nombres,
-                    apellidos: formData.apellidos,
+                    nombres: formData.nombres.trim().replace(/\s+/g, ' '),
+                    apellidos: formData.apellidos.trim().replace(/\s+/g, ' '),
                     fecha_nacimiento: formData.fecha_nacimiento === "" ? null : formData.fecha_nacimiento,
                     carnet_identidad: formData.carnet_identidad,
                     nombre_padre: formData.nombre_padre,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2, MessageCircle } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/ui/Input';
@@ -282,14 +282,27 @@ const DetalleAlumno = () => {
                                 onChange={handleChange}
                                 disabled={!editing}
                             />
-                            <Input
-                                label="Teléfono Padre"
-                                name="telefono_padre"
-                                type="tel"
-                                value={formData.telefono_padre || ''}
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
+                            <div className="relative">
+                                <Input
+                                    label="Teléfono Padre"
+                                    name="telefono_padre"
+                                    type="tel"
+                                    value={formData.telefono_padre || ''}
+                                    onChange={handleChange}
+                                    disabled={!editing}
+                                />
+                                {formData.telefono_padre && (
+                                    <a
+                                        href={`https://wa.me/${formData.telefono_padre.replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute right-2 bottom-2 p-1.5 bg-success/20 text-success rounded hover:bg-success/30 transition-colors"
+                                        title="Contactar por WhatsApp"
+                                    >
+                                        <MessageCircle size={18} />
+                                    </a>
+                                )}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,14 +313,27 @@ const DetalleAlumno = () => {
                                 onChange={handleChange}
                                 disabled={!editing}
                             />
-                            <Input
-                                label="Teléfono Madre"
-                                name="telefono_madre"
-                                type="tel"
-                                value={formData.telefono_madre || ''}
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
+                            <div className="relative">
+                                <Input
+                                    label="Teléfono Madre"
+                                    name="telefono_madre"
+                                    type="tel"
+                                    value={formData.telefono_madre || ''}
+                                    onChange={handleChange}
+                                    disabled={!editing}
+                                />
+                                {formData.telefono_madre && (
+                                    <a
+                                        href={`https://wa.me/${formData.telefono_madre.replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute right-2 bottom-2 p-1.5 bg-success/20 text-success rounded hover:bg-success/30 transition-colors"
+                                        title="Contactar por WhatsApp"
+                                    >
+                                        <MessageCircle size={18} />
+                                    </a>
+                                )}
+                            </div>
                         </div>
 
                         <div className="mt-4 pt-2 border-t border-border/50">
