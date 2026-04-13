@@ -121,14 +121,19 @@ export const useAlumnos = () => {
             const searchDigits = search.replace(/\D/g, ''); // Solo números para búsqueda tel
 
             filtered = filtered.filter(a => {
-                const matchNombre = `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search);
+                const nombres = a.nombres || '';
+                const apellidos = a.apellidos || '';
+                const matchNombre = `${nombres} ${apellidos}`.toLowerCase().includes(search);
                 
                 // Si la búsqueda tiene números, intentamos match por teléfono de forma limpia
                 let matchTel = false;
                 if (searchDigits.length >= 3) {
-                    const telPadreClean = a.telefono_padre ? a.telefono_padre.replace(/\D/g, '') : '';
-                    const telMadreClean = a.telefono_madre ? a.telefono_madre.replace(/\D/g, '') : '';
-                    matchTel = telPadreClean.includes(searchDigits) || telMadreClean.includes(searchDigits);
+                    const telPadreClean = a.telefono_padre ? String(a.telefono_padre).replace(/\D/g, '') : '';
+                    const telMadreClean = a.telefono_madre ? String(a.telefono_madre).replace(/\D/g, '') : '';
+                    const telDeportistaClean = a.telefono_deportista ? String(a.telefono_deportista).replace(/\D/g, '') : '';
+                    matchTel = telPadreClean.includes(searchDigits) || 
+                               telMadreClean.includes(searchDigits) || 
+                               telDeportistaClean.includes(searchDigits);
                 }
 
                 return matchNombre || matchTel;
@@ -178,13 +183,18 @@ export const useAlumnos = () => {
                 const searchDigits = search.replace(/\D/g, '');
 
                 temp = temp.filter(a => {
-                    const matchNombre = `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search);
+                    const nombres = a.nombres || '';
+                    const apellidos = a.apellidos || '';
+                    const matchNombre = `${nombres} ${apellidos}`.toLowerCase().includes(search);
                     
                     let matchTel = false;
                     if (searchDigits.length >= 3) {
-                        const telPadreClean = a.telefono_padre ? a.telefono_padre.replace(/\D/g, '') : '';
-                        const telMadreClean = a.telefono_madre ? a.telefono_madre.replace(/\D/g, '') : '';
-                        matchTel = telPadreClean.includes(searchDigits) || telMadreClean.includes(searchDigits);
+                        const telPadreClean = a.telefono_padre ? String(a.telefono_padre).replace(/\D/g, '') : '';
+                        const telMadreClean = a.telefono_madre ? String(a.telefono_madre).replace(/\D/g, '') : '';
+                        const telDeportistaClean = a.telefono_deportista ? String(a.telefono_deportista).replace(/\D/g, '') : '';
+                        matchTel = telPadreClean.includes(searchDigits) || 
+                                   telMadreClean.includes(searchDigits) || 
+                                   telDeportistaClean.includes(searchDigits);
                     }
 
                     return matchNombre || matchTel;

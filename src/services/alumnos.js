@@ -197,6 +197,7 @@ export const getAlumnos = async (filtros = {}) => {
             telefono_padre,
             nombre_madre,
             telefono_madre,
+            telefono_deportista,
             whatsapp_preferido,
             created_at,
             cancha:canchas(nombre),
