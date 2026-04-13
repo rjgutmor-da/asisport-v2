@@ -323,7 +323,7 @@ const ListaAlumnos = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
                     <input
                         type="text"
-                        placeholder="Buscar por nombre..."
+                        placeholder="Buscar por nombre o teléfono..."
                         value={searchTerm}
                         onChange={handleSearchChange}
                         className="

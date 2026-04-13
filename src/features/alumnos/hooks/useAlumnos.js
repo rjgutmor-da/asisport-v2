@@ -115,12 +115,24 @@ export const useAlumnos = () => {
     const filteredAndSortedAlumnos = useMemo(() => {
         let filtered = alumnos;
 
-        // Búsqueda por nombre
+        // Búsqueda inteligente por nombre o teléfono
         if (searchTerm.trim()) {
             const search = searchTerm.toLowerCase();
-            filtered = filtered.filter(a =>
-                `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search)
-            );
+            const searchDigits = search.replace(/\D/g, ''); // Solo números para búsqueda tel
+
+            filtered = filtered.filter(a => {
+                const matchNombre = `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search);
+                
+                // Si la búsqueda tiene números, intentamos match por teléfono de forma limpia
+                let matchTel = false;
+                if (searchDigits.length >= 3) {
+                    const telPadreClean = a.telefono_padre ? a.telefono_padre.replace(/\D/g, '') : '';
+                    const telMadreClean = a.telefono_madre ? a.telefono_madre.replace(/\D/g, '') : '';
+                    matchTel = telPadreClean.includes(searchDigits) || telMadreClean.includes(searchDigits);
+                }
+
+                return matchNombre || matchTel;
+            });
         }
 
         // Filtro por estado/tipo
@@ -163,7 +175,20 @@ export const useAlumnos = () => {
             // Siempre aplicar búsqueda y estado
             if (searchTerm.trim()) {
                 const search = searchTerm.toLowerCase();
-                temp = temp.filter(a => `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search));
+                const searchDigits = search.replace(/\D/g, '');
+
+                temp = temp.filter(a => {
+                    const matchNombre = `${a.nombres} ${a.apellidos}`.toLowerCase().includes(search);
+                    
+                    let matchTel = false;
+                    if (searchDigits.length >= 3) {
+                        const telPadreClean = a.telefono_padre ? a.telefono_padre.replace(/\D/g, '') : '';
+                        const telMadreClean = a.telefono_madre ? a.telefono_madre.replace(/\D/g, '') : '';
+                        matchTel = telPadreClean.includes(searchDigits) || telMadreClean.includes(searchDigits);
+                    }
+
+                    return matchNombre || matchTel;
+                });
             }
             if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
             if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
