@@ -12,7 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * Guarda la sesión en una cookie en el dominio raíz (.saasport.pro).
  */
 const isBrowser = typeof document !== 'undefined';
-const domain = '.saasport.pro';
+const domain = isBrowser && window.location.hostname.endsWith('saasport.pro') 
+  ? '.saasport.pro' 
+  : '';
 
 const cookieStorage = {
   getItem: (key) => {
@@ -33,11 +35,13 @@ const cookieStorage = {
     const d = new Date();
     d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
     const expires = "expires=" + d.toUTCString();
-    document.cookie = `${key}=${value};${expires};domain=${domain};path=/;SameSite=Lax;Secure`;
+    const domainAttr = domain ? `;domain=${domain}` : '';
+    document.cookie = `${key}=${value};${expires}${domainAttr};path=/;SameSite=Lax;Secure`;
   },
   removeItem: (key) => {
     if (!isBrowser) return;
-    document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;domain=${domain};path=/;SameSite=Lax;Secure`;
+    const domainAttr = domain ? `;domain=${domain}` : '';
+    document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 UTC${domainAttr};path=/;SameSite=Lax;Secure`;
   }
 };
 
