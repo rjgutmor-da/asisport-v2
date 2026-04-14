@@ -3,7 +3,6 @@ import { lazy, Suspense } from 'react'
 import Login from './pages/Login'
 import RecuperarContrasena from './pages/RecuperarContrasena'
 import ResetPassword from './pages/ResetPassword'
-import AuthRedirect from './pages/AuthRedirect'
 import { ToastProvider } from './components/ui/Toast'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
@@ -46,8 +45,6 @@ function App() {
                             <Route path="/login" element={<Login />} />
                             <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
                             <Route path="/reset-password" element={<ResetPassword />} />
-                            {/* Receptor SSO desde SaaSport — debe ser público (sin ProtectedRoute) */}
-                            <Route path="/auth-redirect" element={<AuthRedirect />} />
 
                             <Route path="/dashboard" element={
                                 <ProtectedRoute>
