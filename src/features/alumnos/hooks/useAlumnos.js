@@ -1,83 +1,63 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
-import { getAlumnos, archivarAlumno } from '../../../services/alumnos';
+import { getAlumnos, getAlumnosPaginados, getAlumnosFacets, archivarAlumno } from '../../../services/alumnos';
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getCanchasParaEntrenador, getHorariosParaEntrenador, getEntrenadores } from '../../../services/maestros';
 import { getAsistenciasUltimos7Dias } from '../../../services/asistencias';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 /**
- * Hook para manejar la lógica de la lista de alumnos.
- * Incluye:
- *  - Carga, filtrado, búsqueda y paginación de alumnos
- *  - Selección múltiple y envío de WhatsApp
- *  - Archivar alumno individual con confirmación
- *  - Combinar alumnos duplicados
- *  - Aprobar alumnos pendientes
- *  - Filtros multi-selección: canchas, horarios, sub (inteligentes para entrenadores)
+ * Hook para manejar la lógica de la lista de alumnos optimizada con Server-side Filtering.
  */
 export const useAlumnos = () => {
     const { addToast } = useToast();
     const { user, role, isAdmin } = useAuth();
 
-    const [alumnos, setAlumnos] = useState([]);
-    const [allAlumnos, setAllAlumnos] = useState([]); // Lista completa sin filtrar (para el modal de combinar)
+    const [alumnos, setAlumnos] = useState([]); // Alumnos de la página actual
+    const [facetData, setFacetData] = useState([]); // Data ligera para Smart Filters
+    const [allAlumnos, setAllAlumnos] = useState([]); // Lista completa (solo nombres/ids) para combinar
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('todos');
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
-    // Opciones maestras (todas las posibles para esta escuela/rol)
-    const [maestros, setMaestros] = useState({
-        canchas: [],
-        horarios: [],
-        entrenadores: [],
-        subs: []
-    });
+    // Opciones maestros
+    const [maestros, setMaestros] = useState({ canchas: [], horarios: [], entrenadores: [], subs: [] });
 
-    // Filtros seleccionados (arrays para multi-selección)
-    const [selectedCanchas, setSelectedCanchas] = useState([]);   // array de IDs
-    const [selectedHorarios, setSelectedHorarios] = useState([]); // array de IDs
-    const [selectedEntrenadores, setSelectedEntrenadores] = useState([]); // array de IDs (ahora multi-selección para ser inteligente)
-    const [selectedSubs, setSelectedSubs] = useState([]);          // array de números
+    // Filtros seleccionados
+    const [selectedCanchas, setSelectedCanchas] = useState([]);
+    const [selectedHorarios, setSelectedHorarios] = useState([]);
+    const [selectedEntrenadores, setSelectedEntrenadores] = useState([]);
+    const [selectedSubs, setSelectedSubs] = useState([]);
 
-    // Modo de vista y selección
-    const [viewMode, setViewMode] = useState('list'); // 'list' o 'grid'
-    const [selectedAlumnos, setSelectedAlumnos] = useState([]);
-
-    // Búsqueda
+    // Búsqueda con Debounce
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    // Paginación
+    // Paginación en servidor
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const itemsPerPage = 20;
 
-    // Mensaje de Convocatoria
+    const [viewMode, setViewMode] = useState('list');
+    const [selectedAlumnos, setSelectedAlumnos] = useState([]);
     const [introMessage, setIntroMessage] = useState('¡Hola! Compartimos la lista de convocados para el partido del fin de semana:');
 
-    // Saber si es entrenador (no admin)
     const esEntrenador = role === 'Entrenador' || role === 'Entrenarqueros';
 
-    // Cargar datos iniciales (Alumnos + Maestros)
-    const loadData = useCallback(async () => {
-        setLoading(true);
+    // 1. Cargar maestros y data de facets una sola vez al inicio
+    const loadInitialMetadata = useCallback(async () => {
         try {
-            // Cargamos todos los alumnos disponibles para este usuario/rol de una vez
-            // para poder filtrar "de ida y vuelta" eficientemente en memoria.
-            const [alumnsData, canchasData, horariosData, entrenadoresData] = await Promise.all([
-                getAlumnos({ userId: user?.id, userRole: role }), // Traer todos los activos
+            const [canchasData, horariosData, entrenadoresData, facets] = await Promise.all([
                 getCanchasParaEntrenador(user?.id, role),
                 getHorariosParaEntrenador(user?.id, role),
-                isAdmin ? getEntrenadores() : Promise.resolve([])
+                isAdmin ? getEntrenadores() : Promise.resolve([]),
+                getAlumnosFacets({ userId: user?.id, userRole: role })
             ]);
 
-            setAlumnos(alumnsData);
-            setAllAlumnos(alumnsData);
+            setFacetData(facets);
 
-            // Obtener Subs únicas a partir del campo 'sub' precalculado en Supabase
-            const subsUnicas = [...new Set(
-                alumnsData.map(a => a.sub)
-            )].sort((a, b) => a - b);
-
+            const subsUnicas = [...new Set(facets.map(a => a.sub))].sort((a, b) => a - b);
             setMaestros({
                 canchas: canchasData.map(c => ({ value: c.id, label: c.nombre })),
                 horarios: horariosData.map(h => ({ value: h.id, label: h.hora })),
@@ -85,118 +65,63 @@ export const useAlumnos = () => {
                 subs: subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` }))
             });
 
-            // Cargar historial de asistencia
-            if (alumnsData.length > 0) {
-                getAsistenciasUltimos7Dias(alumnsData.map(a => a.id))
-                    .then(history => setAsistenciaHistory(history))
-                    .catch(err => console.error('Error cargando historial de asistencias:', err));
-            }
+            // Opcional: Cargar lista simple para combinar
+            setAllAlumnos(facets.map(f => ({ id: f.id, nombres: f.nombres, apellidos: f.apellidos })));
 
         } catch (error) {
-            console.error(error);
-            addToast(error.message || 'Error al cargar los datos', 'error');
+            console.error('Error cargando metadatos:', error);
+        }
+    }, [user, role, isAdmin]);
+
+    useEffect(() => {
+        if (user) loadInitialMetadata();
+    }, [user, loadInitialMetadata]);
+
+    // 2. Cargar página de alumnos cuando cambian filtros o página
+    const fetchPage = useCallback(async () => {
+        setLoading(true);
+        try {
+            const { alumnos: data, totalCount: count } = await getAlumnosPaginados({
+                userId: user?.id,
+                userRole: role,
+                canchaIds: selectedCanchas,
+                horarioIds: selectedHorarios,
+                subAnios: selectedSubs,
+                entrenadorIds: selectedEntrenadores,
+                searchTerm: debouncedSearchTerm,
+                activeFilter,
+                page: currentPage,
+                limit: itemsPerPage
+            });
+
+            setAlumnos(data);
+            setTotalCount(count);
+
+            // Cargar historial de asistencia para los de la página
+            if (data.length > 0) {
+                getAsistenciasUltimos7Dias(data.map(a => a.id))
+                    .then(history => setAsistenciaHistory(prev => ({ ...prev, ...history })))
+                    .catch(err => console.error('Error asistencias:', err));
+            }
+        } catch (error) {
+            addToast('Error al cargar alumnos', 'error');
         } finally {
             setLoading(false);
         }
-    }, [addToast, user, role, isAdmin]);
+    }, [user, role, selectedCanchas, selectedHorarios, selectedSubs, selectedEntrenadores, debouncedSearchTerm, activeFilter, currentPage, addToast]);
 
     useEffect(() => {
-        if (user) {
-            loadData();
-        }
-    }, [loadData, user]);
+        if (user) fetchPage();
+    }, [user, fetchPage]);
 
-    // =========================================================================
-    // LÓGICA DE FILTRADO INTELIGENTE (CROSS-FILTERING)
-    // =========================================================================
-    
-    // 1. Filtrar alumnos según todas las selecciones
-    const filteredAndSortedAlumnos = useMemo(() => {
-        let filtered = alumnos;
-
-        // Búsqueda inteligente por nombre o teléfono
-        if (searchTerm.trim()) {
-            const search = searchTerm.toLowerCase();
-            const searchDigits = search.replace(/\D/g, ''); // Solo números para búsqueda tel
-
-            filtered = filtered.filter(a => {
-                const nombres = a.nombres || '';
-                const apellidos = a.apellidos || '';
-                const matchNombre = `${nombres} ${apellidos}`.toLowerCase().includes(search);
-                
-                // Si la búsqueda tiene números, intentamos match por teléfono de forma limpia
-                let matchTel = false;
-                if (searchDigits.length >= 3) {
-                    const telPadreClean = a.telefono_padre ? String(a.telefono_padre).replace(/\D/g, '') : '';
-                    const telMadreClean = a.telefono_madre ? String(a.telefono_madre).replace(/\D/g, '') : '';
-                    const telDeportistaClean = a.telefono_deportista ? String(a.telefono_deportista).replace(/\D/g, '') : '';
-                    matchTel = telPadreClean.includes(searchDigits) || 
-                               telMadreClean.includes(searchDigits) || 
-                               telDeportistaClean.includes(searchDigits);
-                }
-
-                return matchNombre || matchTel;
-            });
-        }
-
-        // Filtro por estado/tipo
-        if (activeFilter === 'pendientes') {
-            filtered = filtered.filter(a => a.estado === 'Pendiente');
-        } else if (activeFilter === 'arqueros') {
-            filtered = filtered.filter(a => a.es_arquero === true);
-        }
-
-        // Filtros Maestros
-        if (selectedEntrenadores.length > 0) {
-            filtered = filtered.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
-        }
-        if (selectedSubs.length > 0) {
-            filtered = filtered.filter(a => selectedSubs.includes(a.sub));
-        }
-        if (selectedHorarios.length > 0) {
-            filtered = filtered.filter(a => selectedHorarios.includes(a.horario_id));
-        }
-        if (selectedCanchas.length > 0) {
-            filtered = filtered.filter(a => selectedCanchas.includes(a.cancha_id));
-        }
-
-        // Ordenamiento
-        return [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    }, [alumnos, searchTerm, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
-
-    // 2. Calcular opciones DISPONIBLES para cada filtro (la magia del "ida y vuelta")
+    // 3. Lógica de Smart Filters (en memoria sobre facetData)
     const dynamicOptions = useMemo(() => {
-        const anoActual = 2026;
-
-        // Función para filtrar alumnos excluyendo UN filtro específico
-        const getAlumnosFilteredByOthers = (excludeFilter) => {
-            let temp = alumnos;
+        const getFilteredFacets = (excludeFilter) => {
+            let temp = facetData;
             
-            // Siempre aplicar búsqueda y estado
-            if (searchTerm.trim()) {
-                const search = searchTerm.toLowerCase();
-                const searchDigits = search.replace(/\D/g, '');
-
-                temp = temp.filter(a => {
-                    const nombres = a.nombres || '';
-                    const apellidos = a.apellidos || '';
-                    const matchNombre = `${nombres} ${apellidos}`.toLowerCase().includes(search);
-                    
-                    let matchTel = false;
-                    if (searchDigits.length >= 3) {
-                        const telPadreClean = a.telefono_padre ? String(a.telefono_padre).replace(/\D/g, '') : '';
-                        const telMadreClean = a.telefono_madre ? String(a.telefono_madre).replace(/\D/g, '') : '';
-                        const telDeportistaClean = a.telefono_deportista ? String(a.telefono_deportista).replace(/\D/g, '') : '';
-                        matchTel = telPadreClean.includes(searchDigits) || 
-                                   telMadreClean.includes(searchDigits) || 
-                                   telDeportistaClean.includes(searchDigits);
-                    }
-
-                    return matchNombre || matchTel;
-                });
-            }
+            // Filtro por estado
             if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
-            if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
+            else if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
 
             // Filtros cruzados
             if (excludeFilter !== 'entrenador' && selectedEntrenadores.length > 0) {
@@ -214,16 +139,10 @@ export const useAlumnos = () => {
             return temp;
         };
 
-        const filteredForEntrenador = getAlumnosFilteredByOthers('entrenador');
-        const filteredForSub = getAlumnosFilteredByOthers('sub');
-        const filteredForHorario = getAlumnosFilteredByOthers('horario');
-        const filteredForCancha = getAlumnosFilteredByOthers('cancha');
-
-        // Extraer valores únicos presentes en esos conjuntos
-        const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
-        const validSubsValues = new Set(filteredForSub.map(a => a.sub));
-        const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
-        const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
+        const validEntrenadoresIds = new Set(getFilteredFacets('entrenador').map(a => a.profesor_asignado_id));
+        const validSubsValues = new Set(getFilteredFacets('sub').map(a => a.sub));
+        const validHorariosIds = new Set(getFilteredFacets('horario').map(a => a.horario_id));
+        const validCanchasIds = new Set(getFilteredFacets('cancha').map(a => a.cancha_id));
 
         return {
             entrenadores: maestros.entrenadores.map(opt => ({ ...opt, disabled: !validEntrenadoresIds.has(opt.value) })),
@@ -231,17 +150,9 @@ export const useAlumnos = () => {
             horarios: maestros.horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
             canchas: maestros.canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
         };
-    }, [alumnos, maestros, searchTerm, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
+    }, [facetData, maestros, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
 
-    // 3. Paginación sobre el resultado final
-    const { paginatedAlumnos, totalPages } = useMemo(() => {
-        const total = Math.ceil(filteredAndSortedAlumnos.length / itemsPerPage);
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return {
-            paginatedAlumnos: filteredAndSortedAlumnos.slice(startIndex, startIndex + itemsPerPage),
-            totalPages: total
-        };
-    }, [filteredAndSortedAlumnos, currentPage, itemsPerPage]);
+    const totalPages = Math.ceil(totalCount / itemsPerPage);
 
     // =========================================================================
     // Handlers y Auxiliares
@@ -304,14 +215,14 @@ export const useAlumnos = () => {
     };
 
     const aprobarTodos = async () => {
-        const pendientes = alumnos.filter(a => a.estado === 'Pendiente');
+        const pendientes = facetData.filter(a => a.estado === 'Pendiente');
         if (pendientes.length === 0) return;
         try {
-            const { supabase } = await import('../../../lib/supabaseClient');
-            const { error } = await supabase.from('alumnos').update({ estado: 'Aprobado' }).in('id', pendientes.map(a => a.id));
+            const { supabase: sb } = await import('../../../lib/supabaseClient');
+            const { error } = await sb.from('alumnos').update({ estado: 'Aprobado' }).in('id', pendientes.map(a => a.id));
             if (error) throw error;
             addToast(`${pendientes.length} alumnos aprobados correctamente`, 'success');
-            loadData();
+            fetchPage();
             return true;
         } catch (error) {
             addToast('Error al aprobar alumnos', 'error');
@@ -323,7 +234,7 @@ export const useAlumnos = () => {
         try {
             await archivarAlumno(alumnoId);
             addToast('Alumno archivado correctamente', 'success');
-            await loadData();
+            fetchPage();
             return true;
         } catch (error) {
             addToast(error.message || 'Error al archivar alumno', 'error');
@@ -335,7 +246,7 @@ export const useAlumnos = () => {
         try {
             await combinarAlumnos(destinoId, origenId);
             addToast('Alumnos combinados correctamente', 'success');
-            await loadData();
+            fetchPage();
             return true;
         } catch (error) {
             addToast(error.message || 'Error al combinar alumnos', 'error');
@@ -347,10 +258,9 @@ export const useAlumnos = () => {
 
     return {
         loading,
-        alumnos: paginatedAlumnos,
-        todosLosAlumnosFiltrados: filteredAndSortedAlumnos,
-        allAlumnos,
-        totalAlumnos: filteredAndSortedAlumnos.length,
+        alumnos,
+        allAlumnos, // Para el modal de combinar
+        totalAlumnos: totalCount,
         totalPages,
         currentPage,
         asistenciaHistory,

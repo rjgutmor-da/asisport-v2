@@ -77,6 +77,16 @@ const ListaAlumnos = () => {
     // Usar el isAdmin del AuthContext (incluye SuperAdministrador, Administrador y Dueño)
     const esAdmin = isAdmin;
 
+    // Nombres de meses para cabecera de tabla
+    const nombresMeses = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const fechaHoy = new Date();
+    const mesActualStr = nombresMeses[fechaHoy.getMonth()];
+    const fechaHoyAnt = new Date(); fechaHoyAnt.setMonth(fechaHoyAnt.getMonth() - 1);
+    const mesAnteriorStr = nombresMeses[fechaHoyAnt.getMonth()];
+
     // Navegación a detalle del alumno
     const handleAlumnoClick = (alumno) => {
         navigate(`/alumnos/${alumno.id}`);
@@ -506,7 +516,9 @@ const ListaAlumnos = () => {
                                             />
                                         </th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase">Alumno</th>
-                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-auto">Asist. Sem</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">7D</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesAnteriorStr.substring(0, 3)}</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesActualStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Sub</th>
                                         {esAdmin && (
                                             <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-16 md:w-20">Acciones</th>
@@ -551,11 +563,24 @@ const ListaAlumnos = () => {
                                                         <ExternalLink size={14} className="text-text-secondary/40 flex-shrink-0 ml-auto hidden md:block" />
                                                     </div>
                                                 </td>
-                                                {/* Asistencia del mes */}
+                                                {/* Asistencia Semanal (7D) */}
                                                 <td className="p-2 md:p-3 text-center">
-                                                    <span className={`text-base md:text-lg font-bold ${asistencias >= 1 ? 'text-success' : 'text-text-secondary'
+                                                    <span className={`text-sm md:text-base font-bold ${asistencias >= 1 ? 'text-success' : 'text-text-secondary'
                                                         }`}>
                                                         {asistencias}
+                                                    </span>
+                                                </td>
+                                                {/* Asistencia Mes Anterior */}
+                                                <td className="p-2 md:p-3 text-center">
+                                                    <span className="text-xs md:text-sm font-medium text-text-secondary/60">
+                                                        {alumno.asistencias_mes_anterior || 0}
+                                                    </span>
+                                                </td>
+                                                {/* Asistencia Mes Actual */}
+                                                <td className="p-2 md:p-3 text-center">
+                                                    <span className={`text-sm md:text-base font-bold ${alumno.asistencias_mes_actual >= 1 ? 'text-primary' : 'text-text-secondary'
+                                                        }`}>
+                                                        {alumno.asistencias_mes_actual || 0}
                                                     </span>
                                                 </td>
                                                 <td className="p-2 md:p-3 text-center text-primary font-bold text-sm">

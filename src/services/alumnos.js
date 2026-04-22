@@ -202,10 +202,10 @@ export const getAlumnos = async (filtros = {}) => {
             whatsapp_preferido,
             created_at,
             sub,
+            asistencias_mes_actual,
+            asistencias_mes_anterior,
             cancha:canchas(nombre),
-            horario:horarios(hora),
-            asistencias_normales(count),
-            asistencias_arqueros(count)
+            horario:horarios(hora)
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
@@ -250,18 +250,6 @@ export const getAlumnos = async (filtros = {}) => {
     // Ordenamiento
     query = query.order('created_at', { ascending: false });
 
-    // FEAT: B2B Optimization - Filtros para optimizar trayendo solo asistencias de este mes requeridas
-    const hoy = new Date();
-    const anoActual = hoy.getFullYear();
-    const mesFormat = String(hoy.getMonth() + 1).padStart(2, '0');
-    const primerDiaMes = `${anoActual}-${mesFormat}-01`;
-
-    query = query
-        .gte('asistencias_normales.fecha', primerDiaMes)
-        .in('asistencias_normales.estado', ['Presente', 'Licencia'])
-        .gte('asistencias_arqueros.fecha', primerDiaMes)
-        .in('asistencias_arqueros.estado', ['Presente', 'Licencia']);
-
     const { data, error } = await query;
 
     if (error) {
@@ -270,21 +258,122 @@ export const getAlumnos = async (filtros = {}) => {
     }
 
     let resultado = data.map(alumno => {
-        // Obtenemos los counts escalares desde el backend. Si el backend manda count (array de un item debido al mapeo relacional de Supabase) extraemos el valor numérico.
-        // Ojo, en subconsultas con filtros en el chain principal (.gte() etc) a relaciones left-join
-        // Supabase mapea asistencias_normales como array vacio si no hay coincidencias directas con el gte
-        // Por lo cual validamos el valor.
-
-        const countN = alumno.asistencias_normales?.[0]?.count || 0;
-        const countA = alumno.asistencias_arqueros?.[0]?.count || 0;
-
         return {
             ...alumno,
-            asistencias_count: countN + countA
+            asistencias_count: alumno.asistencias_mes_actual || 0
         };
     });
 
     return resultado;
+};
+
+/**
+ * Obtiene los alumnos con filtrado en el servidor y paginación.
+ */
+export const getAlumnosPaginados = async (filtros = {}) => {
+    const { 
+        userId, 
+        userRole, 
+        canchaIds = [], 
+        horarioIds = [], 
+        subAnios = [], 
+        entrenadorIds = [],
+        searchTerm = '',
+        activeFilter = 'todos',
+        page = 1,
+        limit = 20
+    } = filtros;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Sesión expirada.');
+
+    const escuelaId = await obtenerEscuelaId();
+
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('sucursal_id')
+        .eq('id', user.id)
+        .single();
+
+    let query = supabase
+        .from('v_alumnos')
+        .select(`
+            id, nombres, apellidos, fecha_nacimiento, carnet_identidad, foto_url,
+            estado, es_arquero, profesor_asignado_id, cancha_id, horario_id,
+            nombre_padre, telefono_padre, nombre_madre, telefono_madre,
+            telefono_deportista, whatsapp_preferido, created_at, sub,
+            asistencias_mes_actual, asistencias_mes_anterior,
+            cancha:canchas(nombre),
+            horario:horarios(hora)
+        `, { count: 'exact' })
+        .eq('escuela_id', escuelaId)
+        .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    // Filtros de búsqueda (Nombre o Teléfono)
+    if (searchTerm.trim()) {
+        const search = `%${searchTerm.trim()}%`;
+        const searchDigits = searchTerm.replace(/\D/g, '');
+        
+        if (searchDigits.length >= 3) {
+            query = query.or(`nombres.ilike.${search},apellidos.ilike.${search},telefono_padre.ilike.%${searchDigits}%,telefono_madre.ilike.%${searchDigits}%,telefono_deportista.ilike.%${searchDigits}%`);
+        } else {
+            query = query.or(`nombres.ilike.${search},apellidos.ilike.${search}`);
+        }
+    }
+
+    // Filtro por estado
+    if (activeFilter === 'pendientes') query = query.eq('estado', 'Pendiente');
+    else if (activeFilter === 'arqueros') query = query.eq('es_arquero', true);
+
+    // Filtros de Maestros
+    if (entrenadorIds.length > 0) query = query.in('profesor_asignado_id', entrenadorIds);
+    if (subAnios.length > 0) query = query.in('sub', subAnios);
+    if (canchaIds.length > 0) query = query.in('cancha_id', canchaIds);
+    if (horarioIds.length > 0) query = query.in('horario_id', horarioIds);
+
+    // Restricciones de Rol
+    if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
+    if (userRole === 'Entrenarqueros') query = query.eq('es_arquero', true);
+    if (userRole !== 'Dueño' && userRole !== 'SuperAdministrador' && userProfile?.sucursal_id) {
+        query = query.eq('sucursal_id', userProfile.sucursal_id);
+    }
+
+    // Paginación
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to).order('created_at', { ascending: false });
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    return {
+        alumnos: data.map(a => ({ ...a, asistencias_count: a.asistencias_mes_actual || 0 })),
+        totalCount: count || 0
+    };
+};
+
+/**
+ * Obtiene solo los campos necesarios para calcular los "Smart Filters" (facets)
+ * de forma eficiente sin descargar toda la data.
+ */
+export const getAlumnosFacets = async (filtros = {}) => {
+    const { userId, userRole } = filtros;
+    const escuelaId = await obtenerEscuelaId();
+
+    let query = supabase
+        .from('v_alumnos')
+        .select('profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero')
+        .eq('escuela_id', escuelaId)
+        .eq('archivado', false)
+        .neq('estado', 'ELIMINADO SISTEMA');
+
+    if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
+    if (userRole === 'Entrenarqueros') query = query.eq('es_arquero', true);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
 };
 
 // ============================================================================
