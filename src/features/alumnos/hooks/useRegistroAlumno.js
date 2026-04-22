@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
@@ -13,6 +14,7 @@ export const useRegistroAlumno = (onSuccess) => {
     const { addToast } = useToast();
     const { user, userProfile, isCoach } = useAuth();
     const queryClient = useQueryClient();
+    const location = useLocation();
 
     // Estados de carga
     const [loadingMaestros, setLoadingMaestros] = useState(true);
@@ -29,16 +31,16 @@ export const useRegistroAlumno = (onSuccess) => {
     // Estado del formulario
     const [formData, setFormData] = useState({
         nombres: '',
-        apellidos: '',
+        apellidos: location.state?.apellidos || '',
         fecha_nacimiento: '',
         carnet_identidad: '',
-        nombre_padre: '',
-        telefono_padre: '',
-        nombre_madre: '',
-        telefono_madre: '',
-        whatsapp_preferido: 'padre',
-        colegio: '',
-        direccion: '',
+        nombre_padre: location.state?.nombre_padre || '',
+        telefono_padre: location.state?.telefono_padre || '',
+        nombre_madre: location.state?.nombre_madre || '',
+        telefono_madre: location.state?.telefono_madre || '',
+        whatsapp_preferido: location.state?.whatsapp_preferido || 'padre',
+        colegio: location.state?.colegio || '',
+        direccion: location.state?.direccion || '',
         cancha_id: '',
         horario_id: '',
         profesor_asignado_id: '',

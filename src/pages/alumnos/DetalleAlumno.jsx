@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2, MessageCircle, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/ui/Input';
@@ -91,13 +91,34 @@ const DetalleAlumno = () => {
                 </div>
 
                 {!editing ? (
-                    <button
-                        onClick={() => setEditing(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-orange-600 transition-colors"
-                    >
-                        <Edit2 size={18} />
-                        Editar
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => navigate('/alumnos/registro', {
+                                state: {
+                                    apellidos: alumno.apellidos,
+                                    nombre_padre: alumno.nombre_padre,
+                                    telefono_padre: alumno.telefono_padre,
+                                    nombre_madre: alumno.nombre_madre,
+                                    telefono_madre: alumno.telefono_madre,
+                                    whatsapp_preferido: alumno.whatsapp_preferido,
+                                    colegio: alumno.colegio,
+                                    direccion: alumno.direccion
+                                }
+                            })}
+                            className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                            <UserPlus size={18} />
+                            <span className="hidden sm:inline">Agregar Hermano</span>
+                            <span className="sm:hidden">Hermano</span>
+                        </button>
+                        <button
+                            onClick={() => setEditing(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-orange-600 transition-colors"
+                        >
+                            <Edit2 size={18} />
+                            Editar
+                        </button>
+                    </div>
                 ) : (
                     <div className="flex gap-2">
                         <button
