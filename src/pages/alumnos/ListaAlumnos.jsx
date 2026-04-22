@@ -516,7 +516,7 @@ const ListaAlumnos = () => {
                                 <tbody>
                                     {alumnos.map((alumno) => {
                                         const asistencias = getAsistenciaResumen(alumno.id);
-                                        const subAnio = 2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear();
+                                        const subAnio = alumno.sub;
 
                                         return (
                                             <tr

@@ -179,9 +179,9 @@ export const getAlumnos = async (filtros = {}) => {
         .eq('id', user.id)
         .single();
 
-    // Query principal con JOINs (sin descargar arrays completos de asistencias)
+    // Query principal con JOINs usando la vista v_alumnos para tener el dato 'sub' precalculado
     let query = supabase
-        .from('alumnos')
+        .from('v_alumnos')
         .select(`
             id,
             nombres,
@@ -201,6 +201,7 @@ export const getAlumnos = async (filtros = {}) => {
             telefono_deportista,
             whatsapp_preferido,
             created_at,
+            sub,
             cancha:canchas(nombre),
             horario:horarios(hora),
             asistencias_normales(count),
@@ -209,6 +210,11 @@ export const getAlumnos = async (filtros = {}) => {
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
+
+    // Filtro de Sub (por categoría calculada en Supabase)
+    if (subAnios.length > 0) {
+        query = query.in('sub', subAnios);
+    }
 
     // Filtro por sucursal (para Administradores y Entrenadores)
     if (userRole !== 'Dueño' && userRole !== 'SuperAdministrador') {
@@ -277,15 +283,6 @@ export const getAlumnos = async (filtros = {}) => {
             asistencias_count: countN + countA
         };
     });
-
-    // Filtro de Sub (por año de nacimiento)
-    if (subAnios.length > 0) {
-        resultado = resultado.filter(alumno => {
-            const anioNac = new Date(alumno.fecha_nacimiento).getUTCFullYear();
-            const sub = anoActual - anioNac;
-            return subAnios.includes(sub);
-        });
-    }
 
     return resultado;
 };

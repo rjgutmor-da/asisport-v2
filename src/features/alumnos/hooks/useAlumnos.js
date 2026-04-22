@@ -73,10 +73,9 @@ export const useAlumnos = () => {
             setAlumnos(alumnsData);
             setAllAlumnos(alumnsData);
 
-            // Calcular Subs únicas a partir de los alumnos cargados
-            const anoActual = 2026;
+            // Obtener Subs únicas a partir del campo 'sub' precalculado en Supabase
             const subsUnicas = [...new Set(
-                alumnsData.map(a => anoActual - new Date(a.fecha_nacimiento).getUTCFullYear())
+                alumnsData.map(a => a.sub)
             )].sort((a, b) => a - b);
 
             setMaestros({
@@ -152,11 +151,7 @@ export const useAlumnos = () => {
             filtered = filtered.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
         }
         if (selectedSubs.length > 0) {
-            const anoActual = 2026;
-            filtered = filtered.filter(a => {
-                const sub = anoActual - new Date(a.fecha_nacimiento).getUTCFullYear();
-                return selectedSubs.includes(sub);
-            });
+            filtered = filtered.filter(a => selectedSubs.includes(a.sub));
         }
         if (selectedHorarios.length > 0) {
             filtered = filtered.filter(a => selectedHorarios.includes(a.horario_id));
@@ -208,10 +203,7 @@ export const useAlumnos = () => {
                 temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
             }
             if (excludeFilter !== 'sub' && selectedSubs.length > 0) {
-                temp = temp.filter(a => {
-                    const sub = anoActual - new Date(a.fecha_nacimiento).getUTCFullYear();
-                    return selectedSubs.includes(sub);
-                });
+                temp = temp.filter(a => selectedSubs.includes(a.sub));
             }
             if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
                 temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
@@ -229,7 +221,7 @@ export const useAlumnos = () => {
 
         // Extraer valores únicos presentes en esos conjuntos
         const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
-        const validSubsValues = new Set(filteredForSub.map(a => anoActual - new Date(a.fecha_nacimiento).getUTCFullYear()));
+        const validSubsValues = new Set(filteredForSub.map(a => a.sub));
         const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
         const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
 

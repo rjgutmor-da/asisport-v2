@@ -144,14 +144,9 @@ const Estadisticas = () => {
         if (!alumnos || alumnos.length === 0) return;
 
         let filtrados = alumnos;
-        const currentYear = new Date().getFullYear();
-
         if (selectedEntrenadores.length > 0) filtrados = filtrados.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
         if (selectedCategorias.length > 0) {
-            filtrados = filtrados.filter(a => {
-                const sub = currentYear - new Date(a.fecha_nacimiento).getFullYear();
-                return selectedCategorias.includes(`Sub-${sub}`);
-            });
+            filtrados = filtrados.filter(a => selectedCategorias.includes(`Sub-${a.sub}`));
         }
         if (selectedHorarios.length > 0) filtrados = filtrados.filter(a => selectedHorarios.includes(a.horario_id));
         if (selectedCanchas.length > 0) filtrados = filtrados.filter(a => selectedCanchas.includes(a.cancha_id));

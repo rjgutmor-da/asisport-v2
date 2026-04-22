@@ -172,12 +172,9 @@ export const useEstadisticas = () => {
                 return false;
             }
 
-            // Filtrado por Categoría (Año Actual - Año Nacimiento)
+            // Filtrado por Categoría (Usando campo 'sub' precalculado)
             if (selectedCategorias.length > 0) {
-                const currentYear = new Date().getFullYear();
-                const birthYear = new Date(alumno.fecha_nacimiento).getFullYear();
-                const sub = currentYear - birthYear;
-                const subLabel = `Sub-${sub}`;
+                const subLabel = `Sub-${alumno.sub}`;
 
                 if (!selectedCategorias.includes(subLabel)) {
                     return false;
@@ -278,13 +275,10 @@ export const useEstadisticas = () => {
      * Obtiene todas las categorías (Sub-X) posibles basadas en la escuela.
      */
     const masterCategorias = useMemo(() => {
-        const currentYear = new Date().getFullYear();
         const subs = new Set();
         alumnos.forEach(alumno => {
-            if (alumno.fecha_nacimiento) {
-                const birthYear = new Date(alumno.fecha_nacimiento).getFullYear();
-                const sub = currentYear - birthYear;
-                subs.add(sub);
+            if (alumno.sub !== undefined) {
+                subs.add(alumno.sub);
             }
         });
         return Array.from(subs)
@@ -302,10 +296,7 @@ export const useEstadisticas = () => {
                 temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
             }
             if (excludeFilter !== 'categoria' && selectedCategorias.length > 0) {
-                temp = temp.filter(a => {
-                    const sub = currentYear - new Date(a.fecha_nacimiento).getFullYear();
-                    return selectedCategorias.includes(`Sub-${sub}`);
-                });
+                temp = temp.filter(a => selectedCategorias.includes(`Sub-${a.sub}`));
             }
             if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
                 temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
@@ -322,7 +313,7 @@ export const useEstadisticas = () => {
         const filteredForCancha = getAlumnosFilteredByOthers('cancha');
 
         const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
-        const validSubsValues = new Set(filteredForSub.map(a => `Sub-${currentYear - new Date(a.fecha_nacimiento).getFullYear()}`));
+        const validSubsValues = new Set(filteredForSub.map(a => `Sub-${a.sub}`));
         const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
         const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
 
