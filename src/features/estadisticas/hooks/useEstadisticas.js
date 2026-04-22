@@ -48,6 +48,7 @@ export const useEstadisticas = () => {
     const [selectedCanchas, setSelectedCanchas] = useState([]);
     const [selectedHorarios, setSelectedHorarios] = useState([]);
     const [selectedCategorias, setSelectedCategorias] = useState([]);
+    const [selectedDias, setSelectedDias] = useState([]);
 
     /**
      * Calcula dinámicamente el objeto de rango de fechas { start, end } basado en la opción seleccionada.
@@ -181,9 +182,19 @@ export const useEstadisticas = () => {
                 }
             }
 
+            // Filtrado por Día de la Semana
+            if (selectedDias.length > 0) {
+                const dateObj = new Date(asistencia.fecha + 'T12:00:00');
+                const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                // Normalizamos a minúsculas para evitar problemas de capitalización
+                if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) {
+                    return false;
+                }
+            }
+
             return true;
         });
-    }, [asistencias, alumnos, selectedEntrenadores, selectedCanchas, selectedHorarios, selectedCategorias]);
+    }, [asistencias, alumnos, selectedEntrenadores, selectedCanchas, selectedHorarios, selectedCategorias, selectedDias]);
 
     /**
      * Calcula las métricas generales (KPIs) para las tarjetas superiores.
@@ -342,6 +353,7 @@ export const useEstadisticas = () => {
         selectedCanchas, setSelectedCanchas,
         selectedHorarios, setSelectedHorarios,
         selectedCategorias, setSelectedCategorias,
+        selectedDias, setSelectedDias,
 
         alumnos
     };

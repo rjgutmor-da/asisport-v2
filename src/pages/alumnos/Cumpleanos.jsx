@@ -7,7 +7,7 @@ import { useCumpleanos } from '../../features/alumnos/hooks/useCumpleanos';
 
 const Cumpleanos = () => {
     const navigate = useNavigate();
-    const { loading, today, yesterday, tomorrow } = useCumpleanos();
+    const { loading, today, yesterday, tomorrow, upcoming } = useCumpleanos();
 
     // Mensaje personalizado para WhatsApp
     // Mensaje personalizado para WhatsApp
@@ -120,6 +120,40 @@ const Cumpleanos = () => {
                         </div>
                     ) : (
                         <p className="text-sm text-text-secondary/50 italic">Nadie cumple años mañana.</p>
+                    )}
+                </section>
+
+                {/* SECCIÓN PRÓXIMOS (NUEVO) */}
+                <section>
+                    <div className="flex items-center gap-2 mb-4">
+                        <Gift className="text-text-secondary opacity-50" size={20} />
+                        <h2 className="text-lg font-bold text-white/70">
+                            Próximos (7 días)
+                        </h2>
+                        <span className="text-xs text-white/30 font-medium bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+                            {upcoming.length}
+                        </span>
+                    </div>
+
+                    {upcoming.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {upcoming.map(alumno => (
+                                <div key={alumno.id} className="relative group">
+                                    <AlumnoCard
+                                        alumno={alumno}
+                                        onClick={() => navigate(`/alumnos/${alumno.id}`)}
+                                        variant="default"
+                                        customWhatsAppMessage={birthdayMessage}
+                                    />
+                                    {/* Badge de días restantes */}
+                                    <div className="absolute top-2 right-2 bg-primary/20 backdrop-blur-sm border border-primary/30 text-primary px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter">
+                                        Faltan {alumno.daysUntil} días
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-text-secondary/50 italic">No hay cumpleaños cercanos.</p>
                     )}
                 </section>
 

@@ -25,9 +25,8 @@ export const useCumpleanos = () => {
         loadData();
     }, [loadData]);
 
-    const { today, yesterday, tomorrow } = useMemo(() => {
+    const { today, yesterday, tomorrow, upcoming } = useMemo(() => {
         const now = new Date();
-        // Reset hours to compare only dates
         now.setHours(0, 0, 0, 0);
 
         const currentMonth = now.getMonth();
@@ -36,16 +35,14 @@ export const useCumpleanos = () => {
         // Helper to check if a date matches today (ignoring year)
         const isSameDay = (dateStr, targetMonth, targetDate) => {
             if (!dateStr) return false;
-            // Adjust for timezone offset if necessary, but usually date string yyyy-mm-dd is enough
-            // Using standard parsing for "YYYY-MM-DD"
             const [y, m, d] = dateStr.split('-').map(Number);
-            // Month is 0-indexed in JS Date, but 1-indexed in string
             return (m - 1) === targetMonth && d === targetDate;
         };
 
         const todayList = [];
         const yesterdayList = [];
         const tomorrowList = [];
+        const upcomingList = [];
 
         // Calculate Yesterday
         const yDate = new Date(now);
@@ -59,6 +56,13 @@ export const useCumpleanos = () => {
         const tMonth = tDate.getMonth();
         const tDay = tDate.getDate();
 
+        // Para "Próximos", definimos un rango (ej: los siguientes 30 días después de mañana)
+        const upcomingStart = new Date(tDate);
+        upcomingStart.setDate(tDate.getDate() + 1);
+        
+        const upcomingEnd = new Date(now);
+        upcomingEnd.setDate(now.getDate() + 7);
+
         alumnos.forEach(alumno => {
             if (isSameDay(alumno.fecha_nacimiento, currentMonth, currentDate)) {
                 todayList.push(alumno);
@@ -66,13 +70,32 @@ export const useCumpleanos = () => {
                 yesterdayList.push(alumno);
             } else if (isSameDay(alumno.fecha_nacimiento, tMonth, tDay)) {
                 tomorrowList.push(alumno);
+            } else if (alumno.fecha_nacimiento) {
+                // Lógica para ver si cae en el rango de próximos 30 días
+                const [y, m, d] = alumno.fecha_nacimiento.split('-').map(Number);
+                const bdayThisYear = new Date(now.getFullYear(), m - 1, d);
+                const bdayNextYear = new Date(now.getFullYear() + 1, m - 1, d);
+                
+                // Usamos el que sea más próximo en el futuro
+                const nextBday = bdayThisYear >= upcomingStart ? bdayThisYear : bdayNextYear;
+                
+                if (nextBday >= upcomingStart && nextBday <= upcomingEnd) {
+                    upcomingList.push({
+                        ...alumno,
+                        daysUntil: Math.ceil((nextBday - now) / (1000 * 60 * 60 * 24))
+                    });
+                }
             }
         });
+
+        // Ordenar próximos por cercanía
+        upcomingList.sort((a, b) => a.daysUntil - b.daysUntil);
 
         return {
             today: todayList,
             yesterday: yesterdayList,
-            tomorrow: tomorrowList
+            tomorrow: tomorrowList,
+            upcoming: upcomingList
         };
     }, [alumnos]);
 
@@ -81,6 +104,7 @@ export const useCumpleanos = () => {
         today,
         yesterday,
         tomorrow,
+        upcoming,
         refetch: loadData
     };
 };

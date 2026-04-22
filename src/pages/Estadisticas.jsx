@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Filter, Users, FileSpreadsheet, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useEstadisticas } from '../features/estadisticas/hooks/useEstadisticas';
-import StatCard from '../features/estadisticas/components/StatCard';
+
 import MultiSelectFilter from '../components/ui/MultiSelectFilter';
 import TabBar from '../components/dashboard/TabBar';
 
@@ -25,6 +25,7 @@ const Estadisticas = () => {
         selectedCanchas, setSelectedCanchas,
         selectedHorarios, setSelectedHorarios,
         selectedCategorias, setSelectedCategorias,
+        selectedDias, setSelectedDias,
         alumnos
     } = useEstadisticas();
 
@@ -57,6 +58,14 @@ const Estadisticas = () => {
             }
         } else {
             setSelectedFields([...selectedFields, id]);
+        }
+    };
+
+    const toggleDia = (dia) => {
+        if (selectedDias.includes(dia)) {
+            setSelectedDias(selectedDias.filter(d => d !== dia));
+        } else {
+            setSelectedDias([...selectedDias, dia]);
         }
     };
 
@@ -294,12 +303,39 @@ const Estadisticas = () => {
 
                 {/* Filtros Container */}
                 <div className={`bg-surface border border-border rounded-lg p-4 space-y-4 ${showFilters ? 'block' : 'hidden md:block'}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Filter size={16} className="text-primary" />
-                        <h3 className="text-sm font-bold text-white uppercase">Filtros Avanzados</h3>
+                    
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2 mr-4">
+                            <Filter size={16} className="text-primary" />
+                            <span className="text-xs font-bold text-white uppercase whitespace-nowrap">Días:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map(dia => (
+                                <button
+                                    key={dia}
+                                    onClick={() => toggleDia(dia)}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                                        selectedDias.includes(dia)
+                                            ? 'bg-primary border-primary text-white shadow-sm shadow-primary/20'
+                                            : 'bg-background border-border text-text-secondary hover:border-text-secondary'
+                                    }`}
+                                >
+                                    {dia}
+                                </button>
+                            ))}
+                            {selectedDias.length > 0 && (
+                                <button 
+                                    onClick={() => setSelectedDias([])}
+                                    className="p-1.5 text-text-secondary hover:text-white transition-colors"
+                                    title="Limpiar días"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 border-t border-border/50 pt-4">
                         {/* 1. Rango de Fechas */}
                         <div className="space-y-1">
                             <label className="text-xs text-text-secondary">Rango de Fechas</label>
@@ -362,21 +398,7 @@ const Estadisticas = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Tarjetas de Métricas (Solo Presentes y Licencias) */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <StatCard
-                                label="Presentes"
-                                value={metrics.presentes}
-                                icon={Users}
-                                color="success"
-                            />
-                            <StatCard
-                                label="Licencias"
-                                value={metrics.licencias}
-                                icon={Users}
-                                color="warning"
-                            />
-                        </div>
+                        {/* Resumen Diario */}
 
                         {/* Tabla de Resumen Diario */}
                         <div className="bg-surface border border-border rounded-lg overflow-hidden">
