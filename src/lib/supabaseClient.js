@@ -47,9 +47,19 @@ const cookieStorage = {
   }
 };
 
+// export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+//   auth: {
+//     storage: cookieStorage,
+//     autoRefreshToken: true,
+//     persistSession: true,
+//     detectSessionInUrl: true,
+//     flowType: 'pkce'
+//   }
+// })
+
+// Usamos el cliente estándar por ahora para asegurar máxima compatibilidad
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // storage: cookieStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

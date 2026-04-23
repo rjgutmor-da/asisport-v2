@@ -21,28 +21,49 @@ export const AuthProvider = ({ children }) => {
     const currentUserIdRef = useRef(null);
     const isFetchingRef = useRef(null); // Para evitar peticiones duplicadas en curso
 
-    const prefetchMasterData = async () => {
+    const prefetchMasterData = async (profile) => {
         try {
+            const escuelaId = profile?.escuela_id;
+            if (!escuelaId) return;
+
+            console.log('📦 Iniciando prefetch de datos maestros para escuela:', escuelaId);
+            
             await Promise.all([
-                queryClient.prefetchQuery({ queryKey: queryKeys.alumnos, queryFn: getAlumnos }),
-                queryClient.prefetchQuery({ queryKey: queryKeys.entrenadores, queryFn: getEntrenadores }),
-                queryClient.prefetchQuery({ queryKey: queryKeys.canchas, queryFn: getCanchas }),
-                queryClient.prefetchQuery({ queryKey: queryKeys.horarios, queryFn: getHorarios }),
+                queryClient.prefetchQuery({ 
+                    queryKey: queryKeys.sucursales, 
+                    queryFn: () => getSucursales(escuelaId) 
+                }),
+                queryClient.prefetchQuery({ 
+                    queryKey: queryKeys.entrenadores, 
+                    queryFn: () => getEntrenadores(escuelaId) 
+                }),
+                queryClient.prefetchQuery({ 
+                    queryKey: queryKeys.horarios, 
+                    queryFn: () => getHorarios(escuelaId) 
+                }),
+                queryClient.prefetchQuery({ 
+                    queryKey: queryKeys.canchas, 
+                    queryFn: () => getCanchas(escuelaId) 
+                }),
             ]);
+            console.log('✅ Prefetch completado');
         } catch (error) {
-            console.error('Error en prefetchMasterData:', error);
+            console.error('❌ Error en prefetchMasterData:', error);
         }
     };
 
-    // Obtener perfil de usuario con timeout de protección
+    // Obtener perfil de usuario con protección
     const fetchUserProfile = async (userId) => {
-        if (isFetchingRef.current === userId) return;
+        if (isFetchingRef.current === userId) {
+            console.log('⏳ Ya hay una petición de perfil en curso para:', userId);
+            return null;
+        }
+        
         isFetchingRef.current = userId;
         setFetchingProfile(true);
         
         try {
-            console.log('🔍 Buscando perfil para:', userId);
-            console.time(`Perfil-${userId}`);
+            console.log('🔍 Buscando perfil en DB para usuario:', userId);
             
             const { data, error } = await supabase
                 .from('usuarios')
@@ -50,63 +71,71 @@ export const AuthProvider = ({ children }) => {
                 .eq('id', userId)
                 .single();
 
-            console.timeEnd(`Perfil-${userId}`);
-            console.log('✅ Resultado perfil:', { data, error });
-
             if (error) {
-                console.error('Error al cargar perfil:', error);
+                console.error('❌ Error de Supabase al cargar perfil:', error.message, error.details);
                 setUserProfile(null);
                 setRole(null);
-                return;
+                return null;
             }
 
             if (data) {
+                console.log('👤 Perfil cargado correctamente:', data.nombres, `(${data.rol})`);
                 setUserProfile(data);
                 setRole(data.rol);
                 return data;
             }
+            
+            console.warn('⚠️ No se encontró registro en la tabla "usuarios" para el ID de Auth');
             return null;
         } catch (err) {
-            console.error('Error inesperado al cargar perfil:', err);
+            console.error('💥 Error crítico al cargar perfil:', err);
             return null;
         } finally {
-            console.timeEnd(`Perfil-${userId}`);
             setFetchingProfile(false);
             isFetchingRef.current = null;
         }
     };
 
     useEffect(() => {
+        // TIMEOUT DE SEGURIDAD: Si después de 8 segundos seguimos cargando, forzamos el renderizado.
+        // Esto evita que la app se quede en blanco si falla una petición asíncrona.
+        const failsafeTimeout = setTimeout(() => {
+            if (loading) {
+                console.warn('⚠️ Timeout de seguridad alcanzado. Forzando desactivación de loading.');
+                setLoading(false);
+            }
+        }, 8000);
+
         // 1. Verificar sesión activa al montar
         const checkSession = async () => {
             try {
-                console.log('🔄 Verificando sesión inicial...');
-                console.time('SessionCheck');
-                
+                console.group('🔐 Verificación de Sesión Inicial');
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
-                console.timeEnd('SessionCheck');
-                console.log('ℹ️ Sesión inicial:', session ? 'Encontrada' : 'No existe', error || '');
+                if (error) throw error;
 
                 if (session?.user) {
+                    console.log('✅ Sesión encontrada para:', session.user.email);
                     setUser(session.user);
                     currentUserIdRef.current = session.user.id;
-                    // Aseguramos que el perfil se cargue ANTES de quitar el loading
+                    
                     const profile = await fetchUserProfile(session.user.id);
-                    if (profile?.escuela_id) {
-                        prefetchMasterData();
+                    if (profile) {
+                        await prefetchMasterData(profile);
                     }
                 } else {
+                    console.log('ℹ️ No hay sesión activa.');
                     setUser(null);
                     setUserProfile(null);
                     setRole(null);
                 }
             } catch (error) {
-                console.error('Error verificando sesión:', error);
+                console.error('❌ Error verificando sesión:', error);
                 setUser(null);
                 setUserProfile(null);
                 setRole(null);
             } finally {
+                console.groupEnd();
                 setLoading(false);
             }
         };
@@ -115,30 +144,36 @@ export const AuthProvider = ({ children }) => {
 
         // 2. Escuchar cambios de autenticación (login/logout)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.group(`🔔 Evento de Auth: ${event}`);
+            
             if (session?.user) {
-                // Solo procesar si es un usuario DIFERENTE al actual
                 if (session.user.id !== currentUserIdRef.current) {
+                    console.log('🆕 Nuevo usuario detectado:', session.user.email);
                     currentUserIdRef.current = session.user.id;
                     setUser(session.user);
                     const profile = await fetchUserProfile(session.user.id);
-                    if (profile?.escuela_id) {
-                        prefetchMasterData();
+                    if (profile) {
+                        await prefetchMasterData(profile);
                     }
                 }
-            } else {
-                // Logout — limpiar caché de datos maestros
+            } else if (event === 'SIGNED_OUT') {
+                console.log('👋 Sesión cerrada');
                 currentUserIdRef.current = null;
                 setUser(null);
                 setUserProfile(null);
                 setRole(null);
                 cacheService.clear();
-                queryClient.clear(); // Limpiar caché de react-query en DB en logout
+                queryClient.clear();
             }
-            // Siempre asegurar que loading sea false después de procesar
+            
             setLoading(false);
+            console.groupEnd();
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            clearTimeout(failsafeTimeout);
+            subscription.unsubscribe();
+        };
     }, []);
 
     const value = {

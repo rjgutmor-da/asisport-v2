@@ -1,5 +1,5 @@
 // Service Worker - Actualizar CACHE_NAME al hacer cambios para forzar refresh en móviles
-const CACHE_NAME = 'asisport-v2';
+const CACHE_NAME = 'asisport-v3';
 
 self.addEventListener('install', (event) => {
     // Activar inmediatamente sin esperar a que se cierre la pestaña
