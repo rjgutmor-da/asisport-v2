@@ -97,8 +97,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // TIMEOUT DE SEGURIDAD: Si después de 8 segundos seguimos cargando, forzamos el renderizado.
-        // Esto evita que la app se quede en blanco si falla una petición asíncrona.
+        // TIMEOUT DE SEGURIDAD
         const failsafeTimeout = setTimeout(() => {
             if (loading) {
                 console.warn('⚠️ Timeout de seguridad alcanzado. Forzando desactivación de loading.');
@@ -106,10 +105,10 @@ export const AuthProvider = ({ children }) => {
             }
         }, 8000);
 
-        // 1. Verificar sesión activa al montar
-        const checkSession = async () => {
+        // Función unificada para inicializar la sesión y el perfil
+        const initializeAuth = async () => {
             try {
-                console.group('🔐 Verificación de Sesión Inicial');
+                console.group('🔐 Inicialización de Auth');
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
                 if (error) throw error;
@@ -119,6 +118,7 @@ export const AuthProvider = ({ children }) => {
                     setUser(session.user);
                     currentUserIdRef.current = session.user.id;
                     
+                    // IMPORTANTE: Esperamos a que el perfil se cargue antes de quitar el loading
                     const profile = await fetchUserProfile(session.user.id);
                     if (profile) {
                         await prefetchMasterData(profile);
@@ -130,25 +130,25 @@ export const AuthProvider = ({ children }) => {
                     setRole(null);
                 }
             } catch (error) {
-                console.error('❌ Error verificando sesión:', error);
-                setUser(null);
-                setUserProfile(null);
-                setRole(null);
+                console.error('❌ Error inicializando auth:', error);
             } finally {
-                console.groupEnd();
                 setLoading(false);
+                console.groupEnd();
             }
         };
 
-        checkSession();
+        initializeAuth();
 
-        // 2. Escuchar cambios de autenticación (login/logout)
+        // Escuchar cambios de autenticación (solo para login/logout posterior)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            // Si el evento es INITIAL_SESSION, lo ignoramos porque initializeAuth ya se encarga
+            if (event === 'INITIAL_SESSION') return;
+
             console.group(`🔔 Evento de Auth: ${event}`);
             
             if (session?.user) {
                 if (session.user.id !== currentUserIdRef.current) {
-                    console.log('🆕 Nuevo usuario detectado:', session.user.email);
+                    console.log('🆕 Cambio de usuario detectado:', session.user.email);
                     currentUserIdRef.current = session.user.id;
                     setUser(session.user);
                     const profile = await fetchUserProfile(session.user.id);
