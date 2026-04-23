@@ -27,6 +27,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
                 <div className="bg-surface border border-border rounded-lg p-8 max-w-md text-center space-y-4">
                     <div className="text-4xl">⚠️</div>
                     <h2 className="text-xl font-bold text-white">Sin Escuela Asignada</h2>
+                    <div className="py-2 px-4 bg-background/50 rounded text-sm font-mono text-primary">
+                        {user?.email}
+                    </div>
                     <p className="text-text-secondary">
                         Tu cuenta no tiene una escuela asociada. Contacta al administrador
                         del sistema para que te asigne a una escuela.
