@@ -55,19 +55,24 @@ export const AuthProvider = ({ children }) => {
 
     // Obtener perfil de usuario con protección
     const fetchUserProfile = async (userId) => {
-        
-        isFetchingRef.current = userId;
         setFetchingProfile(true);
-        setProfileError(null);
+        setProfileError('Iniciando fetch...'); // Mensaje temporal para ver si se queda aquí
         
         try {
             console.log('🔍 Buscando perfil en DB para usuario:', userId);
             
-            const { data, error } = await supabase
+            // Usamos Promise.race para forzar un timeout si Supabase se cuelga
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('TIMEOUT_SUPABASE_HANG')), 5000);
+            });
+
+            const fetchPromise = supabase
                 .from('usuarios')
                 .select('*')
                 .eq('id', userId)
                 .single();
+
+            const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
             if (error) {
                 console.error('❌ Error de Supabase al cargar perfil:', error.message, error.details);
@@ -79,6 +84,7 @@ export const AuthProvider = ({ children }) => {
 
             if (data) {
                 console.log('👤 Perfil cargado correctamente:', data.nombres, `(${data.rol})`);
+                setProfileError(null); // Limpiamos el error
                 setUserProfile(data);
                 setRole(data.rol);
                 return data;
@@ -93,7 +99,6 @@ export const AuthProvider = ({ children }) => {
             return null;
         } finally {
             setFetchingProfile(false);
-            isFetchingRef.current = null;
         }
     };
 
