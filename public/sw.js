@@ -20,8 +20,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Estrategia: Siempre red primero (Network First) para garantizar contenido fresco
+    // No interceptar peticiones a Supabase o externas (Auth, DB, etc)
+    if (event.request.url.includes('supabase.co') || !event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
+    // Estrategia: Siempre red primero (Network First)
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        fetch(event.request).catch(async (error) => {
+            const cachedResponse = await caches.match(event.request);
+            if (cachedResponse) return cachedResponse;
+            // Si no hay red ni caché, lanzamos el error original para que el navegador lo maneje
+            throw error;
+        })
     );
 });

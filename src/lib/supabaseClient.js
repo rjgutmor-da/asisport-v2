@@ -36,18 +36,20 @@ const cookieStorage = {
     d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000));
     const expires = "expires=" + d.toUTCString();
     const domainAttr = domain ? `;domain=${domain}` : '';
-    document.cookie = `${key}=${value};${expires}${domainAttr};path=/;SameSite=Lax;Secure`;
+    const secureAttr = window.location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = `${key}=${value};${expires}${domainAttr};path=/;SameSite=Lax${secureAttr}`;
   },
   removeItem: (key) => {
     if (!isBrowser) return;
     const domainAttr = domain ? `;domain=${domain}` : '';
-    document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 UTC${domainAttr};path=/;SameSite=Lax;Secure`;
+    const secureAttr = window.location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 UTC${domainAttr};path=/;SameSite=Lax${secureAttr}`;
   }
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: cookieStorage,
+    // storage: cookieStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

@@ -25,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </React.StrictMode>,
 )
 
+/*
 // Registrar Service Worker para PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -33,4 +34,5 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('Error SW', err));
     });
 }
+*/
 

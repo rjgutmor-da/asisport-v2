@@ -34,35 +34,48 @@ const Login = () => {
         console.log('🔵 Iniciando login con:', emailClean);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
                 email: emailClean,
                 password: passwordClean,
             });
 
-            if (error) {
-                console.error('🔴 Error Supabase:', error);
-                if (error.message.includes('Invalid login credentials')) {
+            if (authError) {
+                console.error('🔴 Error Supabase Auth:', authError);
+                // Manejar errores específicos de Supabase
+                if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
                     throw new Error('Credenciales incorrectas. Verifica email y contraseña.');
+                } else if (authError.message.includes('Email not confirmed')) {
+                    throw new Error('Tu correo no ha sido verificado. Revisa tu bandeja de entrada.');
                 } else {
-                    throw new Error(error.message || 'Error al conectar con el servidor.');
+                    throw new Error(authError.message || 'Error al conectar con el servidor.');
                 }
             }
 
             if (data?.user) {
-                console.log('🟢 Login exitoso, actualizando perfil y redirigiendo...', data.user.id);
-                // Forzar carga inmediata del perfil
-                await refreshProfile(data.user.id);
-
+                console.log('🟢 Login exitoso para:', data.user.id);
+                
+                // No llamamos a refreshProfile aquí para evitar doble petición paralela
+                // ya que AuthContext.onAuthStateChange ya lo hace.
+                // Simplemente esperamos un poco y redirigimos.
+                
                 setTimeout(() => {
                     navigate('/dashboard');
-                }, 100);
+                }, 500);
             } else {
-                throw new Error('El servidor no devolvió un usuario.');
+                throw new Error('No se pudo establecer la sesión correctamente.');
             }
         } catch (err) {
-            console.error('🔴 Error Catch:', err);
-            setError(err.message);
-            setLoading(false); // Solo desactivar loading si hay error. Si es éxito, dejamos que navegue.
+            console.error('🔴 Error Catch en Login:', err);
+            
+            let userMessage = err.message;
+            if (userMessage.toLowerCase().includes('aborted')) {
+                userMessage = 'La conexión fue interrumpida por el navegador. Por favor, intenta de nuevo en unos segundos.';
+            } else if (userMessage.toLowerCase().includes('fetch')) {
+                userMessage = 'Error de red. Verifica tu conexión a internet.';
+            }
+            
+            setError(userMessage);
+            setLoading(false);
         }
     };
 

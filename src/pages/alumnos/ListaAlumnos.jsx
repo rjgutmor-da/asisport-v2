@@ -515,7 +515,7 @@ const ListaAlumnos = () => {
                                                 className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
                                             />
                                         </th>
-                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase">Alumno</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase md:min-w-[200px]">Alumno</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">7D</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesAnteriorStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesActualStr.substring(0, 3)}</th>
@@ -545,7 +545,7 @@ const ListaAlumnos = () => {
                                                     />
                                                 </td>
                                                 <td className="p-2 md:p-3">
-                                                    <div className="flex items-center gap-2 md:gap-3 max-w-[140px] md:max-w-[200px]">
+                                                    <div className="flex items-center gap-2 md:gap-3 max-w-[140px] md:max-w-[400px]">
                                                         {alumno.foto_url ? (
                                                             <img src={alumno.foto_url} alt="" className="hidden sm:block w-8 h-8 rounded-full object-cover border border-primary/30" loading="lazy" />
                                                         ) : (

@@ -17,7 +17,9 @@ export const AuthProvider = ({ children }) => {
     const [userProfile, setUserProfile] = useState(null);
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fetchingProfile, setFetchingProfile] = useState(false);
     const currentUserIdRef = useRef(null);
+    const isFetchingRef = useRef(null); // Para evitar peticiones duplicadas en curso
 
     const prefetchMasterData = async () => {
         try {
@@ -34,19 +36,22 @@ export const AuthProvider = ({ children }) => {
 
     // Obtener perfil de usuario con timeout de protección
     const fetchUserProfile = async (userId) => {
+        if (isFetchingRef.current === userId) return;
+        isFetchingRef.current = userId;
+        setFetchingProfile(true);
+        
         try {
-            const queryPromise = supabase
+            console.log('🔍 Buscando perfil para:', userId);
+            console.time(`Perfil-${userId}`);
+            
+            const { data, error } = await supabase
                 .from('usuarios')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            // Timeout de 8 segundos para evitar que la app se quede colgada
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout al cargar perfil')), 8000)
-            );
-
-            const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+            console.timeEnd(`Perfil-${userId}`);
+            console.log('✅ Resultado perfil:', { data, error });
 
             if (error) {
                 console.error('Error al cargar perfil:', error);
@@ -58,11 +63,16 @@ export const AuthProvider = ({ children }) => {
             if (data) {
                 setUserProfile(data);
                 setRole(data.rol);
+                return data;
             }
+            return null;
         } catch (err) {
             console.error('Error inesperado al cargar perfil:', err);
-            setUserProfile(null);
-            setRole(null);
+            return null;
+        } finally {
+            console.timeEnd(`Perfil-${userId}`);
+            setFetchingProfile(false);
+            isFetchingRef.current = null;
         }
     };
 
@@ -70,18 +80,22 @@ export const AuthProvider = ({ children }) => {
         // 1. Verificar sesión activa al montar
         const checkSession = async () => {
             try {
-                const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Session check timeout')), 5000)
-                );
-
-                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+                console.log('🔄 Verificando sesión inicial...');
+                console.time('SessionCheck');
+                
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                console.timeEnd('SessionCheck');
+                console.log('ℹ️ Sesión inicial:', session ? 'Encontrada' : 'No existe', error || '');
 
                 if (session?.user) {
                     setUser(session.user);
                     currentUserIdRef.current = session.user.id;
-                    await fetchUserProfile(session.user.id);
-                    prefetchMasterData(); // PREFETCH en mount si hay sesión
+                    // Aseguramos que el perfil se cargue ANTES de quitar el loading
+                    const profile = await fetchUserProfile(session.user.id);
+                    if (profile?.escuela_id) {
+                        prefetchMasterData();
+                    }
                 } else {
                     setUser(null);
                     setUserProfile(null);
@@ -106,8 +120,10 @@ export const AuthProvider = ({ children }) => {
                 if (session.user.id !== currentUserIdRef.current) {
                     currentUserIdRef.current = session.user.id;
                     setUser(session.user);
-                    await fetchUserProfile(session.user.id);
-                    prefetchMasterData(); // PREFETCH tras nuevo login
+                    const profile = await fetchUserProfile(session.user.id);
+                    if (profile?.escuela_id) {
+                        prefetchMasterData();
+                    }
                 }
             } else {
                 // Logout — limpiar caché de datos maestros
