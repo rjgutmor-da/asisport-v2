@@ -55,11 +55,11 @@ export const AuthProvider = ({ children }) => {
 
     // Obtener perfil de usuario
     const fetchUserProfile = async (userId) => {
+        if (!userId) return null;
         setFetchingProfile(true);
+        console.log('📡 [Auth] Iniciando carga de perfil para:', userId);
         
         try {
-            console.log('🔍 Cargando perfil:', userId);
-            
             const { data, error } = await supabase
                 .from('usuarios')
                 .select('*')
@@ -67,24 +67,26 @@ export const AuthProvider = ({ children }) => {
                 .single();
 
             if (error) {
-                console.error('❌ Error Supabase perfil:', error.message);
-                setProfileError(error.message);
+                console.error('❌ [Auth] Error Supabase:', error.message);
+                setProfileError(`Error DB: ${error.message}`);
                 setUserProfile(null);
                 setRole(null);
                 return null;
             }
 
             if (data) {
+                console.log('✅ [Auth] Perfil cargado:', data.nombres);
                 setProfileError(null);
                 setUserProfile(data);
                 setRole(data.rol);
                 return data;
             }
             
+            setProfileError('No se encontró el registro del usuario en la tabla "usuarios".');
             return null;
         } catch (err) {
-            console.error('💥 Error crítico perfil:', err);
-            setProfileError(err.message);
+            console.error('💥 [Auth] Error crítico:', err);
+            setProfileError(`Error Crítico: ${err.message}`);
             return null;
         } finally {
             setFetchingProfile(false);
@@ -92,82 +94,58 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        // TIMEOUT DE SEGURIDAD
-        const failsafeTimeout = setTimeout(() => {
-            if (loading) {
-                console.warn('⚠️ Timeout de seguridad alcanzado. Forzando desactivación de loading.');
-                setLoading(false);
-            }
-        }, 8000);
-
-        // Función unificada para inicializar la sesión y el perfil
-        const initializeAuth = async () => {
-            try {
-                console.group('🔐 Inicialización de Auth');
-                const { data: { session }, error } = await supabase.auth.getSession();
-                
-                if (error) throw error;
-
-                if (session?.user) {
-                    console.log('✅ Sesión encontrada para:', session.user.email);
-                    setUser(session.user);
-                    currentUserIdRef.current = session.user.id;
-                    
-                    // IMPORTANTE: Esperamos a que el perfil se cargue antes de quitar el loading
-                    const profile = await fetchUserProfile(session.user.id);
-                    if (profile) {
-                        await prefetchMasterData(profile);
-                    }
-                } else {
-                    console.log('ℹ️ No hay sesión activa.');
+        let isMounted = true;
+        
+        const handleAuthAction = async (session, event = 'INITIAL') => {
+            console.log(`📡 [Auth] Procesando evento: ${event}`);
+            if (!session?.user) {
+                if (isMounted) {
                     setUser(null);
                     setUserProfile(null);
                     setRole(null);
+                    setLoading(false);
                 }
-            } catch (error) {
-                console.error('❌ Error inicializando auth:', error);
-            } finally {
+                return;
+            }
+            const userId = session.user.id;
+            if (isMounted) {
+                setUser(session.user);
+                currentUserIdRef.current = userId;
+            }
+            const profile = await fetchUserProfile(userId);
+            if (isMounted) {
+                if (profile) await prefetchMasterData(profile);
                 setLoading(false);
-                console.groupEnd();
+                console.log(`✅ [Auth] Sistema listo para: ${session.user.email}`);
             }
         };
 
-        initializeAuth();
+        // 1. Carga inicial
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            handleAuthAction(session, 'GET_SESSION');
+        });
 
-        // Escuchar cambios de autenticación (solo para login/logout posterior)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            // Si el evento es INITIAL_SESSION, lo ignoramos porque initializeAuth ya se encarga
+        // 2. Suscripción a cambios futuros
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'INITIAL_SESSION') return;
-
-            console.group(`🔔 Evento de Auth: ${event}`);
             
-            if (session?.user) {
-                if (session.user.id !== currentUserIdRef.current) {
-                    console.log('🆕 Cambio de usuario detectado:', session.user.email);
-                    currentUserIdRef.current = session.user.id;
-                    setUser(session.user);
-                    const profile = await fetchUserProfile(session.user.id);
-                    if (profile) {
-                        await prefetchMasterData(profile);
-                    }
-                    setLoading(false);
-                }
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                handleAuthAction(session, event);
             } else if (event === 'SIGNED_OUT') {
-                console.log('👋 Sesión cerrada');
-                currentUserIdRef.current = null;
-                setUser(null);
-                setUserProfile(null);
-                setRole(null);
-                cacheService.clear();
-                queryClient.clear();
-                setLoading(false);
+                if (isMounted) {
+                    setUser(null);
+                    setUserProfile(null);
+                    setRole(null);
+                    setLoading(false);
+                    currentUserIdRef.current = null;
+                    cacheService.clear();
+                    queryClient.clear();
+                }
             }
-            
-            console.groupEnd();
         });
 
         return () => {
-            clearTimeout(failsafeTimeout);
+            isMounted = false;
             subscription.unsubscribe();
         };
     }, []);
