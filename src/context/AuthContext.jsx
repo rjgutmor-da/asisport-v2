@@ -53,49 +53,38 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Obtener perfil de usuario con protección
+    // Obtener perfil de usuario
     const fetchUserProfile = async (userId) => {
         setFetchingProfile(true);
-        setProfileError('Iniciando fetch...'); // Mensaje temporal para ver si se queda aquí
         
         try {
-            console.log('🔍 Buscando perfil en DB para usuario:', userId);
+            console.log('🔍 Cargando perfil:', userId);
             
-            // Usamos Promise.race para forzar un timeout si Supabase se cuelga
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('TIMEOUT_SUPABASE_HANG')), 5000);
-            });
-
-            const fetchPromise = supabase
+            const { data, error } = await supabase
                 .from('usuarios')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
-
             if (error) {
-                console.error('❌ Error de Supabase al cargar perfil:', error.message, error.details);
-                setProfileError(`Supabase Error: ${error.message} - ${error.details || ''}`);
+                console.error('❌ Error Supabase perfil:', error.message);
+                setProfileError(error.message);
                 setUserProfile(null);
                 setRole(null);
                 return null;
             }
 
             if (data) {
-                console.log('👤 Perfil cargado correctamente:', data.nombres, `(${data.rol})`);
-                setProfileError(null); // Limpiamos el error
+                setProfileError(null);
                 setUserProfile(data);
                 setRole(data.rol);
                 return data;
             }
             
-            console.warn('⚠️ No se encontró registro en la tabla "usuarios" para el ID de Auth');
-            setProfileError('No se encontró registro en la DB.');
             return null;
         } catch (err) {
-            console.error('💥 Error crítico al cargar perfil:', err);
-            setProfileError(`Crítico: ${err.message}`);
+            console.error('💥 Error crítico perfil:', err);
+            setProfileError(err.message);
             return null;
         } finally {
             setFetchingProfile(false);
