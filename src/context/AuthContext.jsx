@@ -155,6 +155,7 @@ export const AuthProvider = ({ children }) => {
                     if (profile) {
                         await prefetchMasterData(profile);
                     }
+                    setLoading(false);
                 }
             } else if (event === 'SIGNED_OUT') {
                 console.log('👋 Sesión cerrada');
@@ -164,9 +165,9 @@ export const AuthProvider = ({ children }) => {
                 setRole(null);
                 cacheService.clear();
                 queryClient.clear();
+                setLoading(false);
             }
             
-            setLoading(false);
             console.groupEnd();
         });
 
