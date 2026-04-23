@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
  * @param {Array} allowedRoles - List of allowed roles. If undefined, only auth is required.
  */
 const ProtectedRoute = ({ children, allowedRoles }) => {
-    const { user, role, loading, escuelaId } = useAuth();
+    const { user, role, loading, escuelaId, userProfile, profileError } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -29,6 +29,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
                     <h2 className="text-xl font-bold text-white">Sin Escuela Asignada</h2>
                     <div className="py-2 px-4 bg-background/50 rounded text-sm font-mono text-primary">
                         {user?.email}
+                    </div>
+                    {/* INFO DE DEPURACIÓN TEMPORAL */}
+                    <div className="bg-red-900/50 border border-red-500 p-2 text-xs text-left overflow-auto text-white">
+                        <p><strong>DEBUG INFO:</strong></p>
+                        <p>User ID: {user?.id}</p>
+                        <p>Profile loaded: {userProfile ? 'Yes' : 'No'}</p>
+                        <p>Profile Error: {profileError || 'None'}</p>
+                        <p>Profile data: {JSON.stringify(userProfile)}</p>
                     </div>
                     <p className="text-text-secondary">
                         Tu cuenta no tiene una escuela asociada. Contacta al administrador

@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
     const queryClient = useQueryClient();
     const [user, setUser] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
+    const [profileError, setProfileError] = useState(null);
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
     const [fetchingProfile, setFetchingProfile] = useState(false);
@@ -54,13 +55,10 @@ export const AuthProvider = ({ children }) => {
 
     // Obtener perfil de usuario con protección
     const fetchUserProfile = async (userId) => {
-        if (isFetchingRef.current === userId) {
-            console.log('⏳ Ya hay una petición de perfil en curso para:', userId);
-            return null;
-        }
         
         isFetchingRef.current = userId;
         setFetchingProfile(true);
+        setProfileError(null);
         
         try {
             console.log('🔍 Buscando perfil en DB para usuario:', userId);
@@ -73,6 +71,7 @@ export const AuthProvider = ({ children }) => {
 
             if (error) {
                 console.error('❌ Error de Supabase al cargar perfil:', error.message, error.details);
+                setProfileError(`Supabase Error: ${error.message} - ${error.details || ''}`);
                 setUserProfile(null);
                 setRole(null);
                 return null;
@@ -86,9 +85,11 @@ export const AuthProvider = ({ children }) => {
             }
             
             console.warn('⚠️ No se encontró registro en la tabla "usuarios" para el ID de Auth');
+            setProfileError('No se encontró registro en la DB.');
             return null;
         } catch (err) {
             console.error('💥 Error crítico al cargar perfil:', err);
+            setProfileError(`Crítico: ${err.message}`);
             return null;
         } finally {
             setFetchingProfile(false);
@@ -180,6 +181,7 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         userProfile,
+        profileError,
         role,
         loading,
         escuelaId: userProfile?.escuela_id || null,
