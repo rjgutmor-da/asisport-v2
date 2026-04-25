@@ -186,7 +186,7 @@ export const useAsistencias = () => {
             }
 
             // Recargar
-            await loadAlumnos();
+            await refresh();
 
             return resultados; // Para mostrar resumen en UI
         } catch (error) {
@@ -245,7 +245,7 @@ export const useAsistencias = () => {
         handleEliminarAsistenciaNormal,
         getEstadoEfectivo,
         handleSubmit,
-        refresh: loadAlumnos,
+        refresh,
         isAdmin,
         entrenadores,
         selectedEntrenador,
