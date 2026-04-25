@@ -8,25 +8,64 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables')
 }
 
+const CHUNK_SIZE = 3000;
+
 /**
- * Storage personalizado usando js-cookie para compartir la sesión entre subdominios (.saasport.pro).
+ * Storage personalizado usando js-cookie con fragmentación (chunking).
  */
 const cookieStorage = {
   getItem: (key) => {
-    return Cookies.get(key) || null;
+    const first = Cookies.get(key);
+    if (!first) return null;
+    if (!first.startsWith('chunk_0:')) return first;
+    
+    let result = '';
+    let i = 0;
+    while (true) {
+      const chunk = Cookies.get(`${key}_chunk_${i}`);
+      if (!chunk) break;
+      result += chunk;
+      i++;
+    }
+    return result || null;
   },
   setItem: (key, value) => {
-    Cookies.set(key, value, {
-      expires: 365,
+    const opts = {
       domain: '.saasport.pro',
+      expires: 7,
       path: '/',
       sameSite: 'lax',
-      secure: true
+      secure: true,
+    };
+
+    if (value.length <= CHUNK_SIZE) {
+      Cookies.set(key, value, opts);
+      return;
+    }
+
+    // Dividir en chunks
+    const chunks = [];
+    for (let i = 0; i < value.length; i += CHUNK_SIZE) {
+      chunks.push(value.slice(i, i + CHUNK_SIZE));
+    }
+
+    Cookies.set(key, `chunk_0:${chunks.length}`, opts);
+    chunks.forEach((chunk, i) => {
+      Cookies.set(`${key}_chunk_${i}`, chunk, opts);
     });
   },
   removeItem: (key) => {
-    Cookies.remove(key, { domain: '.saasport.pro', path: '/' });
-  }
+    const opts = { domain: '.saasport.pro', path: '/' };
+    const first = Cookies.get(key);
+    
+    if (first?.startsWith('chunk_0:')) {
+      const count = parseInt(first.split(':')[1]);
+      for (let i = 0; i < count; i++) {
+        Cookies.remove(`${key}_chunk_${i}`, opts);
+      }
+    }
+    Cookies.remove(key, opts);
+  },
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
