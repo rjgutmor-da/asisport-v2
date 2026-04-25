@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../hooks/useMasterData';
 import { getAlumnos } from '../services/alumnos';
 import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
+import { getSucursales } from '../services/sucursales';
+import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 const AuthContext = createContext({});
 
@@ -17,6 +19,7 @@ export const AuthProvider = ({ children }) => {
     const [userProfile, setUserProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
     const [role, setRole] = useState(null);
+    const [escuelaId, setEscuelaId] = useState(null); // Estado explícito para escuelaId
     const [loading, setLoading] = useState(true);
     const [fetchingProfile, setFetchingProfile] = useState(false);
     const currentUserIdRef = useRef(null);
@@ -98,25 +101,56 @@ export const AuthProvider = ({ children }) => {
         
         const handleAuthAction = async (session, event = 'INITIAL') => {
             console.log(`📡 [Auth] Procesando evento: ${event}`);
+            
             if (!session?.user) {
+                console.log('🚪 [Auth] Sin sesión de usuario');
                 if (isMounted) {
                     setUser(null);
                     setUserProfile(null);
                     setRole(null);
+                    setEscuelaId(null);
                     setLoading(false);
                 }
                 return;
             }
+
             const userId = session.user.id;
+            console.log('👤 [Auth] Usuario identificado:', session.user.email);
+
             if (isMounted) {
                 setUser(session.user);
                 currentUserIdRef.current = userId;
             }
-            const profile = await fetchUserProfile(userId);
-            if (isMounted) {
-                if (profile) await prefetchMasterData(profile);
-                setLoading(false);
-                console.log(`✅ [Auth] Sistema listo para: ${session.user.email}`);
+
+            try {
+                // Intentar cargar perfil y escuela en paralelo
+                const [profile, rpcEscuelaId] = await Promise.all([
+                    fetchUserProfile(userId),
+                    obtenerEscuelaId().catch(err => {
+                        console.warn('⚠️ [Auth] Error al obtener escuela vía RPC:', err.message);
+                        return null;
+                    })
+                ]);
+
+                if (isMounted) {
+                    // Prioridad 1: Escuela del perfil. Prioridad 2: Escuela del RPC.
+                    const finalEscuelaId = profile?.escuela_id || rpcEscuelaId;
+                    
+                    if (finalEscuelaId) {
+                        console.log('🏢 [Auth] Escuela asignada:', finalEscuelaId);
+                        setEscuelaId(finalEscuelaId);
+                        if (profile) await prefetchMasterData(profile);
+                    } else {
+                        console.warn('⚠️ [Auth] El usuario no tiene escuela asignada en perfil ni RPC');
+                        setEscuelaId(null);
+                    }
+
+                    setLoading(false);
+                    console.log(`✅ [Auth] Sistema listo para: ${session.user.email}`);
+                }
+            } catch (error) {
+                console.error('❌ [Auth] Error en flujo de autenticación:', error);
+                if (isMounted) setLoading(false);
             }
         };
 
@@ -156,7 +190,7 @@ export const AuthProvider = ({ children }) => {
         profileError,
         role,
         loading,
-        escuelaId: userProfile?.escuela_id || null,
+        escuelaId, // Usar el estado explícito
         sucursalId: userProfile?.sucursal_id || null, // Exportar sucursalId
         isAdmin: role === 'Administrador' || role === 'Dueño' || role === 'SuperAdministrador',
         isOwner: role === 'Dueño',
