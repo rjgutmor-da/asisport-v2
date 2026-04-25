@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { getAsistenciasRango } from '../../../services/asistencias';
 import { useMasterData } from '../../../hooks/useMasterData';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 /**
  * Hook personalizado para gestionar la lógica del módulo de Estadísticas.
@@ -49,6 +50,14 @@ export const useEstadisticas = () => {
     const [selectedHorarios, setSelectedHorarios] = useState([]);
     const [selectedCategorias, setSelectedCategorias] = useState([]);
     const [selectedDias, setSelectedDias] = useState([]);
+
+    // --- DEBOUNCE DE FILTROS (600ms) ---
+    // Evita que la interfaz se recalcule inmediatamente mientras el usuario selecciona múltiples opciones
+    const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
+    const debouncedCanchas = useDebounce(selectedCanchas, 600);
+    const debouncedHorarios = useDebounce(selectedHorarios, 600);
+    const debouncedCategorias = useDebounce(selectedCategorias, 600);
+    const debouncedDias = useDebounce(selectedDias, 600);
 
     /**
      * Calcula dinámicamente el objeto de rango de fechas { start, end } basado en la opción seleccionada.
@@ -157,44 +166,44 @@ export const useEstadisticas = () => {
             if (!alumno) return false;
 
             // Filtrado por Entrenador (Múltiple)
-            if (selectedEntrenadores.length > 0) {
-                if (!selectedEntrenadores.includes(alumno.profesor_asignado_id)) {
+            if (debouncedEntrenadores.length > 0) {
+                if (!debouncedEntrenadores.includes(alumno.profesor_asignado_id)) {
                     return false;
                 }
             }
 
             // Filtrado por Cancha (Múltiple)
-            if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) {
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) {
                 return false;
             }
 
             // Filtrado por Horario (Múltiple)
-            if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) {
+            if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) {
                 return false;
             }
 
             // Filtrado por Categoría (Usando campo 'sub' precalculado)
-            if (selectedCategorias.length > 0) {
+            if (debouncedCategorias.length > 0) {
                 const subLabel = `Sub-${alumno.sub}`;
 
-                if (!selectedCategorias.includes(subLabel)) {
+                if (!debouncedCategorias.includes(subLabel)) {
                     return false;
                 }
             }
 
             // Filtrado por Día de la Semana
-            if (selectedDias.length > 0) {
+            if (debouncedDias.length > 0) {
                 const dateObj = new Date(asistencia.fecha + 'T12:00:00');
                 const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
                 // Normalizamos a minúsculas para evitar problemas de capitalización
-                if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) {
+                if (!debouncedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) {
                     return false;
                 }
             }
 
             return true;
         });
-    }, [asistencias, alumnos, selectedEntrenadores, selectedCanchas, selectedHorarios, selectedCategorias, selectedDias]);
+    }, [asistencias, alumnos, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
 
     /**
      * Calcula las métricas generales (KPIs) para las tarjetas superiores.
@@ -303,17 +312,17 @@ export const useEstadisticas = () => {
 
         const getAlumnosFilteredByOthers = (excludeFilter) => {
             let temp = alumnos;
-            if (excludeFilter !== 'entrenador' && selectedEntrenadores.length > 0) {
-                temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+            if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0) {
+                temp = temp.filter(a => debouncedEntrenadores.includes(a.profesor_asignado_id));
             }
-            if (excludeFilter !== 'categoria' && selectedCategorias.length > 0) {
-                temp = temp.filter(a => selectedCategorias.includes(`Sub-${a.sub}`));
+            if (excludeFilter !== 'categoria' && debouncedCategorias.length > 0) {
+                temp = temp.filter(a => debouncedCategorias.includes(`Sub-${a.sub}`));
             }
-            if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
-                temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
+            if (excludeFilter !== 'horario' && debouncedHorarios.length > 0) {
+                temp = temp.filter(a => debouncedHorarios.includes(a.horario_id));
             }
-            if (excludeFilter !== 'cancha' && selectedCanchas.length > 0) {
-                temp = temp.filter(a => selectedCanchas.includes(a.cancha_id));
+            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0) {
+                temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
             }
             return temp;
         };
@@ -334,7 +343,7 @@ export const useEstadisticas = () => {
             horarios: horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
             canchas: canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
         };
-    }, [alumnos, entrenadores, canchas, horarios, masterCategorias, selectedEntrenadores, selectedCategorias, selectedHorarios, selectedCanchas]);
+    }, [alumnos, entrenadores, canchas, horarios, masterCategorias, debouncedEntrenadores, debouncedCategorias, debouncedHorarios, debouncedCanchas]);
 
     return {
         // Estado de carga y métricas

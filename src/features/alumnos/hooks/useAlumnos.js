@@ -30,6 +30,12 @@ export const useAlumnos = () => {
     const [selectedEntrenadores, setSelectedEntrenadores] = useState([]);
     const [selectedSubs, setSelectedSubs] = useState([]);
 
+    // --- DEBOUNCE DE FILTROS (600ms) ---
+    const debouncedCanchas = useDebounce(selectedCanchas, 600);
+    const debouncedHorarios = useDebounce(selectedHorarios, 600);
+    const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
+    const debouncedSubs = useDebounce(selectedSubs, 600);
+
     // Búsqueda con Debounce
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -84,10 +90,10 @@ export const useAlumnos = () => {
             const { alumnos: data, totalCount: count } = await getAlumnosPaginados({
                 userId: user?.id,
                 userRole: role,
-                canchaIds: selectedCanchas,
-                horarioIds: selectedHorarios,
-                subAnios: selectedSubs,
-                entrenadorIds: selectedEntrenadores,
+                canchaIds: debouncedCanchas,
+                horarioIds: debouncedHorarios,
+                subAnios: debouncedSubs,
+                entrenadorIds: debouncedEntrenadores,
                 searchTerm: debouncedSearchTerm,
                 activeFilter,
                 page: currentPage,
@@ -108,7 +114,7 @@ export const useAlumnos = () => {
         } finally {
             setLoading(false);
         }
-    }, [user, role, selectedCanchas, selectedHorarios, selectedSubs, selectedEntrenadores, debouncedSearchTerm, activeFilter, currentPage, addToast]);
+    }, [user, role, debouncedCanchas, debouncedHorarios, debouncedSubs, debouncedEntrenadores, debouncedSearchTerm, activeFilter, currentPage, addToast]);
 
     useEffect(() => {
         if (user) fetchPage();
@@ -123,18 +129,18 @@ export const useAlumnos = () => {
             if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
             else if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
 
-            // Filtros cruzados
-            if (excludeFilter !== 'entrenador' && selectedEntrenadores.length > 0) {
-                temp = temp.filter(a => selectedEntrenadores.includes(a.profesor_asignado_id));
+            // Filtros cruzados con Debounce
+            if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0) {
+                temp = temp.filter(a => debouncedEntrenadores.includes(a.profesor_asignado_id));
             }
-            if (excludeFilter !== 'sub' && selectedSubs.length > 0) {
-                temp = temp.filter(a => selectedSubs.includes(a.sub));
+            if (excludeFilter !== 'sub' && debouncedSubs.length > 0) {
+                temp = temp.filter(a => debouncedSubs.includes(a.sub));
             }
-            if (excludeFilter !== 'horario' && selectedHorarios.length > 0) {
-                temp = temp.filter(a => selectedHorarios.includes(a.horario_id));
+            if (excludeFilter !== 'horario' && debouncedHorarios.length > 0) {
+                temp = temp.filter(a => debouncedHorarios.includes(a.horario_id));
             }
-            if (excludeFilter !== 'cancha' && selectedCanchas.length > 0) {
-                temp = temp.filter(a => selectedCanchas.includes(a.cancha_id));
+            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0) {
+                temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
             }
             return temp;
         };
@@ -150,7 +156,7 @@ export const useAlumnos = () => {
             horarios: maestros.horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
             canchas: maestros.canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
         };
-    }, [facetData, maestros, activeFilter, selectedEntrenadores, selectedSubs, selectedHorarios, selectedCanchas]);
+    }, [facetData, maestros, activeFilter, debouncedEntrenadores, debouncedSubs, debouncedHorarios, debouncedCanchas]);
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
