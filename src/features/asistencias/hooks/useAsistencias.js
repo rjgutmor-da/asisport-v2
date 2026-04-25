@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
-import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
+import { useMasterData } from '../../../hooks/useMasterData';
+import { useAsistenciasQuery } from '../../../hooks/useAsistenciasQuery';
 import {
     getAlumnosParaAsistencia,
     registrarAsistenciasPorLote,
@@ -21,15 +22,8 @@ export const useAsistencias = () => {
         return `${year}-${month}-${day}`;
     });
 
-    // Estados de carga
-    const [loading, setLoading] = useState(true);
+    // Estados de carga y envío
     const [submitting, setSubmitting] = useState(false);
-
-    // Datos
-    const [alumnos, setAlumnos] = useState([]);
-    const [canchas, setCanchas] = useState([]);
-    const [horarios, setHorarios] = useState([]);
-    const [entrenadores, setEntrenadores] = useState([]);
 
     // Filtros
     const [selectedCancha, setSelectedCancha] = useState('');
@@ -39,84 +33,55 @@ export const useAsistencias = () => {
     // Estado local de cambios pendientes (Map: alumnoId -> estado)
     const [localChanges, setLocalChanges] = useState(new Map());
 
-    // Estado de envíos realizados (0=Nada, 1=Enviado, 2=Reenviado/Bloqueado)
+    // --- DATOS MAESTROS (Caché centralizada) ---
+    const { 
+        canchas: rawCanchas, 
+        horarios: rawHorarios, 
+        entrenadores: rawEntrenadores,
+        isLoading: loadingMaestros 
+    } = useMasterData();
+
+    const canchas = useMemo(() => rawCanchas.map(c => ({ value: c.id, label: c.nombre })), [rawCanchas]);
+    const horarios = useMemo(() => rawHorarios.map(h => ({ value: h.id, label: h.hora })), [rawHorarios]);
+    const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
+
+    // --- DATOS DE ASISTENCIA (TanStack Query) ---
+    const { 
+        data: alumnos = [], 
+        isLoading: loadingAsistencias,
+        refetch: refresh 
+    } = useAsistenciasQuery(
+        selectedDate, 
+        selectedCancha || null, 
+        selectedHorario || null, 
+        selectedEntrenador || null
+    );
+
+    // Estado para verificar si ya se envió (Esto podría ser otra query, pero lo mantenemos simple por ahora)
     const [enviosRealizados, setEnviosRealizados] = useState(0);
 
-    // Cargar maestros
+    // Efecto para verificar estado de envío cuando cambian filtros
     useEffect(() => {
-        const loadMaestros = async () => {
+        const checkEnvio = async () => {
+            if (!isAdmin && (!selectedCancha || !selectedHorario)) return;
             try {
-                const promises = [getCanchas(), getHorarios()];
+                const estadoEnvio = await verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null);
+                const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
+                const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
 
-                if (isAdmin) {
-                    promises.push(getEntrenadores());
+                if (estadoEnvio.existe) {
+                    setEnviosRealizados(reenviadoLocal ? 2 : 1);
+                } else {
+                    setEnviosRealizados(0);
                 }
-
-                const results = await Promise.all(promises);
-
-                const canchasData = results[0];
-                const horariosData = results[1];
-
-                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
-                setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
-
-                if (isAdmin && results[2]) {
-                    const entrenadoresData = results[2];
-                    setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
-                }
-
             } catch (error) {
-                console.error(error);
-                addToast('Error al cargar datos maestros', 'error');
+                console.error("Error verificando envío:", error);
             }
         };
-        // Solo cargar si tenemos info de admin (o usuario cargado)
-        if (user) {
-            loadMaestros();
-        }
-    }, [addToast, isAdmin, user]);
+        checkEnvio();
+    }, [selectedDate, selectedCancha, selectedHorario, isAdmin]);
 
-    // Cargar alumnos y verificar estado de envío
-    const loadAlumnos = useCallback(async () => {
-        // Para entrenadores, no cargar hasta que se seleccionen cancha y horario
-        if (!isAdmin && (!selectedCancha || !selectedHorario)) {
-            setAlumnos([]);
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        try {
-            const [data, estadoEnvio] = await Promise.all([
-                getAlumnosParaAsistencia(selectedDate, selectedCancha || null, selectedHorario || null, selectedEntrenador || null),
-                verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null)
-            ]);
-
-            setAlumnos(data);
-
-            // Lógica de estado de envío por combinación cancha/horario
-            // Cada combinación cancha+horario tiene su propio contador independiente
-            const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
-            const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
-
-            if (estadoEnvio.existe) {
-                setEnviosRealizados(reenviadoLocal ? 2 : 1);
-            } else {
-                setEnviosRealizados(0);
-            }
-
-            // Limpiar cambios locales
-            setLocalChanges(new Map());
-        } catch (error) {
-            console.error(error);
-            addToast(error.message || 'Error al cargar datos', 'error');
-        } finally {
-            setLoading(false);
-        }
-    }, [selectedDate, selectedCancha, selectedHorario, selectedEntrenador, addToast, isAdmin]);
-
-    useEffect(() => {
-        loadAlumnos();
-    }, [loadAlumnos]);
+    const loading = loadingMaestros || loadingAsistencias;
 
     // Manejo de fecha
     const handleDateChange = (newDate) => {

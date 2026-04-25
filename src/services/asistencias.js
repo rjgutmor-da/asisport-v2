@@ -39,17 +39,20 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
             targetEntrenadorId = user.id;
         }
 
+        // --- PLATTER PRINCIPLE: Una sola query trae todo combinado ---
         let query = supabase
             .from('alumnos')
             .select(`
                 id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
                 cancha:canchas(id, nombre),
-                horario:horarios(id, hora)
+                horario:horarios(id, hora),
+                asistenciaNormal:asistencias_normales(id, estado, fecha)
             `)
             .eq('escuela_id', escuelaId)
             .eq('archivado', false)
             .neq('estado', 'ELIMINADO SISTEMA')
-            .eq('profesor_asignado_id', targetEntrenadorId);
+            .eq('profesor_asignado_id', targetEntrenadorId)
+            .eq('asistencias_normales.fecha', fecha); // Filtro en la relación (join filter)
 
         if (usuarioDB.rol !== 'Dueño' && usuarioDB.rol !== 'SuperAdministrador') {
             if (usuarioDB.sucursal_id) {
@@ -65,19 +68,10 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         const { data: alumnos, error: alumnosError } = await query;
         if (alumnosError) throw alumnosError;
 
-        const { data: asistenciasNormales, error: anError } = await supabase
-            .from('asistencias_normales')
-            .select('alumno_id, estado, id')
-            .eq('fecha', fecha)
-            .in('alumno_id', alumnos.map(a => a.id));
-
-        if (anError) throw anError;
-
-        const normalesMap = new Map(asistenciasNormales.map(a => [a.alumno_id, a]));
-
+        // Normalizamos la salida: Supabase devuelve un array para la relación 1:N
         return alumnos.map(alumno => ({
             ...alumno,
-            asistenciaNormal: normalesMap.get(alumno.id) || null
+            asistenciaNormal: alumno.asistenciaNormal?.[0] || null
         }));
     } catch (error) {
         console.error(`[Error B2B Asistencias] getAlumnosParaAsistencia falló. UserID: ${userIdForLog}`, error);
@@ -270,53 +264,19 @@ export const getAsistenciasUltimos7Dias = async (alumnoIds) => {
 };
 
 /**
- * Obtiene todas las asistencias en un rango de fechas
- * @param {string} fechaInicio - YYYY-MM-DD
- * @param {string} fechaFin - YYYY-MM-DD
+ * PLATTER PRINCIPLE: Usa la VIEW v_estadisticas_asistencia_diaria para traer agregados.
+ * Esto elimina el fetch de miles de filas individuales en el Dashboard/Estadísticas.
  */
 export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuario no autenticado');
-
-    // Opcional: filtrar por escuela
     const escuelaId = await obtenerEscuelaId();
 
-    // Implementando paginación para superar el límite de 1000 registros estricto de Supabase API (PostgREST)
-    let allData = [];
-    let isFetching = true;
-    let from = 0;
-    const step = 1000;
+    const { data, error } = await supabase
+        .from('v_estadisticas_asistencia_diaria')
+        .select('*')
+        .eq('escuela_id', escuelaId)
+        .gte('fecha', fechaInicio)
+        .lte('fecha', fechaFin);
 
-    while (isFetching) {
-        const { data, error } = await supabase
-            .from('asistencias_normales')
-            .select('*, alumnos!inner(escuela_id)')
-            .eq('alumnos.escuela_id', escuelaId)
-            .gte('fecha', fechaInicio)
-            .lte('fecha', fechaFin)
-            .range(from, from + step - 1);
-
-        if (error) {
-            throw error;
-        }
-
-        if (data && data.length > 0) {
-            allData = [...allData, ...data];
-            from += step;
-            
-            // Si trajimos menos de 1000 registros, ya llegamos al final
-            if (data.length < step) {
-                isFetching = false;
-            }
-        } else {
-            isFetching = false;
-        }
-    }
-
-    // Limpiamos el nodo anidado de escuela_id para no alterar el contrato original
-    return allData.map(d => {
-        const clon = { ...d };
-        delete clon.alumnos;
-        return clon;
-    });
+    if (error) throw error;
+    return data;
 };

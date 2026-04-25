@@ -22,6 +22,7 @@ const GestorSucursales = lazy(() => import('./pages/admin/GestorSucursales'))
 const Asistencia = lazy(() => import('./pages/Asistencia'))
 
 import { useAlumnosRealtime } from './hooks/useAlumnosRealtime'
+import { useAsistenciasRealtime } from './hooks/useAsistenciasRealtime'
 
 // Componente de carga reutilizable para Suspense
 const PageLoader = () => (
@@ -34,7 +35,8 @@ const PageLoader = () => (
 )
 
 function App() {
-    useAlumnosRealtime(); // Activar cache invalidation realtime silent
+    useAlumnosRealtime(); // Activar cache invalidation realtime silent para alumnos
+    useAsistenciasRealtime(); // Activar cache invalidation realtime silent para asistencias (hoy)
 
     return (
         <AuthProvider>

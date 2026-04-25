@@ -29,10 +29,26 @@ export const useHorarios = () =>
 export const useMasterData = () => {
   const results = useQueries({
     queries: [
-      { queryKey: queryKeys.alumnos, queryFn: getAlumnos },
-      { queryKey: queryKeys.entrenadores, queryFn: getEntrenadores },
-      { queryKey: queryKeys.canchas, queryFn: getCanchas },
-      { queryKey: queryKeys.horarios, queryFn: getHorarios },
+      { 
+        queryKey: queryKeys.alumnos, 
+        queryFn: getAlumnos, 
+        staleTime: 10 * 60 * 1000 // Alumnos: 10 minutos
+      },
+      { 
+        queryKey: queryKeys.entrenadores, 
+        queryFn: getEntrenadores, 
+        staleTime: 10 * 60 * 1000 // Entrenadores: 10 minutos
+      },
+      { 
+        queryKey: queryKeys.canchas, 
+        queryFn: getCanchas, 
+        staleTime: 30 * 60 * 1000 // Canchas: 30 minutos
+      },
+      { 
+        queryKey: queryKeys.horarios, 
+        queryFn: getHorarios, 
+        staleTime: 30 * 60 * 1000 // Horarios: 30 minutos
+      },
     ],
   });
 
