@@ -98,8 +98,16 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         let isMounted = true;
+        const lastSessionIdRef = { current: null };
         
         const handleAuthAction = async (session, event = 'INITIAL') => {
+            // Evitar procesar el mismo access_token múltiples veces consecutivas
+            const sessionId = session?.access_token || 'none';
+            if (sessionId === lastSessionIdRef.current && event !== 'INITIAL') {
+                return;
+            }
+            lastSessionIdRef.current = sessionId;
+
             console.log(`📡 [Auth] Procesando evento: ${event}`);
             
             if (!session?.user) {
@@ -113,6 +121,13 @@ export const AuthProvider = ({ children }) => {
                 }
                 return;
             }
+
+            // Si ya hay una petición de perfil en curso para este usuario, no duplicar
+            if (isFetchingRef.current === session.user.id) {
+                console.log('⏳ [Auth] Petición de perfil ya en curso para este usuario, omitiendo duplicado');
+                return;
+            }
+            isFetchingRef.current = session.user.id;
 
             const userId = session.user.id;
             console.log('👤 [Auth] Usuario identificado:', session.user.email);
@@ -151,29 +166,27 @@ export const AuthProvider = ({ children }) => {
             } catch (error) {
                 console.error('❌ [Auth] Error en flujo de autenticación:', error);
                 if (isMounted) setLoading(false);
+            } finally {
+                isFetchingRef.current = null;
             }
         };
 
-        // 1. Carga inicial
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            handleAuthAction(session, 'GET_SESSION');
-        });
-
-        // 2. Suscripción a cambios futuros
+        // Escuchar cambios de estado (esto también maneja la sesión inicial en la mayoría de los casos)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'INITIAL_SESSION') return;
-            
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            // Manejamos INITIAL_SESSION como el arranque si getSession no ha terminado
+            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 handleAuthAction(session, event);
             } else if (event === 'SIGNED_OUT') {
                 if (isMounted) {
                     setUser(null);
                     setUserProfile(null);
                     setRole(null);
+                    setEscuelaId(null);
                     setLoading(false);
                     currentUserIdRef.current = null;
                     cacheService.clear();
                     queryClient.clear();
+                    lastSessionIdRef.current = null;
                 }
             }
         });

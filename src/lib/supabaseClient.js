@@ -31,7 +31,7 @@ const cookieStorage = {
   },
   setItem: (key, value) => {
     const opts = {
-      domain: '.saasport.pro',
+      // domain: '.saasport.pro', // Removido para que funcione en cualquier dominio/localhost
       expires: 7,
       path: '/',
       sameSite: 'lax',
@@ -55,7 +55,7 @@ const cookieStorage = {
     });
   },
   removeItem: (key) => {
-    const opts = { domain: '.saasport.pro', path: '/' };
+    const opts = { path: '/' }; // Removido domain hardcodeado
     const first = Cookies.get(key);
     
     if (first?.startsWith('chunk_0:')) {
