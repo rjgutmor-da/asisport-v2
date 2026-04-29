@@ -19,43 +19,56 @@ const cookieStorage = {
     if (!first) return null;
     if (!first.startsWith('chunk_0:')) return first;
     
-    let result = '';
-    let i = 0;
-    while (true) {
-      const chunk = Cookies.get(`${key}_chunk_${i}`);
-      if (!chunk) break;
-      result += chunk;
-      i++;
+    try {
+      const count = parseInt(first.split(':')[1]);
+      let result = '';
+      for (let i = 0; i < count; i++) {
+        const chunk = Cookies.get(`${key}_chunk_${i}`);
+        if (!chunk) return null; // Si falta un fragmento, la sesión está corrupta
+        result += chunk;
+      }
+      return result;
+    } catch (e) {
+      console.error('Error al reconstruir cookie fragmentada:', e);
+      return null;
     }
-    return result || null;
   },
   setItem: (key, value) => {
     const opts = {
-      // domain: '.saasport.pro', // Removido para que funcione en cualquier dominio/localhost
       expires: 7,
       path: '/',
       sameSite: 'lax',
       secure: true,
     };
 
+    // 1. Limpiar posibles fragmentos antiguos antes de nada
+    const oldFirst = Cookies.get(key);
+    if (oldFirst?.startsWith('chunk_0:')) {
+      const oldCount = parseInt(oldFirst.split(':')[1]);
+      for (let i = 0; i < oldCount; i++) {
+        Cookies.remove(`${key}_chunk_${i}`, { path: '/' });
+      }
+    }
+
     if (value.length <= CHUNK_SIZE) {
       Cookies.set(key, value, opts);
       return;
     }
 
-    // Dividir en chunks
+    // 2. Dividir en nuevos chunks
     const chunks = [];
     for (let i = 0; i < value.length; i += CHUNK_SIZE) {
       chunks.push(value.slice(i, i + CHUNK_SIZE));
     }
 
+    // 3. Guardar índice y fragmentos
     Cookies.set(key, `chunk_0:${chunks.length}`, opts);
     chunks.forEach((chunk, i) => {
       Cookies.set(`${key}_chunk_${i}`, chunk, opts);
     });
   },
   removeItem: (key) => {
-    const opts = { path: '/' }; // Removido domain hardcodeado
+    const opts = { path: '/' };
     const first = Cookies.get(key);
     
     if (first?.startsWith('chunk_0:')) {

@@ -42,12 +42,16 @@ const Login = () => {
             if (authError) {
                 console.error('🔴 Error Supabase Auth:', authError);
                 // Manejar errores específicos de Supabase
-                if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
+                const message = authError.message;
+                
+                if (message.includes('Invalid login credentials') || authError.status === 400) {
                     throw new Error('Credenciales incorrectas. Verifica email y contraseña.');
-                } else if (authError.message.includes('Email not confirmed')) {
+                } else if (message.includes('Email not confirmed')) {
                     throw new Error('Tu correo no ha sido verificado. Revisa tu bandeja de entrada.');
+                } else if (message.includes('rate limit') || authError.status === 429) {
+                    throw new Error('Demasiados intentos. Por favor, espera un minuto antes de intentar de nuevo.');
                 } else {
-                    throw new Error(authError.message || 'Error al conectar con el servidor.');
+                    throw new Error(message || 'Error al conectar con el servidor.');
                 }
             }
 

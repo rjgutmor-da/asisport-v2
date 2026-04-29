@@ -101,17 +101,18 @@ export const AuthProvider = ({ children }) => {
         const lastSessionIdRef = { current: null };
         
         const handleAuthAction = async (session, event = 'INITIAL') => {
-            // Evitar procesar el mismo access_token múltiples veces consecutivas
-            const sessionId = session?.access_token || 'none';
-            if (sessionId === lastSessionIdRef.current && event !== 'INITIAL') {
+            const userId = session?.user?.id;
+            const accessToken = session?.access_token;
+            
+            // 1. Validar si realmente hay un cambio que procesar
+            if (accessToken === lastSessionIdRef.current && event !== 'INITIAL') {
                 return;
             }
-            lastSessionIdRef.current = sessionId;
+            lastSessionIdRef.current = accessToken || 'none';
 
-            console.log(`📡 [Auth] Procesando evento: ${event}`);
+            console.log(`📡 [Auth] Procesando evento: ${event} para ${session?.user?.email || 'invitado'}`);
             
             if (!session?.user) {
-                console.log('🚪 [Auth] Sin sesión de usuario');
                 if (isMounted) {
                     setUser(null);
                     setUserProfile(null);
@@ -119,17 +120,16 @@ export const AuthProvider = ({ children }) => {
                     setEscuelaId(null);
                     setLoading(false);
                 }
+                isFetchingRef.current = null;
                 return;
             }
 
-            // Si ya hay una petición de perfil en curso para este usuario, no duplicar
-            if (isFetchingRef.current === session.user.id) {
-                console.log('⏳ [Auth] Petición de perfil ya en curso para este usuario, omitiendo duplicado');
+            // 2. Evitar peticiones concurrentes para el mismo usuario
+            if (isFetchingRef.current === userId && event === 'TOKEN_REFRESHED') {
+                console.log('⏳ [Auth] Refresco detectado pero ya hay una carga en curso. Omitiendo.');
                 return;
             }
-            isFetchingRef.current = session.user.id;
-
-            const userId = session.user.id;
+            isFetchingRef.current = userId;
             console.log('👤 [Auth] Usuario identificado:', session.user.email);
 
             if (isMounted) {
