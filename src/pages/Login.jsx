@@ -11,6 +11,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [countdown, setCountdown] = useState(0);
     const { refreshProfile } = useAuth();
 
     // Clean error when user types
@@ -34,10 +35,44 @@ const Login = () => {
         console.log('🔵 Iniciando login con:', emailClean);
 
         try {
-            const { data, error: authError } = await supabase.auth.signInWithPassword({
-                email: emailClean,
-                password: passwordClean,
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/login-proxy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ email: emailClean, password: passwordClean })
             });
+
+            const resData = await response.json();
+            
+            if (!response.ok) {
+                if (response.status === 429 && resData.secondsLeft) {
+                    setCountdown(resData.secondsLeft);
+                    const interval = setInterval(() => {
+                        setCountdown(prev => {
+                            if (prev <= 1) {
+                                clearInterval(interval);
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                    setLoading(false);
+                } else {
+                    throw new Error(resData.error || 'Error al iniciar sesión');
+                }
+                return;
+            }
+
+            if (resData.session) {
+                // Establecer la sesión manualmente en el cliente de Supabase
+                await supabase.auth.setSession(resData.session);
+            }
+
+            const data = { user: resData.session?.user };
+            const authError = null; // Evita entrar en el bloque de manejo de errores original
+
 
             if (authError) {
                 console.error('🔴 Error Supabase Auth:', authError);
@@ -129,9 +164,10 @@ const Login = () => {
                             variant="primary"
                             fullWidth
                             loading={loading}
+                            disabled={countdown > 0}
                             className="mt-6 font-bold text-lg h-12"
                         >
-                            Iniciar Sesión
+                            {countdown > 0 ? `Espera ${countdown}s` : 'Iniciar Sesión'}
                         </Button>
                     </form>
                 </div>
