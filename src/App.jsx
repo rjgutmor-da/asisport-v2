@@ -4,7 +4,7 @@ import Login from './pages/Login'
 import RecuperarContrasena from './pages/RecuperarContrasena'
 import ResetPassword from './pages/ResetPassword'
 import { ToastProvider } from './components/ui/Toast'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 
 // Lazy loading de rutas — cada página se carga solo cuando el usuario navega a ella
@@ -34,12 +34,29 @@ const PageLoader = () => (
     </div>
 )
 
-function App() {
-    useAlumnosRealtime(); // Activar cache invalidation realtime silent para alumnos
-    useAsistenciasRealtime(); // Activar cache invalidation realtime silent para asistencias (hoy)
+// Componente interno para gestionar suscripciones Realtime solo cuando el usuario está autenticado
+const RealtimeSubscriber = () => {
+    // Importamos useAuth aquí para evitar dependencias circulares si fuera necesario, 
+    // pero como está en el mismo archivo o contexto, usamos el hook estándar.
+    const { user } = useAuth();
+    
+    // Solo activamos los hooks si hay un usuario real
+    if (user) {
+        return <RealtimeHooks />;
+    }
+    return null;
+};
 
+const RealtimeHooks = () => {
+    useAlumnosRealtime();
+    useAsistenciasRealtime();
+    return null;
+};
+
+function App() {
     return (
         <AuthProvider>
+            <RealtimeSubscriber />
             <ToastProvider>
                 <Router>
                     <Suspense fallback={<PageLoader />}>
