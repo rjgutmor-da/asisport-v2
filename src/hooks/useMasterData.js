@@ -8,6 +8,7 @@ export const queryKeys = {
   entrenadores: ['entrenadores'],
   canchas: ['canchas'],
   horarios: ['horarios'],
+  sucursales: ['sucursales'],
   estadisticas: (filtros) => ['estadisticas', filtros],
 };
 
