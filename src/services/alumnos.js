@@ -312,14 +312,15 @@ export const getAlumnosPaginados = async (filtros = {}) => {
 
     // Filtros de búsqueda (Nombre o Teléfono)
     if (searchTerm.trim()) {
-        const search = `%${searchTerm.trim()}%`;
-        const searchDigits = searchTerm.replace(/\D/g, '');
-        
-        if (searchDigits.length >= 3) {
-            query = query.or(`nombres.ilike.${search},apellidos.ilike.${search},telefono_padre.ilike.%${searchDigits}%,telefono_madre.ilike.%${searchDigits}%,telefono_deportista.ilike.%${searchDigits}%`);
-        } else {
-            query = query.or(`nombres.ilike.${search},apellidos.ilike.${search}`);
-        }
+        const normalize = (str) => {
+            return str
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "") // Quitar tildes
+                .trim();
+        };
+        const search = `%${normalize(searchTerm)}%`;
+        query = query.ilike('terminos_busqueda', search);
     }
 
     // Filtro por estado
