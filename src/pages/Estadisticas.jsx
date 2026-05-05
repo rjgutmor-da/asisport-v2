@@ -12,6 +12,7 @@ const Estadisticas = () => {
     const navigate = useNavigate();
     const {
         loading,
+        loadingDetalle,
         metrics,
         tableData,
         exportData,
@@ -26,8 +27,11 @@ const Estadisticas = () => {
         selectedHorarios, setSelectedHorarios,
         selectedCategorias, setSelectedCategorias,
         selectedDias, setSelectedDias,
-        alumnos
+        alumnos,
+        loadDetalleForExport
     } = useEstadisticas();
+
+    const [exportLoading, setExportLoading] = React.useState(false);
 
     const [showFilters, setShowFilters] = React.useState(false);
     const [showReportModal, setShowReportModal] = React.useState(false);
@@ -70,10 +74,49 @@ const Estadisticas = () => {
     };
 
     // Exportar a Excel con formato detallado por fechas
-    const handleExport = () => {
-        if (!exportData || !exportData.students || exportData.students.length === 0) return;
+    const handleExport = async () => {
+        if (tableData.length === 0) return;
 
-        const { students, dates } = exportData;
+        setExportLoading(true);
+        try {
+        // Cargar datos individuales bajo demanda
+        const detalle = await loadDetalleForExport();
+        if (!detalle || detalle.length === 0) {
+            setExportLoading(false);
+            return;
+        }
+
+        // Reconstruir exportData con detalle
+        const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
+        const filteredDetalle = detalle.filter(a => {
+            const alumno = alumnosMap.get(a.alumno_id);
+            if (!alumno) return false;
+            if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
+            if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
+            if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
+            return true;
+        });
+
+        if (filteredDetalle.length === 0) { setExportLoading(false); return; }
+
+        const dates = [...new Set(filteredDetalle.map(r => r.fecha))].sort();
+        const grouped = filteredDetalle.reduce((acc, curr) => {
+            const alumnoId = curr.alumno_id;
+            if (!acc[alumnoId]) {
+                const alumno = alumnosMap.get(alumnoId);
+                acc[alumnoId] = {
+                    nombreCompleto: alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Desconocido',
+                    presentes: 0, licencias: 0, asistenciasPorFecha: {}
+                };
+            }
+            if (curr.estado === 'Presente') { acc[alumnoId].presentes++; acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'P'; }
+            else if (curr.estado === 'Licencia') { acc[alumnoId].licencias++; acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'L'; }
+            return acc;
+        }, {});
+        const students = Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+        if (students.length === 0) { setExportLoading(false); return; }
+
+        // students y dates ya están calculados arriba
 
         // Formatear cabeceras de fechas (DD/MM)
         const dateHeaders = dates.map(fecha => {
@@ -145,6 +188,9 @@ const Estadisticas = () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
         XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
+        } finally {
+            setExportLoading(false);
+        }
     };
 
 
@@ -229,12 +275,12 @@ const Estadisticas = () => {
 
                     <button
                         onClick={handleExport}
-                        disabled={loading || !exportData.students || exportData.students.length === 0}
+                        disabled={loading || exportLoading || tableData.length === 0}
                         className="flex items-center gap-2 bg-success/10 text-success border border-success/20 hover:bg-success/20 px-3 py-1.5 rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Exportar Reporte de Asistencias"
                     >
                         <Download size={18} />
-                        <span className="hidden md:inline">Reporte Asistencias</span>
+                        <span className="hidden md:inline">{exportLoading ? 'Generando...' : 'Reporte Asistencias'}</span>
                     </button>
                 </div>
             </header>

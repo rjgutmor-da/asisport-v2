@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { getAsistenciasRango } from '../../../services/asistencias';
+import { getAsistenciasRangoDetalle } from '../../../services/estadisticasService';
 import { useMasterData } from '../../../hooks/useMasterData';
 import { useDebounce } from '../../../hooks/useDebounce';
 
@@ -9,6 +10,9 @@ import { useDebounce } from '../../../hooks/useDebounce';
  * Hook personalizado para gestionar la lógica del módulo de Estadísticas.
  * Se encarga de la carga de datos maestros, el filtrado complejo por múltiples criterios
  * y la preparación de datos para visualización en tabla y exportación a Excel.
+ * 
+ * Usa v_estadisticas_asistencia_diaria (datos agregados) para la tabla de resumen,
+ * y asistencias_normales (filas individuales) solo para la exportación detallada.
  */
 export const useEstadisticas = () => {
     const { addToast } = useToast();
@@ -36,10 +40,12 @@ export const useEstadisticas = () => {
     }, [isError, addToast]);
 
     const [loadingAsistencias, setLoadingAsistencias] = useState(true);
+    const [loadingDetalle, setLoadingDetalle] = useState(false);
     const loading = isLoadingMasters || loadingAsistencias;
 
     // --- ESTADOS DE DATOS ---
-    const [asistencias, setAsistencias] = useState([]); // Asistencias en el rango de fechas seleccionado
+    const [asistenciasAgregadas, setAsistenciasAgregadas] = useState([]); // Datos agregados de la vista
+    const [asistenciasDetalle, setAsistenciasDetalle] = useState(null); // Datos individuales para exportación (carga bajo demanda)
 
     // --- ESTADOS DE FILTROS ---
     const [dateRangeOption, setDateRangeOption] = useState('mes_anterior'); // Opción de pre-ajuste de fecha
@@ -115,31 +121,33 @@ export const useEstadisticas = () => {
         }
     }, [dateRangeOption]);
 
+    // Función auxiliar para extraer YYYY-MM-DD sin problemas de zona horaria UTC
+    const toLocalDateString = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     /**
      * Efecto que se dispara cada vez que cambia el rango de fechas.
-     * Obtiene de Supabase todas las asistencias registradas en ese periodo.
+     * Obtiene de Supabase los datos agregados de la vista v_estadisticas_asistencia_diaria.
      */
     useEffect(() => {
         const loadAsistencias = async () => {
             setLoadingAsistencias(true);
+            // Limpiar detalle cuando cambia el rango (para forzar recarga si se exporta)
+            setAsistenciasDetalle(null);
             try {
-                // Función auxiliar para extraer YYYY-MM-DD sin problemas de zona horaria UTC
-                const toLocalDateString = (d) => {
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-
                 const startStr = toLocalDateString(dateRange.start);
                 const endStr = toLocalDateString(dateRange.end);
 
                 const data = await getAsistenciasRango(startStr, endStr);
-                setAsistencias(data || []);
+                setAsistenciasAgregadas(data || []);
             } catch (error) {
                 console.error("Error cargando asistencias:", error);
                 addToast("Error al cargar asistencias", "error");
-                setAsistencias([]);
+                setAsistenciasAgregadas([]);
             } finally {
                 setLoadingAsistencias(false);
             }
@@ -151,51 +159,50 @@ export const useEstadisticas = () => {
     }, [dateRange, addToast]);
 
     /**
-     * Lógica de filtrado en memoria optimizada con Map indexado.
-     * Procesa la lista de asistencias y las filtra según los criterios elegidos por el usuario.
-     * Usa un Map para búsqueda O(1) en vez de Array.find() O(n) por cada asistencia.
+     * Filtrado de datos AGREGADOS de la vista.
+     * Filtra por entrenador, cancha, horario usando las columnas de la vista directamente.
+     * Para categoría, filtra por los alumnos que pertenecen a esas categorías.
      */
     const filteredData = useMemo(() => {
-        if (!asistencias.length || !alumnos.length) return [];
+        if (!asistenciasAgregadas.length) return [];
 
-        // Crear Map indexado para búsqueda O(1) — evita O(n²) con Array.find()
-        const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
-
-        return asistencias.filter(asistencia => {
-            const alumno = alumnosMap.get(asistencia.alumno_id);
-            if (!alumno) return false;
-
-            // Filtrado por Entrenador (Múltiple)
+        return asistenciasAgregadas.filter(row => {
+            // Filtrado por Entrenador (la vista tiene profesor_asignado_id)
             if (debouncedEntrenadores.length > 0) {
-                if (!debouncedEntrenadores.includes(alumno.profesor_asignado_id)) {
+                if (!debouncedEntrenadores.includes(row.profesor_asignado_id)) {
                     return false;
                 }
             }
 
-            // Filtrado por Cancha (Múltiple)
-            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) {
+            // Filtrado por Cancha (la vista tiene cancha_id)
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(row.cancha_id)) {
                 return false;
             }
 
-            // Filtrado por Horario (Múltiple)
-            if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) {
+            // Filtrado por Horario (la vista tiene horario_id)
+            if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(row.horario_id)) {
                 return false;
             }
 
-            // Filtrado por Categoría (Usando campo 'sub' precalculado)
+            // Filtrado por Categoría — necesitamos verificar si hay alumnos con esa categoría
+            // asignados al entrenador/cancha/horario de esta fila
             if (debouncedCategorias.length > 0) {
-                const subLabel = `Sub-${alumno.sub}`;
-
-                if (!debouncedCategorias.includes(subLabel)) {
-                    return false;
-                }
+                const hayAlumnoEnCategoria = alumnos.some(alumno => {
+                    const subLabel = `Sub-${alumno.sub}`;
+                    if (!debouncedCategorias.includes(subLabel)) return false;
+                    // Verificar que el alumno coincida con los criterios de esta fila agregada
+                    if (row.profesor_asignado_id && alumno.profesor_asignado_id !== row.profesor_asignado_id) return false;
+                    if (row.cancha_id && alumno.cancha_id !== row.cancha_id) return false;
+                    if (row.horario_id && alumno.horario_id !== row.horario_id) return false;
+                    return true;
+                });
+                if (!hayAlumnoEnCategoria) return false;
             }
 
             // Filtrado por Día de la Semana
             if (debouncedDias.length > 0) {
-                const dateObj = new Date(asistencia.fecha + 'T12:00:00');
+                const dateObj = new Date(row.fecha + 'T12:00:00');
                 const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
-                // Normalizamos a minúsculas para evitar problemas de capitalización
                 if (!debouncedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) {
                     return false;
                 }
@@ -203,31 +210,32 @@ export const useEstadisticas = () => {
 
             return true;
         });
-    }, [asistencias, alumnos, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
+    }, [asistenciasAgregadas, alumnos, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
 
     /**
-     * Calcula las métricas generales (KPIs) para las tarjetas superiores.
+     * Calcula las métricas generales (KPIs) sumando los conteos de la vista agregada.
      */
     const metrics = useMemo(() => {
-        const presentes = filteredData.filter(a => a.estado === 'Presente').length;
-        const licencias = filteredData.filter(a => a.estado === 'Licencia').length;
+        const presentes = filteredData.reduce((sum, row) => sum + (Number(row.presentes) || 0), 0);
+        const licencias = filteredData.reduce((sum, row) => sum + (Number(row.licencias) || 0), 0);
         return { presentes, licencias };
     }, [filteredData]);
 
     /**
      * Prepara los datos para la tabla de visualización diaria.
-     * Agrupa asistencias por fecha y cuenta totales de presentes/licencias por día.
+     * Agrupa los registros agregados por fecha y suma los totales.
      */
     const tableData = useMemo(() => {
         if (!filteredData.length) return [];
 
+        // Agrupar por fecha (puede haber múltiples filas por fecha por diferentes entrenador/cancha/horario)
         const grouped = filteredData.reduce((acc, curr) => {
             const fecha = curr.fecha;
             if (!acc[fecha]) {
                 acc[fecha] = { fecha, presentes: 0, licencias: 0 };
             }
-            if (curr.estado === 'Presente') acc[fecha].presentes++;
-            else if (curr.estado === 'Licencia') acc[fecha].licencias++;
+            acc[fecha].presentes += Number(curr.presentes) || 0;
+            acc[fecha].licencias += Number(curr.licencias) || 0;
             return acc;
         }, {});
 
@@ -244,25 +252,82 @@ export const useEstadisticas = () => {
     }, [filteredData]);
 
     /**
+     * Carga asistencias individuales bajo demanda para la exportación a Excel.
+     * Solo se ejecuta cuando el usuario solicita exportar.
+     */
+    const loadDetalleForExport = async () => {
+        if (asistenciasDetalle) return asistenciasDetalle; // Ya cargadas
+        
+        setLoadingDetalle(true);
+        try {
+            const startStr = toLocalDateString(dateRange.start);
+            const endStr = toLocalDateString(dateRange.end);
+            const data = await getAsistenciasRangoDetalle(startStr, endStr);
+            setAsistenciasDetalle(data || []);
+            return data || [];
+        } catch (error) {
+            console.error("Error cargando detalle de asistencias:", error);
+            addToast("Error al cargar detalle para exportación", "error");
+            return [];
+        } finally {
+            setLoadingDetalle(false);
+        }
+    };
+
+    /**
      * Prepara los datos consolidados para el archivo Excel.
-     * Agrupa datos por alumno, sumando sus asistencias totales en el periodo.
+     * Usa datos individuales (cargados bajo demanda) para el detalle por alumno.
      */
     const exportData = useMemo(() => {
-        if (!filteredData.length) return { students: [], dates: [] };
+        // Si no hay datos de detalle aún, devolver estructura vacía
+        // (se llenará cuando el usuario solicite exportar)
+        if (!asistenciasDetalle || !asistenciasDetalle.length) {
+            // Devolver un resumen básico basado en los datos agregados
+            if (filteredData.length > 0) {
+                return { 
+                    students: [], 
+                    dates: [],
+                    hasAggregateData: true // Indicador para UI
+                };
+            }
+            return { students: [], dates: [], hasAggregateData: false };
+        }
 
-        // 1. Obtener todas las fechas únicas con registros y ordenarlas
-        const dates = [...new Set(filteredData.map(a => a.fecha))].sort();
+        // Filtrar las asistencias individuales
+        const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
+        
+        const filteredDetalle = asistenciasDetalle.filter(asistencia => {
+            const alumno = alumnosMap.get(asistencia.alumno_id);
+            if (!alumno) return false;
 
-        // 2. Agrupar por alumno
-        const grouped = filteredData.reduce((acc, curr) => {
+            if (debouncedEntrenadores.length > 0 && !debouncedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) return false;
+            if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) return false;
+            if (debouncedCategorias.length > 0) {
+                const subLabel = `Sub-${alumno.sub}`;
+                if (!debouncedCategorias.includes(subLabel)) return false;
+            }
+            if (debouncedDias.length > 0) {
+                const dateObj = new Date(asistencia.fecha + 'T12:00:00');
+                const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                if (!debouncedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) return false;
+            }
+            return true;
+        });
+
+        if (!filteredDetalle.length) return { students: [], dates: [], hasAggregateData: false };
+
+        const dates = [...new Set(filteredDetalle.map(a => a.fecha))].sort();
+
+        const grouped = filteredDetalle.reduce((acc, curr) => {
             const alumnoId = curr.alumno_id;
             if (!acc[alumnoId]) {
-                const alumno = alumnos.find(a => a.id === alumnoId);
+                const alumno = alumnosMap.get(alumnoId);
                 acc[alumnoId] = {
                     nombreCompleto: alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Desconocido',
                     presentes: 0,
                     licencias: 0,
-                    asistenciasPorFecha: {} // mapa fecha -> 'P' o 'L'
+                    asistenciasPorFecha: {}
                 };
             }
 
@@ -279,9 +344,10 @@ export const useEstadisticas = () => {
 
         return {
             students: Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto)),
-            dates: dates
+            dates: dates,
+            hasAggregateData: false
         };
-    }, [filteredData, alumnos]);
+    }, [asistenciasDetalle, alumnos, filteredData, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
 
     /**
      * Texto con el rango de fechas formateado para encabezados de reportes.
@@ -308,8 +374,6 @@ export const useEstadisticas = () => {
 
     // --- OPCIONES DINÁMICAS (CROSS-FILTERING) ---
     const dynamicOptions = useMemo(() => {
-        const currentYear = new Date().getFullYear();
-
         const getAlumnosFilteredByOthers = (excludeFilter) => {
             let temp = alumnos;
             if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0) {
@@ -348,6 +412,7 @@ export const useEstadisticas = () => {
     return {
         // Estado de carga y métricas
         loading,
+        loadingDetalle,
         metrics,
         tableData,
         exportData,
@@ -364,6 +429,9 @@ export const useEstadisticas = () => {
         selectedCategorias, setSelectedCategorias,
         selectedDias, setSelectedDias,
 
-        alumnos
+        alumnos,
+        
+        // Función para cargar detalle bajo demanda (para exportar)
+        loadDetalleForExport
     };
 };
