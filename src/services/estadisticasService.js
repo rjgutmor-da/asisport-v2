@@ -19,13 +19,44 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
     const escuelaId = await obtenerEscuelaId();
 
-    const { data, error } = await supabase
-        .from('asistencias_normales')
-        .select('alumno_id, fecha, estado, alumnos!inner(escuela_id)')
-        .eq('alumnos.escuela_id', escuelaId)
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin);
+    const fetchAll = async (table) => {
+        let allData = [];
+        let from = 0;
+        let to = 999;
+        let finished = false;
 
-    if (error) throw error;
-    return data;
+        while (!finished) {
+            const { data, error } = await supabase
+                .from(table)
+                .select('alumno_id, fecha, estado, entrenador_id, alumnos!inner(escuela_id)')
+                .eq('alumnos.escuela_id', escuelaId)
+                .gte('fecha', fechaInicio)
+                .lte('fecha', fechaFin)
+                .order('fecha', { ascending: true })
+                .range(from, to);
+
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                finished = true;
+            } else {
+                allData = [...allData, ...data];
+                if (data.length < 1000) {
+                    finished = true;
+                } else {
+                    from += 1000;
+                    to += 1000;
+                }
+            }
+            // Límite de seguridad para evitar bucles infinitos
+            if (allData.length >= 15000) finished = true;
+        }
+        return allData;
+    };
+
+    const [normalesData, arquerosData] = await Promise.all([
+        fetchAll('asistencias_normales'),
+        fetchAll('asistencias_arqueros')
+    ]);
+
+    return [...normalesData, ...arquerosData];
 };

@@ -7,6 +7,8 @@ import { useEstadisticas } from '../features/estadisticas/hooks/useEstadisticas'
 
 import MultiSelectFilter from '../components/ui/MultiSelectFilter';
 import TabBar from '../components/dashboard/TabBar';
+import { supabase } from '../lib/supabaseClient';
+import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 const Estadisticas = () => {
     const navigate = useNavigate();
@@ -87,13 +89,42 @@ const Estadisticas = () => {
         }
 
         // Reconstruir exportData con detalle
-        const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
+        // Recuperamos TODOS los alumnos de la escuela (incluyendo archivados) para tener sus nombres
+        const escuelaId = await obtenerEscuelaId();
+        const { data: allAlumnos, error: alumnosError } = await supabase
+            .from('alumnos')
+            .select('id, nombres, apellidos, profesor_asignado_id, cancha_id, horario_id, categoria_id')
+            .eq('escuela_id', escuelaId);
+
+        if (alumnosError) console.error("Error cargando alumnos para exportación:", alumnosError);
+
+        // Combinamos los alumnos de la caché con los descargados para máxima seguridad
+        const combinedAlumnos = [...(alumnos || []), ...(allAlumnos || [])];
+        const alumnosMap = new Map(combinedAlumnos.map(a => [a.id, a]));
+        
+        console.log(`Exportando ${detalle.length} registros para ${alumnosMap.size} alumnos...`);
+
         const filteredDetalle = detalle.filter(a => {
             const alumno = alumnosMap.get(a.alumno_id);
             if (!alumno) return false;
-            if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
+
+            // Filtro por Entrenador (Doble check: registro histórico o asignación actual)
+            if (selectedEntrenadores.length > 0) {
+                const matchRegistro = a.entrenador_id && selectedEntrenadores.includes(a.entrenador_id);
+                const matchAlumno = alumno.profesor_asignado_id && selectedEntrenadores.includes(alumno.profesor_asignado_id);
+                if (!matchRegistro && !matchAlumno) return false;
+            }
+
             if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
             if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
+            if (selectedCategorias.length > 0 && !selectedCategorias.includes(alumno.categoria_id)) return false;
+
+            if (selectedDias.length > 0) {
+                const dateObj = new Date(a.fecha + 'T12:00:00');
+                const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) return false;
+            }
+
             return true;
         });
 
@@ -104,8 +135,14 @@ const Estadisticas = () => {
             const alumnoId = curr.alumno_id;
             if (!acc[alumnoId]) {
                 const alumno = alumnosMap.get(alumnoId);
+                const nombreFormateado = alumno 
+                    ? `${alumno.nombres} ${alumno.apellidos}` 
+                    : 'Desconocido';
+                
                 acc[alumnoId] = {
-                    nombreCompleto: alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Desconocido',
+                    nombreCompleto: nombreFormateado,
+                    apellidos: alumno?.apellidos || '',
+                    nombres: alumno?.nombres || '',
                     presentes: 0, licencias: 0, asistenciasPorFecha: {}
                 };
             }
@@ -113,7 +150,12 @@ const Estadisticas = () => {
             else if (curr.estado === 'Licencia') { acc[alumnoId].licencias++; acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'L'; }
             return acc;
         }, {});
-        const students = Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+        
+        const students = Object.values(grouped).sort((a, b) => {
+            // Ordenar por nombre completo (A-Z) tal como solicitó el usuario
+            return a.nombreCompleto.localeCompare(b.nombreCompleto);
+        });
+        
         if (students.length === 0) { setExportLoading(false); return; }
 
         // students y dates ya están calculados arriba
@@ -188,6 +230,9 @@ const Estadisticas = () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
         XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
+        } catch (error) {
+            console.error("Error crítico durante la exportación:", error);
+            alert("No se pudo generar el reporte: " + error.message);
         } finally {
             setExportLoading(false);
         }

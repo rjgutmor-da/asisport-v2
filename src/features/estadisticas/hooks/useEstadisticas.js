@@ -256,18 +256,16 @@ export const useEstadisticas = () => {
      * Solo se ejecuta cuando el usuario solicita exportar.
      */
     const loadDetalleForExport = async () => {
-        if (asistenciasDetalle) return asistenciasDetalle; // Ya cargadas
-        
+        // Forzamos la recarga siempre para asegurar que tenemos los datos completos (evitar caché de 1000 filas)
         setLoadingDetalle(true);
         try {
             const startStr = toLocalDateString(dateRange.start);
             const endStr = toLocalDateString(dateRange.end);
             const data = await getAsistenciasRangoDetalle(startStr, endStr);
             setAsistenciasDetalle(data || []);
-            return data || [];
+            return data;
         } catch (error) {
-            console.error("Error cargando detalle de asistencias:", error);
-            addToast("Error al cargar detalle para exportación", "error");
+            console.error("Error al cargar detalle para exportación:", error);
             return [];
         } finally {
             setLoadingDetalle(false);
@@ -300,13 +298,19 @@ export const useEstadisticas = () => {
             const alumno = alumnosMap.get(asistencia.alumno_id);
             if (!alumno) return false;
 
-            if (debouncedEntrenadores.length > 0 && !debouncedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
+            // Filtrado por Entrenador: 
+            // Incluimos si el entrenador que tomó la asistencia coincide
+            // O si el alumno está asignado actualmente a ese entrenador (para no perder registros históricos si cambió el profesor)
+            if (debouncedEntrenadores.length > 0) {
+                const matchRegistro = asistencia.entrenador_id && debouncedEntrenadores.includes(asistencia.entrenador_id);
+                const matchAlumno = alumno.profesor_asignado_id && debouncedEntrenadores.includes(alumno.profesor_asignado_id);
+                if (!matchRegistro && !matchAlumno) return false;
+            }
+
             if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) return false;
             if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) return false;
-            if (debouncedCategorias.length > 0) {
-                const subLabel = `Sub-${alumno.sub}`;
-                if (!debouncedCategorias.includes(subLabel)) return false;
-            }
+            if (debouncedCategorias.length > 0 && !debouncedCategorias.includes(alumno.categoria_id)) return false;
+            
             if (debouncedDias.length > 0) {
                 const dateObj = new Date(asistencia.fecha + 'T12:00:00');
                 const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
@@ -323,8 +327,15 @@ export const useEstadisticas = () => {
             const alumnoId = curr.alumno_id;
             if (!acc[alumnoId]) {
                 const alumno = alumnosMap.get(alumnoId);
+                const nombreFormateado = alumno 
+                    ? `${alumno.nombres} ${alumno.apellidos}` 
+                    : 'Desconocido';
+                
                 acc[alumnoId] = {
-                    nombreCompleto: alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Desconocido',
+                    id: alumnoId,
+                    nombreCompleto: nombreFormateado,
+                    apellidos: alumno?.apellidos || '',
+                    nombres: alumno?.nombres || '',
                     presentes: 0,
                     licencias: 0,
                     asistenciasPorFecha: {}
@@ -343,7 +354,10 @@ export const useEstadisticas = () => {
         }, {});
 
         return {
-            students: Object.values(grouped).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto)),
+            students: Object.values(grouped).sort((a, b) => {
+                // Ordenamos por nombre completo tal como se muestra
+                return a.nombreCompleto.localeCompare(b.nombreCompleto);
+            }),
             dates: dates,
             hasAggregateData: false
         };
