@@ -428,12 +428,12 @@ const Estadisticas = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 border-t border-border/50 pt-4">
                         {/* 1. Rango de Fechas */}
-                        <div className="space-y-1">
-                            <label className="text-xs text-text-secondary">Rango de Fechas</label>
+                        <div className="relative">
+                            <label className="text-xs text-text-secondary block mb-1">Rango de Fechas</label>
                             <select
                                 value={dateRangeOption}
                                 onChange={(e) => setDateRangeOption(e.target.value)}
-                                className="w-full bg-background border border-border rounded-md px-3 py-2 text-white text-sm focus:border-primary outline-none"
+                                className="w-full bg-background border border-border rounded-md px-3 py-2 text-white text-sm focus:border-primary outline-none transition-colors hover:border-primary/50"
                             >
                                 <option value="hoy">Hoy</option>
                                 <option value="ayer">Ayer</option>

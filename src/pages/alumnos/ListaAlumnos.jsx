@@ -328,94 +328,95 @@ const ListaAlumnos = () => {
                     </div>
                 )}
 
-                {/* Barra de Búsqueda */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre o teléfono..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="
-                            w-full pl-10 pr-4 py-3
-                            bg-surface border border-border
-                            rounded-md
-                            text-white placeholder-text-secondary
-                            focus:border-primary focus:outline-none
-                            transition-colors
-                        "
-                    />
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    {/* Barra de Búsqueda */}
+                    <div className="relative flex-grow w-full md:w-auto">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre o teléfono..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            className="
+                                w-full pl-10 pr-4 py-3
+                                bg-surface border border-border
+                                rounded-md
+                                text-white placeholder-text-secondary
+                                focus:border-primary focus:outline-none
+                                transition-colors
+                            "
+                        />
+                    </div>
+
+                    {/* Filtros de Estado */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
+                        <button
+                            onClick={() => handleFilterChange('todos')}
+                            className={`
+                                px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
+                                ${activeFilter === 'todos'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-surface text-text-secondary border border-border hover:border-primary'
+                                }
+                            `}
+                        >
+                            Todos
+                        </button>
+                        {esAdmin && (
+                            <button
+                                onClick={() => handleFilterChange('pendientes')}
+                                className={`
+                                    px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
+                                    ${activeFilter === 'pendientes'
+                                        ? 'bg-primary text-white'
+                                        : 'bg-surface text-text-secondary border border-border hover:border-primary'
+                                    }
+                                `}
+                            >
+                                Pendientes
+                            </button>
+                        )}
+                        <button
+                            onClick={() => handleFilterChange('arqueros')}
+                            className={`
+                                px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
+                                ${activeFilter === 'arqueros'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-surface text-text-secondary border border-border hover:border-primary'
+                                }
+                            `}
+                        >
+                            Arqueros
+                        </button>
+
+                        {esAdmin && activeFilter === 'pendientes' && alumnos.length > 0 && (
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm(`¿Aprobar los ${alumnos.length} alumnos mostrados?`)) {
+                                        await aprobarTodos();
+                                    }
+                                }}
+                                className="px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap bg-success text-white hover:bg-green-700 transition-colors"
+                            >
+                                Aprobar Resultados
+                            </button>
+                        )}
+
+                        {/* Limpiar Filtros */}
+                        {hayFiltrosActivos && (
+                            <button
+                                onClick={handleClearFilters}
+                                className="px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap bg-error/10 text-error border border-error/20 hover:bg-error/20 transition-colors flex items-center gap-2"
+                            >
+                                <FilterX size={16} />
+                                Limpiar
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Filtros y Ordenamiento */}
+                {/* Filtros Inteligentes Multi-selección */}
                 <div className="flex flex-col space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                        {/* Filtros de Estado */}
-                        <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
-                            <button
-                                onClick={() => handleFilterChange('todos')}
-                                className={`
-                                    px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                    ${activeFilter === 'todos'
-                                        ? 'bg-primary text-white'
-                                        : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                    }
-                                `}
-                            >
-                                Todos
-                            </button>
-                            {esAdmin && (
-                                <button
-                                    onClick={() => handleFilterChange('pendientes')}
-                                    className={`
-                                        px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                        ${activeFilter === 'pendientes'
-                                            ? 'bg-primary text-white'
-                                            : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                        }
-                                    `}
-                                >
-                                    Pendientes
-                                </button>
-                            )}
-                            <button
-                                onClick={() => handleFilterChange('arqueros')}
-                                className={`
-                                    px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                    ${activeFilter === 'arqueros'
-                                        ? 'bg-primary text-white'
-                                        : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                    }
-                                `}
-                            >
-                                Arqueros
-                            </button>
-
-                            {esAdmin && activeFilter === 'pendientes' && alumnos.length > 0 && (
-                                <button
-                                    onClick={async () => {
-                                        if (window.confirm(`¿Aprobar los ${alumnos.length} alumnos mostrados?`)) {
-                                            await aprobarTodos();
-                                        }
-                                    }}
-                                    className="px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap bg-success text-white hover:bg-green-700 transition-colors"
-                                >
-                                    Aprobar Resultados
-                                </button>
-                            )}
-
-                            {/* Limpiar Filtros */}
-                            {hayFiltrosActivos && (
-                                <button
-                                    onClick={handleClearFilters}
-                                    className="px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap bg-error/10 text-error border border-error/20 hover:bg-error/20 transition-colors flex items-center gap-2"
-                                >
-                                    <FilterX size={16} />
-                                    Limpiar
-                                </button>
-                            )}
-                        </div>
-                    </div>
 
                     {/* Filtros Inteligentes Multi-selección */}
                     <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
