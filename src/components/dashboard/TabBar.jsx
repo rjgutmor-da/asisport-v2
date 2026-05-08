@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ClipboardCheck, Users, Cake, UserPlus, Settings, BarChart3 } from 'lucide-react';
+import { Home, ClipboardCheck, Users, Cake, UserPlus, Settings, BarChart3, Activity } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const TabBar = () => {

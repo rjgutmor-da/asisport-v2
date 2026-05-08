@@ -183,6 +183,23 @@ export const useAsistencias = () => {
                 } else {
                     setEnviosRealizados(1);
                 }
+
+                // LOG DE ACTIVIDAD
+                const { logActivity } = await import('../../../lib/auditLogger');
+                logActivity({
+                    escuela_id: user?.escuela_id,
+                    usuario_id: user?.id,
+                    usuario_nombre: `${user?.nombres || ''} ${user?.apellidos || ''}`.trim() || user?.email,
+                    accion: enviosRealizados === 1 ? 'Reenvío de Asistencias' : 'Envío de Asistencias',
+                    modulo: 'Asistencias',
+                    detalle: {
+                        fecha: selectedDate,
+                        presentes: resumen.presentes,
+                        licencias: resumen.licencias,
+                        ausentes: resumen.ausentes,
+                        descripcion: `Se envió la lista de asistencia del ${selectedDate}. Resumen: ${resumen.presentes} Presentes, ${resumen.licencias} Licencias, ${resumen.ausentes} Ausentes.`
+                    }
+                });
             }
 
             // Recargar

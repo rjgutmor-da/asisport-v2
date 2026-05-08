@@ -20,6 +20,7 @@ const Configuraciones = lazy(() => import('./pages/admin/Configuraciones'))
 const PanelEscuela = lazy(() => import('./pages/admin/PanelEscuela'))
 const GestorSucursales = lazy(() => import('./pages/admin/GestorSucursales'))
 const Asistencia = lazy(() => import('./pages/Asistencia'))
+const RegistroActividad = lazy(() => import('./pages/RegistroActividad'))
 
 import { useAlumnosRealtime } from './hooks/useAlumnosRealtime'
 import { useAsistenciasRealtime } from './hooks/useAsistenciasRealtime'
@@ -110,6 +111,12 @@ function App() {
                             <Route path="/estadisticas" element={
                                 <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
                                     <Estadisticas />
+                                </ProtectedRoute>
+                            } />
+
+                            <Route path="/registro-actividad" element={
+                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
+                                    <RegistroActividad />
                                 </ProtectedRoute>
                             } />
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School } from 'lucide-react';
+import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School, Activity } from 'lucide-react';
 import HeroCard from '../components/dashboard/HeroCard';
 import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
@@ -92,12 +92,14 @@ const Dashboard = () => {
 
                     {/* Nuevo Módulo de Estadísticas (Solo Admin/Dueño/SuperAdmin) */}
                     {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
-                        <ModuleCard
-                            icon={<BarChart3 size={60} />}
-                            label="Estadísticas"
-                            onClick={() => navigate('/estadisticas')}
-                            size="compact"
-                        />
+                        <>
+                            <ModuleCard
+                                icon={<BarChart3 size={60} />}
+                                label="Estadísticas"
+                                onClick={() => navigate('/estadisticas')}
+                                size="compact"
+                            />
+                        </>
                     )}
 
 

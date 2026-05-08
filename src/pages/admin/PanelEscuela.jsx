@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, School, Users, UserCheck, GraduationCap, Info } from 'lucide-react';
+import { ArrowLeft, School, Users, UserCheck, GraduationCap, Info, MapPin, Calendar, Activity } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { getEscuelaActual, getEstadisticasEscuela } from '../../services/escuelas';
 
@@ -126,34 +126,57 @@ const PanelEscuela = () => {
                     </div>
                 </div>
 
-                {/* Acceso rápido - Grid de tarjetas grandes tipo Dashborad */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Acceso rápido - Grid de tarjetas estilizadas en una sola fila */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <button
                         onClick={() => navigate('/admin/sucursales')}
-                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                        className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
-                        <div className="text-white flex flex-col items-center gap-6">
-                            <h3 className="text-2xl font-bold tracking-tight">Sucursales</h3>
-                            <p className="text-text-secondary text-base max-w-[200px]">Gestionar sedes y ubicaciones</p>
+                        <div className="bg-primary/10 p-3 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <MapPin size={28} className="text-primary" />
+                        </div>
+                        <div className="text-white">
+                            <h3 className="text-lg font-bold tracking-tight">Sucursales</h3>
+                            <p className="text-text-secondary text-xs mt-1">Gestionar sedes</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => navigate('/admin/usuarios')}
-                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                        className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
-                        <div className="text-white flex flex-col items-center gap-6">
-                            <h3 className="text-2xl font-bold tracking-tight">Usuarios</h3>
-                            <p className="text-text-secondary text-base max-w-[200px]">Gestionar roles y permisos</p>
+                        <div className="bg-blue-500/10 p-3 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                            <Users size={28} className="text-blue-400" />
+                        </div>
+                        <div className="text-white">
+                            <h3 className="text-lg font-bold tracking-tight">Usuarios</h3>
+                            <p className="text-text-secondary text-xs mt-1">Roles y permisos</p>
                         </div>
                     </button>
 
                     <button
                         onClick={() => navigate('/admin/configuraciones')}
-                        className="bg-surface border border-border/40 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-center gap-4 transition-all hover:border-primary hover:-translate-y-2 group shadow-xl active:scale-[0.98]"
+                        className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
-                        <div className="text-white flex flex-col items-center gap-6">
-                            <h3 className="text-2xl font-bold tracking-tight line-clamp-2">Canchas y Horarios</h3>
+                        <div className="bg-success/10 p-3 rounded-lg group-hover:bg-success/20 transition-colors">
+                            <Calendar size={28} className="text-success" />
+                        </div>
+                        <div className="text-white">
+                            <h3 className="text-lg font-bold tracking-tight">Canchas y Horarios</h3>
+                            <p className="text-text-secondary text-xs mt-1">Configuración general</p>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/registro-actividad')}
+                        className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
+                    >
+                        <div className="bg-purple-500/10 p-3 rounded-lg group-hover:bg-purple-500/20 transition-colors">
+                            <Activity size={28} className="text-purple-400" />
+                        </div>
+                        <div className="text-white">
+                            <h3 className="text-lg font-bold tracking-tight">Actividad</h3>
+                            <p className="text-text-secondary text-xs mt-1">Auditoría de acciones</p>
                         </div>
                     </button>
                 </div>
