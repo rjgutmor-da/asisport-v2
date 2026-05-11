@@ -31,6 +31,7 @@ const RegistroActividad = () => {
       .from('audit_log')
       .select('*')
       .eq('escuela_id', escuelaId)
+      .eq('ip_address', 'AsiSport')   // Solo actividades propias de AsiSport
       .gte('created_at', dInicio)
       .lte('created_at', dFin)
       .order('created_at', { ascending: false });
@@ -117,8 +118,7 @@ const RegistroActividad = () => {
               <thead>
                 <tr className="bg-white/5 border-b border-white/10">
                   <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">Fecha y Hora</th>
-                  <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">Origen</th>
-                  <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">Modulo</th>
+                  <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">Módulo</th>
                   <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">Actividad</th>
                   <th className="text-left px-4 py-3 text-[0.65rem] font-black text-slate-500 uppercase tracking-widest">Usuario</th>
                 </tr>
@@ -126,14 +126,14 @@ const RegistroActividad = () => {
               <tbody className="divide-y divide-white/[0.03]">
                 {cargando ? (
                   <tr>
-                    <td colSpan={5} className="py-20 text-center">
+                    <td colSpan={4} className="py-20 text-center">
                       <RefreshCw size={24} className="mx-auto animate-spin text-blue-500 mb-2" />
                       <p className="text-xs text-slate-500 font-medium">Sincronizando auditoría...</p>
                     </td>
                   </tr>
                 ) : registros.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-20 text-center text-slate-500 italic text-sm">
+                    <td colSpan={4} className="py-20 text-center text-slate-500 italic text-sm">
                       No se encontraron registros en este periodo.
                     </td>
                   </tr>
@@ -142,15 +142,6 @@ const RegistroActividad = () => {
                     <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="px-4 py-2.5 text-[0.8rem] font-medium text-slate-400 border-r border-white/5 whitespace-nowrap">
                         {formatTableDate(reg.created_at)}
-                      </td>
-                      <td className="px-4 py-2.5 border-r border-white/5">
-                        <span className={`text-[0.65rem] font-black px-2 py-0.5 rounded border ${
-                          reg.ip_address === 'AsiSport' 
-                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        }`}>
-                          {reg.ip_address || 'SAASPORT'}
-                        </span>
                       </td>
                       <td className="px-4 py-2.5 text-[0.7rem] font-bold text-slate-500 uppercase border-r border-white/5">
                         {reg.modulo || '—'}
