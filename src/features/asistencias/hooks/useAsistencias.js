@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { logActivity } from '../../../lib/auditLogger';
 import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { useMasterData } from '../../../hooks/useMasterData';
@@ -11,7 +12,7 @@ import {
 
 export const useAsistencias = () => {
     const { addToast } = useToast();
-    const { isAdmin, user } = useAuth();
+    const { isAdmin, userProfile, escuelaId } = useAuth();
 
     // Fecha selecionada (por defecto HOY)
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -185,11 +186,10 @@ export const useAsistencias = () => {
                 }
 
                 // LOG DE ACTIVIDAD
-                const { logActivity } = await import('../../../lib/auditLogger');
                 logActivity({
-                    escuela_id: user?.escuela_id,
-                    usuario_id: user?.id,
-                    usuario_nombre: `${user?.nombres || ''} ${user?.apellidos || ''}`.trim() || user?.email,
+                    escuela_id: escuelaId,
+                    usuario_id: userProfile?.id,
+                    usuario_nombre: `${userProfile?.nombres || ''} ${userProfile?.apellidos || ''}`.trim() || userProfile?.email,
                     accion: enviosRealizados === 1 ? 'Reenvío de Asistencias' : 'Envío de Asistencias',
                     modulo: 'Asistencias',
                     detalle: {
