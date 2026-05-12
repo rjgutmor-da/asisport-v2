@@ -7,6 +7,34 @@ import { getCanchasParaEntrenador, getHorariosParaEntrenador, getEntrenadores } 
 import { getAsistenciasUltimos7Dias } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 
+/** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
+const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
+
+/**
+ * Lee el estado de filtros guardado en sessionStorage.
+ * Si no existe o está corrompido, devuelve los valores por defecto.
+ */
+const leerFiltrosGuardados = () => {
+    try {
+        const raw = sessionStorage.getItem(FILTROS_SESSION_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Guarda el estado actual de filtros en sessionStorage.
+ */
+const guardarFiltros = (estado) => {
+    try {
+        sessionStorage.setItem(FILTROS_SESSION_KEY, JSON.stringify(estado));
+    } catch {
+        // sessionStorage no disponible — ignorar silenciosamente
+    }
+};
+
 /**
  * Hook para manejar la lógica de la lista de alumnos optimizada con Server-side Filtering.
  */
@@ -14,21 +42,27 @@ export const useAlumnos = () => {
     const { addToast } = useToast();
     const { user, role, isAdmin } = useAuth();
 
+    // Restaurar filtros guardados en sessionStorage (si existen)
+    const filtrosGuardados = leerFiltrosGuardados();
+
     const [alumnos, setAlumnos] = useState([]); // Alumnos de la página actual
     const [facetData, setFacetData] = useState([]); // Data ligera para Smart Filters
     const [allAlumnos, setAllAlumnos] = useState([]); // Lista completa (solo nombres/ids) para combinar
-    const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('todos');
+    // loading = skeleton completo (solo si nunca hemos mostrado datos)
+    // isFetching = recarga silenciosa en segundo plano (no borra la pantalla)
+    const [loading, setLoading] = useState(!filtrosGuardados); // false si ya había estado guardado
+    const [isFetching, setIsFetching] = useState(false);
+    const [activeFilter, setActiveFilter] = useState(filtrosGuardados?.activeFilter ?? 'todos');
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
     // Opciones maestros
     const [maestros, setMaestros] = useState({ canchas: [], horarios: [], entrenadores: [], subs: [] });
 
-    // Filtros seleccionados
-    const [selectedCanchas, setSelectedCanchas] = useState([]);
-    const [selectedHorarios, setSelectedHorarios] = useState([]);
-    const [selectedEntrenadores, setSelectedEntrenadores] = useState([]);
-    const [selectedSubs, setSelectedSubs] = useState([]);
+    // Filtros seleccionados — restaurados desde sessionStorage si existen
+    const [selectedCanchas, setSelectedCanchas] = useState(filtrosGuardados?.selectedCanchas ?? []);
+    const [selectedHorarios, setSelectedHorarios] = useState(filtrosGuardados?.selectedHorarios ?? []);
+    const [selectedEntrenadores, setSelectedEntrenadores] = useState(filtrosGuardados?.selectedEntrenadores ?? []);
+    const [selectedSubs, setSelectedSubs] = useState(filtrosGuardados?.selectedSubs ?? []);
 
     // --- DEBOUNCE DE FILTROS (600ms) ---
     const debouncedCanchas = useDebounce(selectedCanchas, 600);
@@ -36,20 +70,34 @@ export const useAlumnos = () => {
     const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
     const debouncedSubs = useDebounce(selectedSubs, 600);
 
-    // Búsqueda con Debounce
-    const [searchTerm, setSearchTerm] = useState('');
+    // Búsqueda con Debounce — restaurada desde sessionStorage si existe
+    const [searchTerm, setSearchTerm] = useState(filtrosGuardados?.searchTerm ?? '');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-    // Paginación en servidor
-    const [currentPage, setCurrentPage] = useState(1);
+    // Paginación en servidor — restaurada desde sessionStorage si existe
+    const [currentPage, setCurrentPage] = useState(filtrosGuardados?.currentPage ?? 1);
     const [totalCount, setTotalCount] = useState(0);
     const itemsPerPage = 20;
 
-    const [viewMode, setViewMode] = useState('list');
+    const [viewMode, setViewMode] = useState(filtrosGuardados?.viewMode ?? 'list');
     const [selectedAlumnos, setSelectedAlumnos] = useState([]);
     const [introMessage, setIntroMessage] = useState('¡Hola! Compartimos la lista de convocados para el partido del fin de semana:');
 
     const esEntrenador = role === 'Entrenador' || role === 'Entrenarqueros';
+
+    // Persistir filtros en sessionStorage cada vez que cambian
+    useEffect(() => {
+        guardarFiltros({
+            activeFilter,
+            selectedCanchas,
+            selectedHorarios,
+            selectedEntrenadores,
+            selectedSubs,
+            searchTerm,
+            currentPage,
+            viewMode,
+        });
+    }, [activeFilter, selectedCanchas, selectedHorarios, selectedEntrenadores, selectedSubs, searchTerm, currentPage, viewMode]);
 
     // 1. Cargar maestros y data de facets una sola vez al inicio
     const loadInitialMetadata = useCallback(async () => {
@@ -83,9 +131,18 @@ export const useAlumnos = () => {
         if (user) loadInitialMetadata();
     }, [user, loadInitialMetadata]);
 
+    // Ref para saber si es la primera carga (nunca hubo datos en pantalla)
+    const primeraVezRef = useRef(!filtrosGuardados);
+
     // 2. Cargar página de alumnos cuando cambian filtros o página
     const fetchPage = useCallback(async () => {
-        setLoading(true);
+        // Si es la primera carga sin datos previos → skeleton completo
+        // Si ya hay datos visibles → recarga silenciosa (sin borrar la pantalla)
+        if (primeraVezRef.current) {
+            setLoading(true);
+        } else {
+            setIsFetching(true);
+        }
         try {
             const { alumnos: data, totalCount: count } = await getAlumnosPaginados({
                 userId: user?.id,
@@ -102,6 +159,7 @@ export const useAlumnos = () => {
 
             setAlumnos(data);
             setTotalCount(count);
+            primeraVezRef.current = false; // Ya mostramos datos al menos una vez
 
             // Cargar historial de asistencia para los de la página
             if (data.length > 0) {
@@ -113,6 +171,7 @@ export const useAlumnos = () => {
             addToast('Error al cargar alumnos', 'error');
         } finally {
             setLoading(false);
+            setIsFetching(false);
         }
     }, [user, role, debouncedCanchas, debouncedHorarios, debouncedSubs, debouncedEntrenadores, debouncedSearchTerm, activeFilter, currentPage, addToast]);
 
@@ -215,6 +274,8 @@ export const useAlumnos = () => {
         setSearchTerm('');
         setCurrentPage(1);
         setSelectedAlumnos([]);
+        // Limpiar también los filtros guardados en sessionStorage
+        try { sessionStorage.removeItem(FILTROS_SESSION_KEY); } catch {}
     };
 
     const toggleAlumnoSelection = (id) => {
@@ -298,6 +359,7 @@ export const useAlumnos = () => {
 
     return {
         loading,
+        isFetching,
         alumnos,
         todosLosAlumnosFiltrados: alumnos, // Alias para exportaciones (página actual)
         allAlumnos, // Para el modal de combinar

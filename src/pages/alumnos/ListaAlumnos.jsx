@@ -31,6 +31,7 @@ const ListaAlumnos = () => {
 
     const {
         loading,
+        isFetching,
         alumnos,
         todosLosAlumnosFiltrados,
         allAlumnos,
@@ -41,7 +42,6 @@ const ListaAlumnos = () => {
         totalPages,
         currentPage,
         asistenciaHistory,
-        last7Days,
         esEntrenador,
         hayFiltrosActivos,
         filtrosMaestros: {
@@ -172,7 +172,15 @@ const ListaAlumnos = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
-            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between gap-4">
+        <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border flex flex-col">
+            {/* Barra de progreso sutil — visible solo durante recargas silenciosas (sin skeleton) */}
+            <div
+                className="w-full h-0.5 bg-primary/20 overflow-hidden transition-opacity duration-300"
+                style={{ opacity: isFetching ? 1 : 0 }}
+            >
+                <div className="h-full bg-primary animate-progress-bar" />
+            </div>
+            <div className="w-full p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
                         <ArrowLeft size={24} />
@@ -304,7 +312,8 @@ const ListaAlumnos = () => {
                         </button>
                     </div>
                 </div>
-            </header>
+            </div>
+        </header>
 
             <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
                 {/* Editor de Mensaje de Convocatoria */}
@@ -328,7 +337,49 @@ const ListaAlumnos = () => {
                     </div>
                 )}
 
-                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                {/* ── Fila 1: Filtros Multi-selección (primero, igual que SaaSport) ── */}
+                <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                    {/* 1. Filtro Entrenador — solo para admins */}
+                    {esAdmin && (
+                        <MultiSelectFilter
+                            label="Entrenador"
+                            placeholder="Todos los Entrenadores"
+                            options={entrenadores}
+                            selectedValues={selectedEntrenadores}
+                            onChange={setSelectedEntrenadores}
+                        />
+                    )}
+
+                    {/* 2. Filtro Sub */}
+                    <MultiSelectFilter
+                        label="Categoría (Sub)"
+                        placeholder="Todos los Sub"
+                        options={subs}
+                        selectedValues={selectedSubs}
+                        onChange={setSelectedSubs}
+                    />
+
+                    {/* 3. Filtro Horario */}
+                    <MultiSelectFilter
+                        label="Horario"
+                        placeholder="Todos los Horarios"
+                        options={horarios}
+                        selectedValues={selectedHorarios}
+                        onChange={setSelectedHorarios}
+                    />
+
+                    {/* 4. Filtro Cancha */}
+                    <MultiSelectFilter
+                        label="Cancha"
+                        placeholder="Todas las Canchas"
+                        options={canchas}
+                        selectedValues={selectedCanchas}
+                        onChange={setSelectedCanchas}
+                    />
+                </div>
+
+                {/* ── Fila 2: Buscador + Tabs de estado (debajo de los filtros) ── */}
+                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
                     {/* Barra de Búsqueda */}
                     <div className="relative flex-grow w-full md:w-auto">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
@@ -338,7 +389,7 @@ const ListaAlumnos = () => {
                             value={searchTerm}
                             onChange={handleSearchChange}
                             className="
-                                w-full pl-10 pr-4 py-3
+                                w-full pl-10 pr-4 py-2.5
                                 bg-surface border border-border
                                 rounded-md
                                 text-white placeholder-text-secondary
@@ -348,8 +399,8 @@ const ListaAlumnos = () => {
                         />
                     </div>
 
-                    {/* Filtros de Estado */}
-                    <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto">
+                    {/* Tabs de Estado + Limpiar */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 flex-shrink-0">
                         <button
                             onClick={() => handleFilterChange('todos')}
                             className={`
@@ -412,51 +463,6 @@ const ListaAlumnos = () => {
                                 Limpiar
                             </button>
                         )}
-                    </div>
-                </div>
-
-                {/* Filtros Inteligentes Multi-selección */}
-                <div className="flex flex-col space-y-4">
-
-                    {/* Filtros Inteligentes Multi-selección */}
-                    <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                        {/* 1. Filtro Entrenador — solo para admins */}
-                        {esAdmin && (
-                            <MultiSelectFilter
-                                label="Entrenador"
-                                placeholder="Todos los Entrenadores"
-                                options={entrenadores}
-                                selectedValues={selectedEntrenadores}
-                                onChange={setSelectedEntrenadores}
-                            />
-                        )}
-
-                        {/* 2. Filtro Sub */}
-                        <MultiSelectFilter
-                            label="Categoría (Sub)"
-                            placeholder="Todos los Sub"
-                            options={subs}
-                            selectedValues={selectedSubs}
-                            onChange={setSelectedSubs}
-                        />
-
-                        {/* 3. Filtro Horario */}
-                        <MultiSelectFilter
-                            label="Horario"
-                            placeholder="Todos los Horarios"
-                            options={horarios}
-                            selectedValues={selectedHorarios}
-                            onChange={setSelectedHorarios}
-                        />
-
-                        {/* 4. Filtro Cancha */}
-                        <MultiSelectFilter
-                            label="Cancha"
-                            placeholder="Todas las Canchas"
-                            options={canchas}
-                            selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
-                        />
                     </div>
                 </div>
 
