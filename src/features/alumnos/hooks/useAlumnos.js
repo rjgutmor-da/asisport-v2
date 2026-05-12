@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
 import { getAlumnos, getAlumnosPaginados, getAlumnosFacets, archivarAlumno } from '../../../services/alumnos';
@@ -120,43 +120,77 @@ export const useAlumnos = () => {
         if (user) fetchPage();
     }, [user, fetchPage]);
 
-    // 3. Lógica de Smart Filters (en memoria sobre facetData)
+    // 3. Lógica de Smart Filters bidireccionales (en memoria sobre facetData)
+    // Solo muestra opciones que tienen resultados válidos dado el contexto actual.
+    // Comportamiento igual a FiltrosCxc de SaaSport: oculta en lugar de tachar.
     const dynamicOptions = useMemo(() => {
         const getFilteredFacets = (excludeFilter) => {
             let temp = facetData;
-            
+
             // Filtro por estado
             if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
             else if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
 
-            // Filtros cruzados con Debounce
-            if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0) {
+            // Filtros cruzados — se excluye el propio filtro para calcular sus opciones disponibles
+            if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0)
                 temp = temp.filter(a => debouncedEntrenadores.includes(a.profesor_asignado_id));
-            }
-            if (excludeFilter !== 'sub' && debouncedSubs.length > 0) {
+            if (excludeFilter !== 'sub' && debouncedSubs.length > 0)
                 temp = temp.filter(a => debouncedSubs.includes(a.sub));
-            }
-            if (excludeFilter !== 'horario' && debouncedHorarios.length > 0) {
+            if (excludeFilter !== 'horario' && debouncedHorarios.length > 0)
                 temp = temp.filter(a => debouncedHorarios.includes(a.horario_id));
-            }
-            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0) {
+            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0)
                 temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
-            }
             return temp;
         };
 
         const validEntrenadoresIds = new Set(getFilteredFacets('entrenador').map(a => a.profesor_asignado_id));
-        const validSubsValues = new Set(getFilteredFacets('sub').map(a => a.sub));
-        const validHorariosIds = new Set(getFilteredFacets('horario').map(a => a.horario_id));
-        const validCanchasIds = new Set(getFilteredFacets('cancha').map(a => a.cancha_id));
+        const validSubsValues     = new Set(getFilteredFacets('sub').map(a => a.sub));
+        const validHorariosIds    = new Set(getFilteredFacets('horario').map(a => a.horario_id));
+        const validCanchasIds     = new Set(getFilteredFacets('cancha').map(a => a.cancha_id));
 
+        // Solo retorna las opciones que tienen resultados — sin mostrar opciones tachadas
         return {
-            entrenadores: maestros.entrenadores.map(opt => ({ ...opt, disabled: !validEntrenadoresIds.has(opt.value) })),
-            subs: maestros.subs.map(opt => ({ ...opt, disabled: !validSubsValues.has(opt.value) })),
-            horarios: maestros.horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
-            canchas: maestros.canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
+            entrenadores: maestros.entrenadores.filter(opt => validEntrenadoresIds.has(opt.value)),
+            subs:         maestros.subs.filter(opt => validSubsValues.has(opt.value)),
+            horarios:     maestros.horarios.filter(opt => validHorariosIds.has(opt.value)),
+            canchas:      maestros.canchas.filter(opt => validCanchasIds.has(opt.value)),
         };
     }, [facetData, maestros, activeFilter, debouncedEntrenadores, debouncedSubs, debouncedHorarios, debouncedCanchas]);
+
+    // 4. Auto-deselección: si un valor seleccionado ya no aparece en las opciones
+    //    válidas (por un filtro cruzado), se limpia automáticamente.
+    //    Se usa un ref de IDs anteriores para evitar bucles de actualización.
+    const prevValidIdsRef = useRef({ canchas: '', horarios: '', entrenadores: '', subs: '' });
+
+    useEffect(() => {
+        const toKey = (arr) => arr.map(o => String(o.value)).sort().join(',');
+        const newKeys = {
+            canchas:      toKey(dynamicOptions.canchas),
+            horarios:     toKey(dynamicOptions.horarios),
+            entrenadores: toKey(dynamicOptions.entrenadores),
+            subs:         toKey(dynamicOptions.subs),
+        };
+        const prev = prevValidIdsRef.current;
+
+        if (newKeys.canchas !== prev.canchas) {
+            const validSet = new Set(dynamicOptions.canchas.map(o => o.value));
+            setSelectedCanchas(p => p.filter(id => validSet.has(id)));
+        }
+        if (newKeys.horarios !== prev.horarios) {
+            const validSet = new Set(dynamicOptions.horarios.map(o => o.value));
+            setSelectedHorarios(p => p.filter(id => validSet.has(id)));
+        }
+        if (newKeys.entrenadores !== prev.entrenadores) {
+            const validSet = new Set(dynamicOptions.entrenadores.map(o => o.value));
+            setSelectedEntrenadores(p => p.filter(id => validSet.has(id)));
+        }
+        if (newKeys.subs !== prev.subs) {
+            const validSet = new Set(dynamicOptions.subs.map(o => o.value));
+            setSelectedSubs(p => p.filter(v => validSet.has(v)));
+        }
+
+        prevValidIdsRef.current = newKeys;
+    }, [dynamicOptions]);
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -265,6 +299,7 @@ export const useAlumnos = () => {
     return {
         loading,
         alumnos,
+        todosLosAlumnosFiltrados: alumnos, // Alias para exportaciones (página actual)
         allAlumnos, // Para el modal de combinar
         totalAlumnos: totalCount,
         totalPages,
