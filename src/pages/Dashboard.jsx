@@ -6,10 +6,17 @@ import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
 import { useAuth } from '../context/AuthContext';
 import LogoPlaneta from '../assets/LogoPlaneta.png';
+import { getEscuelaActual } from '../services/escuelas';
+import { useState, useEffect } from 'react';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const { role } = useAuth();
+    const [escuela, setEscuela] = useState(null);
+
+    useEffect(() => {
+        getEscuelaActual().then(setEscuela).catch(console.error);
+    }, []);
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -55,13 +62,28 @@ const Dashboard = () => {
                         className="min-h-[140px] md:min-h-[440px]"
                     />
                     
-                    {/* Brand Section: Logo + Phrase (Combined Image) */}
+                    {/* Brand Section: Logo + Phrase (Dynamic) */}
                     <div className="flex flex-col items-center text-center">
-                        <img 
-                            src={LogoPlaneta} 
-                            alt="Logo Planeta FC" 
-                            className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
-                        />
+                        {escuela?.logo_url ? (
+                            <div className="flex flex-col items-center gap-4">
+                                <img 
+                                    src={escuela.logo_url} 
+                                    alt={`Logo ${escuela.nombre}`} 
+                                    className="w-44 h-auto md:w-[300px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                                />
+                                {escuela.slogan && (
+                                    <p className="text-white/80 italic text-xl md:text-2xl font-light font-serif">
+                                        "{escuela.slogan}"
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <img 
+                                src={LogoPlaneta} 
+                                alt="Logo Planeta FC" 
+                                className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
+                            />
+                        )}
                     </div>
                 </div>
 

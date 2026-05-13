@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, Plus, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { getSucursales, createSucursal, updateSucursal, deleteSucursal } from '../../services/sucursales';
+import { volverOIrAPanel } from '../../lib/navegacion';
 
 const GestorSucursales = () => {
     const navigate = useNavigate();
@@ -98,7 +99,7 @@ const GestorSucursales = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center gap-4">
-                <button onClick={() => navigate('/admin/escuela')} className="text-white hover:text-primary transition-colors">
+                <button onClick={() => volverOIrAPanel(navigate)} className="text-white hover:text-primary transition-colors">
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">

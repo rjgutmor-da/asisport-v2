@@ -6,6 +6,7 @@ import { getUsuarios, updateUserRole, toggleUserStatus, updateUserSucursal, crea
 import { getSucursales } from '../../services/sucursales';
 import Select from '../../components/ui/Select';
 import { useAuth } from '../../context/AuthContext';
+import { volverOIrAPanel } from '../../lib/navegacion';
 
 const AdminUsuarios = () => {
     const navigate = useNavigate();
@@ -138,7 +139,7 @@ const AdminUsuarios = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center gap-4">
-                <button onClick={() => navigate('/admin/escuela')} className="text-white hover:text-primary transition-colors">
+                <button onClick={() => volverOIrAPanel(navigate)} className="text-white hover:text-primary transition-colors">
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">

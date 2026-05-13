@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, School, Users, UserCheck, GraduationCap, Info, MapPin, Calendar, Activity } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { getEscuelaActual, getEstadisticasEscuela } from '../../services/escuelas';
+import LogoPlaneta from '../../assets/LogoPlaneta.png';
+import { volverOIrAPanel, rutaConOrigin } from '../../lib/navegacion';
 
 const PanelEscuela = () => {
     const navigate = useNavigate();
@@ -48,7 +50,7 @@ const PanelEscuela = () => {
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center gap-4">
-                <button onClick={() => navigate('/dashboard')} className="text-white hover:text-primary transition-colors">
+                <button onClick={() => volverOIrAPanel(navigate, '/dashboard')} className="text-white hover:text-primary transition-colors">
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
@@ -61,23 +63,51 @@ const PanelEscuela = () => {
                 {/* Información de la Escuela - Premium Hero Card */}
                 {escuela && (
                     <div className="bg-surface border border-border/40 rounded-2xl p-8 relative overflow-hidden shadow-2xl">
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
-                                    <School size={40} className="text-primary" />
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            {/* Nombre e ID */}
+                            <div className="flex-1">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                                        <School size={32} className="text-primary" />
+                                    </div>
+                                    <h2 className="text-4xl font-extrabold text-white tracking-tight leading-none uppercase">{escuela.nombre}</h2>
                                 </div>
-                                <h2 className="text-4xl font-extrabold text-white tracking-tight leading-none uppercase">{escuela.nombre}</h2>
+                                <div className="flex flex-col">
+                                    <p className="text-text-secondary text-[10px] uppercase font-bold tracking-widest opacity-50">ID de Escuela</p>
+                                    <p className="text-white/60 font-mono text-sm">
+                                        {escuela.id}
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <p className="text-text-secondary text-sm font-medium tracking-wide">ID de Escuela</p>
-                                <p className="text-white/80 font-mono text-sm inline-block py-1 pr-1">
-                                    {escuela.id}
-                                </p>
+                            {/* Logo y Frase - Estilo Dashboard */}
+                            <div className="flex flex-col items-center gap-2">
+                                {escuela.logo_url ? (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <img 
+                                            src={escuela.logo_url} 
+                                            alt="Logo Escuela" 
+                                            className="w-44 h-auto md:w-[280px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                                        />
+                                        {escuela.slogan && (
+                                            <p className="text-white/80 italic text-xl md:text-2xl font-light font-serif">
+                                                {escuela.slogan}
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={LogoPlaneta} 
+                                        alt="Logo Planeta FC" 
+                                        className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
+                                    />
+                                )}
                             </div>
                         </div>
+                        
                         {/* Background subtle decoration */}
                         <div className="absolute -top-12 -right-12 bg-primary/5 w-64 h-64 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute -bottom-12 -left-12 bg-blue-500/5 w-48 h-48 rounded-full blur-3xl pointer-events-none"></div>
                     </div>
                 )}
 
@@ -129,7 +159,7 @@ const PanelEscuela = () => {
                 {/* Acceso rápido - Grid de tarjetas estilizadas en una sola fila */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <button
-                        onClick={() => navigate('/admin/sucursales')}
+                        onClick={() => navigate(rutaConOrigin('/admin/sucursales'))}
                         className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
                         <div className="bg-primary/10 p-3 rounded-lg group-hover:bg-primary/20 transition-colors">
@@ -142,7 +172,7 @@ const PanelEscuela = () => {
                     </button>
 
                     <button
-                        onClick={() => navigate('/admin/usuarios')}
+                        onClick={() => navigate(rutaConOrigin('/admin/usuarios'))}
                         className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
                         <div className="bg-blue-500/10 p-3 rounded-lg group-hover:bg-blue-500/20 transition-colors">
@@ -155,7 +185,7 @@ const PanelEscuela = () => {
                     </button>
 
                     <button
-                        onClick={() => navigate('/admin/configuraciones')}
+                        onClick={() => navigate(rutaConOrigin('/admin/configuraciones'))}
                         className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
                         <div className="bg-success/10 p-3 rounded-lg group-hover:bg-success/20 transition-colors">
@@ -168,7 +198,7 @@ const PanelEscuela = () => {
                     </button>
 
                     <button
-                        onClick={() => navigate('/registro-actividad')}
+                        onClick={() => navigate(rutaConOrigin('/registro-actividad'))}
                         className="bg-surface border border-border/40 rounded-xl p-5 flex flex-col items-center justify-center text-center gap-3 transition-all hover:border-primary hover:-translate-y-1 group shadow-lg active:scale-[0.98]"
                     >
                         <div className="bg-purple-500/10 p-3 rounded-lg group-hover:bg-purple-500/20 transition-colors">
