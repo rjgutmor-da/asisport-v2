@@ -60,7 +60,6 @@ export const createAlumno = async (alumnoData, photoFile) => {
             .select('id, nombres, apellidos')
             .eq('carnet_identidad', alumnoData.carnet_identidad)
             .eq('escuela_id', escuelaId)
-            .is('archivado', false)
             .maybeSingle();
 
         if (checkError) console.error('Error al verificar duplicados:', checkError);
@@ -491,7 +490,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         }
     }
 
-    query = query.order('apellidos', { ascending: true });
+    query = query.order('nombres', { ascending: true }).order('apellidos', { ascending: true });
 
     // Si es entrenador, solo ve sus alumnos archivados
     if (userRol === 'Entrenador') {
@@ -533,7 +532,6 @@ export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimient
             .select('id, nombres, apellidos, fecha_nacimiento')
             .eq('escuela_id', escuelaId)
             .eq('fecha_nacimiento', fechaNacimiento)
-            .is('archivado', false)
             .neq('estado', 'ELIMINADO SISTEMA');
 
         if (error) throw error;

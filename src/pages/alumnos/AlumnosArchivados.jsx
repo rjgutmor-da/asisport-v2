@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Archive, RotateCcw, Users } from 'lucide-react';
+import { ArrowLeft, Archive, RotateCcw, Users, Search } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getAlumnosArchivados, restaurarAlumno } from '../../services/alumnos';
@@ -12,6 +12,7 @@ const AlumnosArchivados = () => {
 
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         loadArchivados();
@@ -77,11 +78,25 @@ const AlumnosArchivados = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="mb-4 text-text-secondary text-sm">
-                            {user.rol === 'Entrenador'
-                                ? `Mostrando tus alumnos archivados (${alumnos.length})`
-                                : `Mostrando todos los alumnos archivados de la escuela (${alumnos.length})`
-                            }
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                            <div className="text-text-secondary text-sm">
+                                {user.rol === 'Entrenador'
+                                    ? `Mostrando tus alumnos archivados (${alumnos.length})`
+                                    : `Mostrando todos los alumnos archivados de la escuela (${alumnos.length})`
+                                }
+                            </div>
+
+                            {/* Buscador */}
+                            <div className="relative w-full md:w-80">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por nombre o apellido..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-surface border border-border rounded-md pl-10 pr-4 py-2 text-white placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors"
+                                />
+                            </div>
                         </div>
 
                         {/* Vista Tabla */}
@@ -97,7 +112,12 @@ const AlumnosArchivados = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {alumnos.map((alumno) => (
+                                    {alumnos
+                                        .filter(alumno => {
+                                            const fullSearch = `${alumno.nombres} ${alumno.apellidos}`.toLowerCase();
+                                            return fullSearch.includes(searchTerm.toLowerCase());
+                                        })
+                                        .map((alumno) => (
                                         <tr
                                             key={alumno.id}
                                             className="border-b border-border/50 hover:bg-surface/50 transition-colors cursor-pointer"
@@ -122,7 +142,7 @@ const AlumnosArchivados = () => {
                                                     )}
                                                     <div className="min-w-0">
                                                         <p className="text-white font-medium truncate">
-                                                            {alumno.apellidos}, {alumno.nombres}
+                                                            {alumno.nombres} {alumno.apellidos}
                                                         </p>
                                                         {/* Info adicional visible solo en móvil */}
                                                         <p className="text-text-secondary text-xs sm:hidden">
