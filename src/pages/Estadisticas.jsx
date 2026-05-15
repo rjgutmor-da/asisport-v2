@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Filter, Users, FileSpreadsheet, X } from 'lucide-react';
+import { ArrowLeft, Download, Filter, Users, FileSpreadsheet, X, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useEstadisticas } from '../features/estadisticas/hooks/useEstadisticas';
 
@@ -17,6 +17,7 @@ const Estadisticas = () => {
         loadingDetalle,
         metrics,
         tableData,
+        asistenciasDetalle,
         exportData,
         dateRangeText,
         canchas,
@@ -38,6 +39,9 @@ const Estadisticas = () => {
     const [showFilters, setShowFilters] = React.useState(false);
     const [showReportModal, setShowReportModal] = React.useState(false);
     const [selectedFields, setSelectedFields] = React.useState(['nombreCompleto', 'telefono', 'fecha_nacimiento']);
+    const [alumnoSearchTerm, setAlumnoSearchTerm] = React.useState('');
+    const [selectedAlumnoId, setSelectedAlumnoId] = React.useState(null);
+    const [showAlumnoResults, setShowAlumnoResults] = React.useState(false);
 
     const availableFields = [
         { id: 'nombreCompleto', label: 'Nombre Completo' },
@@ -73,6 +77,116 @@ const Estadisticas = () => {
         } else {
             setSelectedDias([...selectedDias, dia]);
         }
+    };
+
+    const normalizeText = (value = '') => value
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+
+    const formatAlumnoFecha = (fecha) => {
+        const dateObj = new Date(fecha + 'T12:00:00');
+        const dia = dateObj.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+        const mes = dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+        const formatPart = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+        return `${formatPart(dia)} ${dateObj.getDate()} ${formatPart(mes)}`;
+    };
+
+    const alumnoMatchesFilters = React.useCallback((alumno) => {
+        if (!alumno) return false;
+        if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
+        if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
+        if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
+        if (selectedCategorias.length > 0 && !selectedCategorias.includes(`Sub-${alumno.sub}`)) return false;
+        return true;
+    }, [selectedEntrenadores, selectedCanchas, selectedHorarios, selectedCategorias]);
+
+    const alumnosParaBuscador = React.useMemo(() => {
+        const term = normalizeText(alumnoSearchTerm);
+        return (alumnos || [])
+            .filter(alumnoMatchesFilters)
+            .filter(alumno => {
+                if (!term) return true;
+                const fullName = `${alumno.nombres || ''} ${alumno.apellidos || ''}`;
+                return normalizeText(fullName).includes(term);
+            })
+            .sort((a, b) => `${a.nombres} ${a.apellidos}`.localeCompare(`${b.nombres} ${b.apellidos}`));
+    }, [alumnos, alumnoMatchesFilters, alumnoSearchTerm]);
+
+    const selectedAlumno = React.useMemo(
+        () => (alumnos || []).find(alumno => alumno.id === selectedAlumnoId) || null,
+        [alumnos, selectedAlumnoId]
+    );
+
+    React.useEffect(() => {
+        if (selectedAlumno && !alumnoMatchesFilters(selectedAlumno)) {
+            setSelectedAlumnoId(null);
+            setAlumnoSearchTerm('');
+        }
+    }, [selectedAlumno, alumnoMatchesFilters]);
+
+    React.useEffect(() => {
+        if (selectedAlumnoId && !asistenciasDetalle && !loadingDetalle) {
+            loadDetalleForExport();
+        }
+    }, [selectedAlumnoId, asistenciasDetalle, loadingDetalle, loadDetalleForExport]);
+
+    const selectedAlumnoResumen = React.useMemo(() => {
+        if (!selectedAlumno || !asistenciasDetalle) {
+            return { presentes: 0, licencias: 0, registros: [] };
+        }
+
+        const registros = asistenciasDetalle
+            .filter(asistencia => asistencia.alumno_id === selectedAlumno.id)
+            .filter(asistencia => {
+                if (selectedEntrenadores.length > 0) {
+                    const matchRegistro = asistencia.entrenador_id && selectedEntrenadores.includes(asistencia.entrenador_id);
+                    const matchAlumno = selectedAlumno.profesor_asignado_id && selectedEntrenadores.includes(selectedAlumno.profesor_asignado_id);
+                    if (!matchRegistro && !matchAlumno) return false;
+                }
+
+                if (selectedCanchas.length > 0 && !selectedCanchas.includes(selectedAlumno.cancha_id)) return false;
+                if (selectedHorarios.length > 0 && !selectedHorarios.includes(selectedAlumno.horario_id)) return false;
+                if (selectedCategorias.length > 0 && !selectedCategorias.includes(`Sub-${selectedAlumno.sub}`)) return false;
+
+                if (selectedDias.length > 0) {
+                    const dateObj = new Date(asistencia.fecha + 'T12:00:00');
+                    const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                    if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) return false;
+                }
+
+                return asistencia.estado === 'Presente' || asistencia.estado === 'Licencia';
+            })
+            .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+            .map(asistencia => {
+                return {
+                    ...asistencia,
+                    fechaDisplay: formatAlumnoFecha(asistencia.fecha)
+                };
+            });
+
+        return {
+            presentes: registros.filter(item => item.estado === 'Presente').length,
+            licencias: registros.filter(item => item.estado === 'Licencia').length,
+            registros
+        };
+    }, [
+        selectedAlumno,
+        asistenciasDetalle,
+        selectedEntrenadores,
+        selectedCanchas,
+        selectedHorarios,
+        selectedCategorias,
+        selectedDias
+    ]);
+
+    const handleSelectAlumno = (alumno) => {
+        setSelectedAlumnoId(alumno.id);
+        setAlumnoSearchTerm(`${alumno.nombres} ${alumno.apellidos}`);
+        setShowAlumnoResults(false);
     };
 
     // Exportar a Excel con formato detallado por fechas
@@ -481,6 +595,114 @@ const Estadisticas = () => {
                             placeholder="Todas"
                         />
                     </div>
+                </div>
+
+                <div className="bg-surface border border-border rounded-lg overflow-visible">
+                    <div className="p-4 border-b border-border">
+                        <label className="text-xs text-text-secondary block mb-1">Buscar alumno</label>
+                        <div className="relative">
+                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                            <input
+                                type="text"
+                                value={alumnoSearchTerm}
+                                onChange={(e) => {
+                                    setAlumnoSearchTerm(e.target.value);
+                                    setSelectedAlumnoId(null);
+                                    setShowAlumnoResults(true);
+                                }}
+                                onFocus={() => setShowAlumnoResults(true)}
+                                placeholder="Nombre o apellido del alumno"
+                                className="w-full bg-background border border-border rounded-md pl-10 pr-10 py-2 text-white text-sm focus:border-primary outline-none transition-colors hover:border-primary/50"
+                            />
+                            {(alumnoSearchTerm || selectedAlumnoId) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAlumnoSearchTerm('');
+                                        setSelectedAlumnoId(null);
+                                        setShowAlumnoResults(false);
+                                    }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white transition-colors"
+                                    title="Limpiar alumno"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+
+                            {showAlumnoResults && alumnoSearchTerm && !selectedAlumnoId && (
+                                <div className="absolute z-40 mt-1 w-full bg-surface border border-border rounded-md shadow-lg max-h-64 overflow-auto">
+                                    {alumnosParaBuscador.slice(0, 10).map(alumno => (
+                                        <button
+                                            key={alumno.id}
+                                            type="button"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => handleSelectAlumno(alumno)}
+                                            className="w-full px-3 py-2 text-left text-sm text-white hover:bg-primary/10 transition-colors"
+                                        >
+                                            {alumno.nombres} {alumno.apellidos}
+                                        </button>
+                                    ))}
+                                    {alumnosParaBuscador.length === 0 && (
+                                        <div className="px-3 py-3 text-sm text-text-secondary">
+                                            No hay alumnos con esos filtros
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {selectedAlumno && (
+                        <div className="bg-background border-t border-border text-white">
+                            <div className="bg-primary px-4 py-3 text-center">
+                                <h3 className="text-xl md:text-2xl font-black leading-tight">
+                                    {selectedAlumno.nombres} {selectedAlumno.apellidos}
+                                </h3>
+                                <p className="text-xs font-bold text-black/70 mt-1">{dateRangeText}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 border-b border-border bg-surface">
+                                <div className="p-4 border-r border-border">
+                                    <div className="text-[11px] font-black uppercase text-success">Presentes</div>
+                                    <div className="mt-1 text-4xl font-black leading-none">{selectedAlumnoResumen.presentes}</div>
+                                </div>
+                                <div className="p-4">
+                                    <div className="text-[11px] font-black uppercase text-warning">Licencias</div>
+                                    <div className="mt-1 text-4xl font-black leading-none">{selectedAlumnoResumen.licencias}</div>
+                                </div>
+                            </div>
+
+                            {loadingDetalle && !asistenciasDetalle ? (
+                                <div className="p-6 text-center text-text-secondary">Cargando asistencias...</div>
+                            ) : selectedAlumnoResumen.registros.length === 0 ? (
+                                <div className="p-6 text-center text-text-secondary">
+                                    No hay asistencias o licencias para este alumno con los filtros seleccionados.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-px bg-border p-px">
+                                    {selectedAlumnoResumen.registros.map((registro, index) => (
+                                        <div
+                                            key={`${registro.fecha}-${registro.estado}-${index}`}
+                                            className={`min-h-[58px] px-3 py-2 flex items-center justify-between gap-2 ${
+                                                registro.estado === 'Licencia'
+                                                    ? 'bg-warning/10 border-l-4 border-warning'
+                                                    : 'bg-surface border-l-4 border-success'
+                                            }`}
+                                        >
+                                            <span className="text-base md:text-lg font-black leading-tight">{registro.fechaDisplay}</span>
+                                            <span className={`text-[10px] font-black uppercase rounded-sm px-2 py-1 ${
+                                                registro.estado === 'Licencia'
+                                                    ? 'bg-warning/20 text-warning'
+                                                    : 'bg-success/15 text-success'
+                                            }`}>
+                                                {registro.estado === 'Licencia' ? 'Lic.' : 'Pres.'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {loading ? (

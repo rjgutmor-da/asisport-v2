@@ -429,6 +429,7 @@ export const useEstadisticas = () => {
         loadingDetalle,
         metrics,
         tableData,
+        asistenciasDetalle,
         exportData,
         dateRangeText,
 
