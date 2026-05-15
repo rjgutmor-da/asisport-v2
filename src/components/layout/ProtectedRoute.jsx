@@ -16,8 +16,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     }
 
     if (!user) {
-        // Redirigir a login preservando el origen
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        // Redirigir al portal SSO centralizado
+        window.location.href = `${import.meta.env.VITE_URL_LOGIN}?redirect=asisport`;
+        return null;
     }
 
     // Protección: usuario sin escuela asignada
