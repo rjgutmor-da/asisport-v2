@@ -15,10 +15,6 @@ const DetalleAlumno = lazy(() => import('./pages/alumnos/DetalleAlumno'))
 const AlumnosArchivados = lazy(() => import('./pages/alumnos/AlumnosArchivados'))
 const Cumpleanos = lazy(() => import('./pages/alumnos/Cumpleanos'))
 const Estadisticas = lazy(() => import('./pages/Estadisticas'))
-const AdminUsuarios = lazy(() => import('./pages/admin/AdminUsuarios'))
-const Configuraciones = lazy(() => import('./pages/admin/Configuraciones'))
-const PanelEscuela = lazy(() => import('./pages/admin/PanelEscuela'))
-const GestorSucursales = lazy(() => import('./pages/admin/GestorSucursales'))
 const Asistencia = lazy(() => import('./pages/Asistencia'))
 const RegistroActividad = lazy(() => import('./pages/RegistroActividad'))
 
@@ -117,30 +113,6 @@ function App() {
                             <Route path="/registro-actividad" element={
                                 <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
                                     <RegistroActividad />
-                                </ProtectedRoute>
-                            } />
-
-                            <Route path="/admin/configuraciones" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
-                                    <Configuraciones />
-                                </ProtectedRoute>
-                            } />
-
-                            <Route path="/admin/usuarios" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
-                                    <AdminUsuarios />
-                                </ProtectedRoute>
-                            } />
-
-                            <Route path="/admin/escuela" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
-                                    <PanelEscuela />
-                                </ProtectedRoute>
-                            } />
-
-                            <Route path="/admin/sucursales" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Dueño']}>
-                                    <GestorSucursales />
                                 </ProtectedRoute>
                             } />
 

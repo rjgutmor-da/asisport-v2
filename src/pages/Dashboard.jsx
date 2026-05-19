@@ -34,20 +34,6 @@ const Dashboard = () => {
                         <button onClick={() => navigate('/alumnos/cumpleanos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Cumpleaños</button>
                     </nav>
                 </div>
-                {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
-                    <button
-                        className="p-2 hover:bg-surface rounded-md transition-fast"
-                        onClick={() => {
-                            if (role === 'SuperAdministrador' || role === 'Dueño') {
-                                navigate('/admin/escuela');
-                            } else {
-                                navigate('/admin/configuraciones');
-                            }
-                        }}
-                    >
-                        <Settings size={32} className="text-white" />
-                    </button>
-                )}
             </header>
 
             {/* Contenedor principal Responsive - Se añade padding superior en PC para bajar las tarjetas */}
@@ -135,12 +121,12 @@ const Dashboard = () => {
                         size="compact"
                     />
 
-                    {/* Módulo de Panel Escuela (Solo SuperAdmin/Dueño) */}
-                    {(role === 'SuperAdministrador' || role === 'Dueño') && (
+                    {/* Módulo de Actividad (Solo SuperAdmin/Dueño/Administrador) */}
+                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
                         <ModuleCard
-                            icon={<School size={60} />}
-                            label="Panel de Escuela"
-                            onClick={() => navigate('/admin/escuela')}
+                            icon={<Activity size={60} />}
+                            label="Actividad"
+                            onClick={() => navigate('/registro-actividad')}
                             size="compact"
                         />
                     )}
