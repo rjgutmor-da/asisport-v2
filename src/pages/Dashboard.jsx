@@ -36,6 +36,8 @@ const Dashboard = () => {
                         {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
                             <a 
                                 href={getSaasportUrl()} 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors"
                             >
                                 SaaSport
