@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import LogoPlaneta from '../assets/LogoPlaneta.png';
 import { getEscuelaActual } from '../services/escuelas';
 import { useState, useEffect } from 'react';
+import { getSaasportUrl } from '../lib/navegacion';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -32,6 +33,14 @@ const Dashboard = () => {
                         <button onClick={() => navigate('/asistencia')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Asistencia</button>
                         <button onClick={() => navigate('/alumnos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Alumnos</button>
                         <button onClick={() => navigate('/alumnos/cumpleanos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Cumpleaños</button>
+                        {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
+                            <a 
+                                href={getSaasportUrl()} 
+                                className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors"
+                            >
+                                SaaSport
+                            </a>
+                        )}
                     </nav>
                 </div>
             </header>
