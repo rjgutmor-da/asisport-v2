@@ -2,7 +2,7 @@
  * navegacion.js — Utilidades de navegación en AsiSport con soporte para retorno a SaaSport.
  */
 
-export const SAASPORT_PROD_URL = 'https://saasport.pro'; // Ajustar si es diferente
+export const SAASPORT_PROD_URL = 'https://finanzas.saasport.pro'; // URL de producción de SaaSport
 export const SAASPORT_DEV_URL = 'http://localhost:5174'; // SaaSport suele correr en el siguiente puerto
 
 /** Retorna la URL base de SaaSport según el entorno */
