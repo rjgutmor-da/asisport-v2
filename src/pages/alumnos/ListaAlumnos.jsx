@@ -19,7 +19,7 @@ import TabBar from '../../components/dashboard/TabBar';
  *  - Combinar alumnos duplicados mediante modal
  *  - Selección múltiple para envío de WhatsApp
  *  - Aprobar alumnos pendientes en lote
- *  - Muestra asistencia últimos 7 días y sub del alumno
+ *  - Muestra asistencia de esta semana y sub del alumno
  */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
@@ -523,7 +523,7 @@ const ListaAlumnos = () => {
                                             />
                                         </th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase md:min-w-[200px]">Alumno</th>
-                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">7D</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Lw</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesAnteriorStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesActualStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Sub</th>
@@ -570,7 +570,7 @@ const ListaAlumnos = () => {
                                                         <ExternalLink size={14} className="text-text-secondary/40 flex-shrink-0 ml-auto hidden md:block" />
                                                     </div>
                                                 </td>
-                                                {/* Asistencia Semanal (7D) */}
+                                                {/* Asistencia Semanal (Esta Semana) */}
                                                 <td className="p-2 md:p-3 text-center">
                                                     <span className={`text-sm md:text-base font-bold ${asistencias >= 1 ? 'text-success' : 'text-text-secondary'
                                                         }`}>

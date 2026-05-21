@@ -4,7 +4,7 @@ import { useToast } from '../../../components/ui/Toast';
 import { getAlumnos, getAlumnosPaginados, getAlumnosFacets, archivarAlumno } from '../../../services/alumnos';
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getCanchasParaEntrenador, getHorariosParaEntrenador, getEntrenadores } from '../../../services/maestros';
-import { getAsistenciasUltimos7Dias } from '../../../services/asistencias';
+import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
@@ -163,7 +163,7 @@ export const useAlumnos = () => {
 
             // Cargar historial de asistencia para los de la página
             if (data.length > 0) {
-                getAsistenciasUltimos7Dias(data.map(a => a.id))
+                getAsistenciasEstaSemana(data.map(a => a.id))
                     .then(history => setAsistenciaHistory(prev => ({ ...prev, ...history })))
                     .catch(err => console.error('Error asistencias:', err));
             }

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
+import { obtenerLunesDeEstaSemana } from '../lib/dateHelpers';
 
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
 
@@ -223,20 +224,18 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
 };
 
 /**
- * Obtiene la asistencia de los últimos 7 días para un conjunto de alumnos
+ * Obtiene la asistencia de la semana en curso (desde el lunes hasta hoy) para un conjunto de alumnos
  * @param {Array} alumnoIds - Lista de IDs de alumnos
  * @returns {Promise<Object>} Mapa de alumnoId -> { 'YYYY-MM-DD': estado, ... }
  */
-export const getAsistenciasUltimos7Dias = async (alumnoIds) => {
+export const getAsistenciasEstaSemana = async (alumnoIds) => {
     if (!alumnoIds || alumnoIds.length === 0) return {};
 
     const hoy = new Date();
     hoy.setHours(23, 59, 59, 999);
-    const hace7Dias = new Date();
-    hace7Dias.setDate(hoy.getDate() - 6);
-    hace7Dias.setHours(0, 0, 0, 0);
+    const lunes = obtenerLunesDeEstaSemana(hoy);
 
-    const fechaInicio = hace7Dias.toISOString().split('T')[0];
+    const fechaInicio = lunes.toISOString().split('T')[0];
     const fechaFin = hoy.toISOString().split('T')[0];
 
     const escuelaId = await obtenerEscuelaId();
