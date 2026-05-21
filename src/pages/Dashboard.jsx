@@ -66,7 +66,7 @@ const Dashboard = () => {
                                 <img 
                                     src={escuela.logo_url} 
                                     alt={`Logo ${escuela.nombre}`} 
-                                    className="w-44 h-auto md:w-[300px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                                    className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
                                 />
                                 {escuela.slogan && (
                                     <p className="text-white/80 italic text-xl md:text-2xl font-light font-serif">
