@@ -68,11 +68,7 @@ const Dashboard = () => {
                                     alt={`Logo ${escuela.nombre}`} 
                                     className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
                                 />
-                                {escuela.slogan && (
-                                    <p className="text-white/80 italic text-xl md:text-2xl font-light font-serif">
-                                        "{escuela.slogan}"
-                                    </p>
-                                )}
+
                             </div>
                         ) : (
                             <img 
