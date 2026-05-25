@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink, FileSpreadsheet } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink, FileSpreadsheet, Home, ClipboardCheck, Cake, UserPlus, BarChart3 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
@@ -23,7 +23,8 @@ import TabBar from '../../components/dashboard/TabBar';
  */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
+    const location = useLocation();
+    const { isAdmin, role } = useAuth();
 
     // Control del modal de combinar alumnos
     const [showCombinarModal, setShowCombinarModal] = React.useState(false);
@@ -76,6 +77,20 @@ const ListaAlumnos = () => {
 
     // Usar el isAdmin del AuthContext (incluye SuperAdministrador, Administrador y Dueño)
     const esAdmin = isAdmin;
+
+    const navItems = [
+        { path: '/dashboard', icon: Home, label: 'Inicio', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos', icon: Users, label: 'Alumnos', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/estadisticas', icon: BarChart3, label: 'Stats', roles: ['SuperAdministrador', 'Administrador', 'Dueño'] },
+    ];
+
+    const filteredNavItems = navItems.filter(item => {
+        if (!item.roles) return true;
+        return item.roles.includes(role);
+    });
 
     // Nombres de meses para cabecera de tabla
     const nombresMeses = [
@@ -181,11 +196,32 @@ const ListaAlumnos = () => {
                 <div className="h-full bg-primary animate-progress-bar" />
             </div>
             <div className="w-full p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
                     <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
                         <ArrowLeft size={24} />
                     </button>
-                    <h1 className="text-xl font-bold text-white">Lista de Alumnos</h1>
+                    <h1 className="text-xl font-bold text-white whitespace-nowrap">Lista de Alumnos</h1>
+                </div>
+
+                {/* Menú de navegación superior para escritorio */}
+                <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                    {filteredNavItems.map((item) => {
+                        const active = location.pathname === item.path;
+                        return (
+                            <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                                    active
+                                        ? 'text-primary font-bold border-b-2 border-primary pb-0.5'
+                                        : 'text-text-secondary hover:text-white pb-0.5 border-b-2 border-transparent'
+                                }`}
+                            >
+                                <item.icon size={16} />
+                                <span>{item.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -579,13 +615,14 @@ const ListaAlumnos = () => {
                                                 </td>
                                                 {/* Asistencia Mes Anterior */}
                                                 <td className="p-2 md:p-3 text-center">
-                                                    <span className="text-xs md:text-sm font-medium text-text-secondary/60">
+                                                    <span className={`text-sm md:text-base font-bold ${alumno.asistencias_mes_anterior >= 1 ? 'text-success' : 'text-text-secondary'
+                                                        }`}>
                                                         {alumno.asistencias_mes_anterior || 0}
                                                     </span>
                                                 </td>
                                                 {/* Asistencia Mes Actual */}
                                                 <td className="p-2 md:p-3 text-center">
-                                                    <span className={`text-sm md:text-base font-bold ${alumno.asistencias_mes_actual >= 1 ? 'text-primary' : 'text-text-secondary'
+                                                    <span className={`text-sm md:text-base font-bold ${alumno.asistencias_mes_actual >= 1 ? 'text-success' : 'text-text-secondary'
                                                         }`}>
                                                         {alumno.asistencias_mes_actual || 0}
                                                     </span>
