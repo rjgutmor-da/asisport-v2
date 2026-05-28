@@ -325,8 +325,26 @@ export const useAlumnos = () => {
 
     const sendBulkWhatsApp = () => {
         if (selectedAlumnos.length === 0) return;
-        const selectedData = alumnos.filter(a => selectedAlumnos.includes(a.id));
-        const namesList = selectedData.map((a, index) => `${index + 1}. ${a.nombres}`).join('\n');
+        
+        // Crear un diccionario de todos los alumnos conocidos para buscarlos por ID
+        const mapaAlumnos = new Map();
+        
+        // Agregar primero los de la lista total (allAlumnos)
+        allAlumnos.forEach(a => {
+            if (a.id) mapaAlumnos.set(a.id, a);
+        });
+        
+        // Agregar/sobrescribir con los de la página actual (por si tienen datos más recientes)
+        alumnos.forEach(a => {
+            if (a.id) mapaAlumnos.set(a.id, a);
+        });
+        
+        // Obtener los datos de los alumnos seleccionados en base a sus IDs
+        const selectedData = selectedAlumnos
+            .map(id => mapaAlumnos.get(id))
+            .filter(Boolean);
+
+        const namesList = selectedData.map((a, index) => `${index + 1}. ${a.nombres} ${a.apellidos}`).join('\n');
         const message = encodeURIComponent(`${introMessage}\n\n${namesList}`);
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };

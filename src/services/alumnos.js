@@ -376,7 +376,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo')
+        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
