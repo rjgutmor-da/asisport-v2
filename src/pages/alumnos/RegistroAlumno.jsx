@@ -193,9 +193,7 @@ const RegistroAlumno = () => {
 
                     {/* Sección: Información Adicional */}
                     <section className="space-y-4">
-                        <h2 className="text-lg font-semibold text-primary border-b border-border pb-2">
-                            Información Adicional
-                        </h2>
+                        {/* Sin título de Información Adicional */}
 
                         {/* Colegio y Dirección primero */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -215,27 +213,41 @@ const RegistroAlumno = () => {
                             />
                         </div>
 
-                        {/* Sucursal como filtro de canchas */}
-                        {sucursales.length > 0 && (
-                            <div className="grid grid-cols-1 gap-4">
-                                <Select
-                                    label="Sucursal"
-                                    name="sucursal_id"
-                                    value={formData.sucursal_id}
-                                    options={[{ value: '', label: 'Todas las sucursales' }, ...sucursales]}
-                                    onChange={handleChange}
-                                    error={errors.sucursal_id}
-                                />
-                                <p className="text-xs text-text-secondary -mt-2">
-                                    Selecciona una sucursal para filtrar las canchas y profesores disponibles
-                                </p>
-                            </div>
-                        )}
+                        {/* Sucursal movida abajo */}
+                    </section>
 
-                        {/* Cancha y Horario filtrados por Sucursal */}
+                    {/* Sección: Información Interna */}
+                    <section className="space-y-4">
+                        <h2 className="text-lg font-semibold text-primary border-b border-border pb-2">
+                            Información Interna
+                        </h2>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Select
-                                label="Cancha de Entrenamiento *"
+                                label="Tipo"
+                                name="tipo"
+                                value={formData.tipo}
+                                options={[
+                                    { value: 'Formativo', label: 'Formativo' },
+                                    { value: 'Competitivo', label: 'Competitivo' },
+                                    { value: 'Otros', label: 'Otros' }
+                                ]}
+                                onChange={handleChange}
+                            />
+                            <Input
+                                label="Mensualidad"
+                                name="mensualidad"
+                                type="number"
+                                value={formData.mensualidad}
+                                onChange={handleChange}
+                                placeholder="0 o en blanco para becado"
+                            />
+                        </div>
+
+                        {/* Grupo y Horario filtrados por Sucursal */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Select
+                                label="Grupo *"
                                 name="cancha_id"
                                 value={formData.cancha_id}
                                 options={canchas}
@@ -252,7 +264,26 @@ const RegistroAlumno = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Sucursal movida aquí */}
+                            {sucursales.length > 0 ? (
+                                <div className="flex flex-col justify-start">
+                                    <Select
+                                        label="Sucursal"
+                                        name="sucursal_id"
+                                        value={formData.sucursal_id}
+                                        options={[{ value: '', label: 'Todas las sucursales' }, ...sucursales]}
+                                        onChange={handleChange}
+                                        error={errors.sucursal_id}
+                                    />
+                                    <p className="text-[11px] text-text-secondary mt-1 leading-tight">
+                                        Selecciona una sucursal para filtrar los grupos y profesores disponibles
+                                    </p>
+                                </div>
+                            ) : (
+                                <div></div>
+                            )}
+
                             <Select
                                 label="Profesor Asignado *"
                                 name="profesor_asignado_id"

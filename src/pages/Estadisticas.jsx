@@ -58,7 +58,9 @@ const Estadisticas = () => {
         { id: 'nombre_padre', label: 'Nombre del Padre' },
         { id: 'telefono_padre', label: 'Teléfono Padre' },
         { id: 'nombre_madre', label: 'Nombre de la Madre' },
-        { id: 'telefono_madre', label: 'Teléfono Madre' }
+        { id: 'telefono_madre', label: 'Teléfono Madre' },
+        { id: 'tipo', label: 'Tipo' },
+        { id: 'mensualidad', label: 'Mensualidad' }
     ];
 
     const toggleField = (id) => {

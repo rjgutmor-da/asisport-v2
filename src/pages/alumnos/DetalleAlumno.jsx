@@ -388,45 +388,6 @@ const DetalleAlumno = () => {
                                 </label>
                             </div>
                         </div>
-                    </section>
-
-                    {/* Información de Entrenamiento */}
-                    <section className="space-y-4">
-                        <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
-                            Información de Entrenamiento
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Select
-                                label="Cancha de Entrenamiento *"
-                                name="cancha_id"
-                                value={formData.cancha_id || ''}
-                                options={canchas}
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
-                            <Select
-                                label="Horario de Entrenamiento *"
-                                name="horario_id"
-                                value={formData.horario_id || ''}
-                                options={horarios}
-                                onChange={handleChange}
-                                disabled={!editing}
-                            />
-                        </div>
-
-                        {sucursales.length > 0 && (
-                            <div className="grid grid-cols-1 gap-4">
-                                <Select
-                                    label="Sucursal"
-                                    name="sucursal_id"
-                                    value={formData.sucursal_id || ''}
-                                    options={[{ value: '', label: 'Sin asignar' }, ...sucursales]}
-                                    onChange={handleChange}
-                                    disabled={!editing}
-                                />
-                            </div>
-                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
@@ -446,15 +407,76 @@ const DetalleAlumno = () => {
                         </div>
                     </section>
 
-                    {/* Entrenador Asignado */}
+                    {/* Información Interna */}
                     <section className="space-y-4">
                         <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
-                            Profesor Asignado
+                            Información Interna
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Select
-                                label="Entrenador"
+                                label="Tipo"
+                                name="tipo"
+                                value={formData.tipo || 'Formativo'}
+                                options={[
+                                    { value: 'Formativo', label: 'Formativo' },
+                                    { value: 'Competitivo', label: 'Competitivo' },
+                                    { value: 'Otros', label: 'Otros' }
+                                ]}
+                                onChange={handleChange}
+                                disabled={!editing}
+                            />
+                            <Input
+                                label="Mensualidad"
+                                name="mensualidad"
+                                type="number"
+                                value={formData.mensualidad || ''}
+                                onChange={handleChange}
+                                disabled={!editing}
+                                placeholder="0 o en blanco para becado"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Select
+                                label="Grupo *"
+                                name="cancha_id"
+                                value={formData.cancha_id || ''}
+                                options={canchas}
+                                onChange={handleChange}
+                                disabled={!editing}
+                            />
+                            <Select
+                                label="Horario de Entrenamiento *"
+                                name="horario_id"
+                                value={formData.horario_id || ''}
+                                options={horarios}
+                                onChange={handleChange}
+                                disabled={!editing}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {sucursales.length > 0 ? (
+                                <div className="flex flex-col justify-start">
+                                    <Select
+                                        label="Sucursal"
+                                        name="sucursal_id"
+                                        value={formData.sucursal_id || ''}
+                                        options={[{ value: '', label: 'Sin asignar' }, ...sucursales]}
+                                        onChange={handleChange}
+                                        disabled={!editing}
+                                    />
+                                    <p className="text-[11px] text-text-secondary mt-1 leading-tight">
+                                        Selecciona una sucursal para filtrar los grupos y profesores disponibles
+                                    </p>
+                                </div>
+                            ) : (
+                                <div></div>
+                            )}
+
+                            <Select
+                                label="Profesor Asignado *"
                                 name="profesor_asignado_id"
                                 value={formData.profesor_asignado_id || ''}
                                 options={entrenadores}

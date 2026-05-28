@@ -113,6 +113,16 @@
         margin: 0;
         padding: 0;
     }
+
+    /* Ocultar flechas numéricas (spinners) */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+    }
 }
 
 /* Clases de utilidad personalizadas */

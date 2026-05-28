@@ -118,7 +118,9 @@ export const createAlumno = async (alumnoData, photoFile) => {
         foto_url: fotoUrl,
         estado: 'Pendiente',
         escuela_id: escuelaId,
-        created_by: user.id
+        created_by: user.id,
+        tipo: alumnoData.tipo || 'Formativo',
+        mensualidad: alumnoData.mensualidad !== undefined ? alumnoData.mensualidad : null
     };
 
     const { data: alumno, error: insertError } = await supabase
@@ -163,7 +165,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
  * @param {Array<number>} filtros.subAnios - Filtrar por uno o más años (sub = año de nacimiento)
  */
 export const getAlumnos = async (filtros = {}) => {
-    const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [] } = filtros;
+    const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
 
     // Regla #1: Autenticación obligatoria
     const { data: { user } } = await supabase.auth.getUser();
@@ -203,6 +205,8 @@ export const getAlumnos = async (filtros = {}) => {
             sub,
             asistencias_mes_actual,
             asistencias_mes_anterior,
+            tipo,
+            mensualidad,
             cancha:canchas(nombre),
             horario:horarios(hora)
         `)
@@ -246,6 +250,13 @@ export const getAlumnos = async (filtros = {}) => {
         query = query.in('horario_id', horarioIds);
     }
 
+    // Filtros multi-selección de tipo
+    if (tipos.length === 1) {
+        query = query.eq('tipo', tipos[0]);
+    } else if (tipos.length > 1) {
+        query = query.in('tipo', tipos);
+    }
+
     // Ordenamiento
     query = query.order('created_at', { ascending: false });
 
@@ -277,6 +288,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
         horarioIds = [], 
         subAnios = [], 
         entrenadorIds = [],
+        tipos = [],
         searchTerm = '',
         activeFilter = 'todos',
         page = 1,
@@ -301,7 +313,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
             estado, es_arquero, profesor_asignado_id, cancha_id, horario_id,
             nombre_padre, telefono_padre, nombre_madre, telefono_madre,
             telefono_deportista, whatsapp_preferido, created_at, sub,
-            asistencias_mes_actual, asistencias_mes_anterior,
+            asistencias_mes_actual, asistencias_mes_anterior, tipo, mensualidad,
             cancha:canchas(nombre),
             horario:horarios(hora)
         `, { count: 'exact' })
@@ -331,6 +343,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     if (subAnios.length > 0) query = query.in('sub', subAnios);
     if (canchaIds.length > 0) query = query.in('cancha_id', canchaIds);
     if (horarioIds.length > 0) query = query.in('horario_id', horarioIds);
+    if (tipos.length > 0) query = query.in('tipo', tipos);
 
     // Restricciones de Rol
     if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
@@ -363,7 +376,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero')
+        .select('profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');

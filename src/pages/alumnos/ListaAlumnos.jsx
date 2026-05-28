@@ -50,10 +50,12 @@ const ListaAlumnos = () => {
             horarios,
             entrenadores,
             subs,
+            tipos,
             selectedCanchas,
             selectedHorarios,
             selectedEntrenadores,
-            selectedSubs
+            selectedSubs,
+            selectedTipos
         },
         getAsistenciaResumen,
         setViewMode,
@@ -62,6 +64,7 @@ const ListaAlumnos = () => {
         setSelectedHorarios,
         setSelectedEntrenadores,
         setSelectedSubs,
+        setSelectedTipos,
         handleFilterChange,
         handleSearchChange,
         handleClearFilters,
@@ -252,9 +255,10 @@ const ListaAlumnos = () => {
 
                             // Construir el texto de filtros aplicados para el encabezado
                             const filtrosTexto = [
-                                selectedCanchas.length > 0 ? `Canchas: ${selectedCanchas.map(id => canchas.find(c => c.value === id)?.label).join(', ')}` : '',
+                                selectedCanchas.length > 0 ? `Grupos: ${selectedCanchas.map(id => canchas.find(c => c.value === id)?.label).join(', ')}` : '',
                                 selectedHorarios.length > 0 ? `Horarios: ${selectedHorarios.map(id => horarios.find(h => h.value === id)?.label).join(', ')}` : '',
                                 selectedSubs.length > 0 ? `Categorías: ${selectedSubs.map(s => `Sub ${s}`).join(', ')}` : '',
+                                selectedTipos.length > 0 ? `Tipos: ${selectedTipos.join(', ')}` : '',
                                 selectedEntrenadores.length > 0 ? `Entrenadores: ${selectedEntrenadores.map(id => entrenadores.find(e => e.value === id)?.label).join(', ')}` : ''
                             ].filter(Boolean).join(' | ') || 'Ninguno';
 
@@ -268,14 +272,15 @@ const ListaAlumnos = () => {
                                 [`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`],
                                 [`Origen: ${origenTexto}`],
                                 [],
-                                ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad']
+                                ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad', 'Tipo']
                             ];
 
                             const dataRows = alumnosParaReporte.map(a => [
                                 a.nombres,
                                 a.apellidos,
                                 new Date(a.fecha_nacimiento).toLocaleDateString('es-ES'),
-                                a.carnet_identidad || '-'
+                                a.carnet_identidad || '-',
+                                a.tipo || '-'
                             ]);
 
                             const ws = XLSX.utils.aoa_to_sheet([...headers, ...dataRows]);
@@ -285,7 +290,8 @@ const ListaAlumnos = () => {
                                 { wch: 30 }, // Nombres
                                 { wch: 30 }, // Apellidos
                                 { wch: 20 }, // Fecha Nacimiento
-                                { wch: 20 }  // CI
+                                { wch: 20 }, // CI
+                                { wch: 15 }  // Tipo
                             ];
 
                             const wb = XLSX.utils.book_new();
@@ -374,7 +380,7 @@ const ListaAlumnos = () => {
                 )}
 
                 {/* ── Fila 1: Filtros Multi-selección (primero, igual que SaaSport) ── */}
-                <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1 md:grid-cols-4'}`}>
                     {/* 1. Filtro Entrenador — solo para admins */}
                     {esAdmin && (
                         <MultiSelectFilter
@@ -395,6 +401,15 @@ const ListaAlumnos = () => {
                         onChange={setSelectedSubs}
                     />
 
+                    {/* Filtro Tipo */}
+                    <MultiSelectFilter
+                        label="Tipo"
+                        placeholder="Todos los Tipos"
+                        options={tipos}
+                        selectedValues={selectedTipos}
+                        onChange={setSelectedTipos}
+                    />
+
                     {/* 3. Filtro Horario */}
                     <MultiSelectFilter
                         label="Horario"
@@ -404,10 +419,10 @@ const ListaAlumnos = () => {
                         onChange={setSelectedHorarios}
                     />
 
-                    {/* 4. Filtro Cancha */}
+                    {/* 4. Filtro Grupo */}
                     <MultiSelectFilter
-                        label="Cancha"
-                        placeholder="Todas las Canchas"
+                        label="Grupo"
+                        placeholder="Todos los Grupos"
                         options={canchas}
                         selectedValues={selectedCanchas}
                         onChange={setSelectedCanchas}

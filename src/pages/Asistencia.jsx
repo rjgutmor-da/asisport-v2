@@ -132,7 +132,7 @@ const Asistencia = () => {
                         />
                     )}
                     <Select
-                        placeholder="Todas las Canchas"
+                        placeholder="Todos los Grupos"
                         options={canchas}
                         value={selectedCancha}
                         onChange={(e) => setSelectedCancha(e.target.value)}
@@ -158,10 +158,10 @@ const Asistencia = () => {
                                 </div>
                             </div>
                             <h3 className="text-lg font-bold text-white">
-                                Selecciona Cancha y Horario
+                                Selecciona Grupo y Horario
                             </h3>
                             <p className="text-text-secondary text-sm">
-                                Para tomar lista debes elegir una cancha
+                                Para tomar lista debes elegir un grupo
                                 {!selectedCancha && !selectedHorario
                                     ? ' y un horario.'
                                     : !selectedCancha

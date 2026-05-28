@@ -240,6 +240,8 @@ export const useAlumno = (id) => {
                     profesor_asignado_id: formData.profesor_asignado_id === "" ? null : formData.profesor_asignado_id,
                     sucursal_id: formData.sucursal_id === "" ? null : formData.sucursal_id,
                     es_arquero: formData.es_arquero,
+                    tipo: formData.tipo || 'Formativo',
+                    mensualidad: formData.mensualidad === '' || formData.mensualidad === undefined ? null : Number(formData.mensualidad),
                     foto_url: fotoUrl
                 })
                 .eq('id', id)

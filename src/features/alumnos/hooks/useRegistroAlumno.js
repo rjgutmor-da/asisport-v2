@@ -45,7 +45,9 @@ export const useRegistroAlumno = (onSuccess) => {
         horario_id: '',
         profesor_asignado_id: '',
         sucursal_id: '',
-        es_arquero: false
+        es_arquero: false,
+        tipo: 'Formativo',
+        mensualidad: ''
     });
 
     const [photoFile, setPhotoFile] = useState(null);
@@ -195,7 +197,8 @@ export const useRegistroAlumno = (onSuccess) => {
             const cleanFormData = {
                 ...formData,
                 nombres: formData.nombres.trim().replace(/\s+/g, ' '),
-                apellidos: formData.apellidos.trim().replace(/\s+/g, ' ')
+                apellidos: formData.apellidos.trim().replace(/\s+/g, ' '),
+                mensualidad: formData.mensualidad === '' ? null : Number(formData.mensualidad)
             };
 
             const newAlumno = await createAlumno(cleanFormData, photoFile);
