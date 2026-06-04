@@ -220,7 +220,7 @@ export const getAlumnos = async (filtros = {}) => {
     }
 
     // Filtro por sucursal (para Administradores y Entrenadores)
-    if (userRole !== 'Dueño' && userRole !== 'SuperAdministrador') {
+    if (userRole !== 'SuperAdministrador') {
         if (userProfile?.sucursal_id) {
             query = query.eq('sucursal_id', userProfile.sucursal_id);
         }
@@ -348,7 +348,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     // Restricciones de Rol
     if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
     if (userRole === 'Entrenarqueros') query = query.eq('es_arquero', true);
-    if (userRole !== 'Dueño' && userRole !== 'SuperAdministrador' && userProfile?.sucursal_id) {
+    if (userRole !== 'SuperAdministrador' && userProfile?.sucursal_id) {
         query = query.eq('sucursal_id', userProfile.sucursal_id);
     }
 
@@ -497,7 +497,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         .eq('archivado', true)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userRol !== 'Dueño' && userRol !== 'SuperAdministrador') {
+    if (userRol !== 'SuperAdministrador') {
         if (userProfile?.sucursal_id) {
             query = query.eq('sucursal_id', userProfile.sucursal_id);
         }

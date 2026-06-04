@@ -105,13 +105,13 @@ function App() {
                             } />
 
                             <Route path="/estadisticas" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
+                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador']}>
                                     <Estadisticas />
                                 </ProtectedRoute>
                             } />
 
                             <Route path="/registro-actividad" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador', 'Dueño']}>
+                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador']}>
                                     <RegistroActividad />
                                 </ProtectedRoute>
                             } />

@@ -32,3 +32,8 @@ dist-ssr
 
 # Vercel
 .vercel
+
+# Logotipos compartidos (sincronizados)
+public/logo_canito.png
+public/logo-interstars.png
+public/logo-planetafc.png

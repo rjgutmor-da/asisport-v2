@@ -205,8 +205,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         escuelaId, // Usar el estado explícito
         sucursalId: userProfile?.sucursal_id || null, // Exportar sucursalId
-        isAdmin: role === 'Administrador' || role === 'Dueño' || role === 'SuperAdministrador',
-        isOwner: role === 'Dueño',
+        isAdmin: role === 'Administrador' || role === 'SuperAdministrador',
+        isOwner: role === 'SuperAdministrador',
         isCoach: role === 'Entrenador',
         isGoalkeeperCoach: role === 'Entrenarqueros',
         refreshProfile: async (userId) => {

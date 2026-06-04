@@ -82,12 +82,12 @@ const ListaAlumnos = () => {
     const esAdmin = isAdmin;
 
     const navItems = [
-        { path: '/dashboard', icon: Home, label: 'Inicio', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos', icon: Users, label: 'Alumnos', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', roles: ['SuperAdministrador', 'Administrador', 'Dueño', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/estadisticas', icon: BarChart3, label: 'Stats', roles: ['SuperAdministrador', 'Administrador', 'Dueño'] },
+        { path: '/dashboard', icon: Home, label: 'Inicio', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos', icon: Users, label: 'Alumnos', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
+        { path: '/estadisticas', icon: BarChart3, label: 'Stats', roles: ['SuperAdministrador', 'Administrador'] },
     ];
 
     const filteredNavItems = navItems.filter(item => {

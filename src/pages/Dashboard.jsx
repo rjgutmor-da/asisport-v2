@@ -33,7 +33,7 @@ const Dashboard = () => {
                         <button onClick={() => navigate('/asistencia')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Asistencia</button>
                         <button onClick={() => navigate('/alumnos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Alumnos</button>
                         <button onClick={() => navigate('/alumnos/cumpleanos')} className="text-text-secondary hover:text-primary font-medium text-[23px] transition-colors">Cumpleaños</button>
-                        {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
+                        {(role === 'SuperAdministrador' || role === 'Administrador') && (
                             <a 
                                 href={getSaasportUrl()} 
                                 target="_blank"
@@ -105,8 +105,8 @@ const Dashboard = () => {
 
 
 
-                    {/* Nuevo Módulo de Estadísticas (Solo Admin/Dueño/SuperAdmin) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
+                    {/* Nuevo Módulo de Estadísticas (Solo Admin/SuperAdmin) */}
+                    {(role === 'SuperAdministrador' || role === 'Administrador') && (
                         <>
                             <ModuleCard
                                 icon={<BarChart3 size={60} />}
@@ -128,8 +128,8 @@ const Dashboard = () => {
                         size="compact"
                     />
 
-                    {/* Módulo de Actividad (Solo SuperAdmin/Dueño/Administrador) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador' || role === 'Dueño') && (
+                    {/* Módulo de Actividad (Solo SuperAdmin/Administrador) */}
+                    {(role === 'SuperAdministrador' || role === 'Administrador') && (
                         <ModuleCard
                             icon={<Activity size={60} />}
                             label="Actividad"

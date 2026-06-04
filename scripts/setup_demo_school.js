@@ -71,7 +71,7 @@ async function setupDemo() {
                 email,
                 password: 'demoasisport',
                 email_confirm: true,
-                user_metadata: { role: 'Dueño' }
+                user_metadata: { role: 'SuperAdministrador' }
             });
             if (authError) throw authError;
             userId = authData.user.id;
@@ -84,7 +84,7 @@ async function setupDemo() {
                 email,
                 nombres: 'Director',
                 apellidos: 'Demo',
-                rol: 'Dueño',
+                rol: 'SuperAdministrador',
                 escuela_id: escuela.id,
                 sucursal_id: sucursal.id,
                 activo: true,

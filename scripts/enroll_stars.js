@@ -72,7 +72,7 @@ async function enrollStars() {
 
         await supabase.from('usuarios').upsert({
             id: userId, email, nombres: 'Director', apellidos: 'Demo',
-            rol: 'Dueño', escuela_id: ESCUELA_ID, sucursal_id: SUCURSAL_ID, activo: true,
+            rol: 'SuperAdministrador', escuela_id: ESCUELA_ID, sucursal_id: SUCURSAL_ID, activo: true,
             telefono_whatsapp: '59174631123'
         });
 

@@ -31,7 +31,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
 
         if (userError) throw userError;
 
-        const esAdmin = ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol);
+        const esAdmin = ['Administrador', 'SuperAdministrador'].includes(usuarioDB.rol);
         let targetEntrenadorId = user.id;
 
         if (esAdmin && entrenadorId) {
@@ -55,7 +55,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
             .eq('profesor_asignado_id', targetEntrenadorId)
             .eq('asistencias_normales.fecha', fecha); // Filtro en la relación (join filter)
 
-        if (usuarioDB.rol !== 'Dueño' && usuarioDB.rol !== 'SuperAdministrador') {
+        if (usuarioDB.rol !== 'SuperAdministrador') {
             if (usuarioDB.sucursal_id) {
                 query = query.eq('sucursal_id', usuarioDB.sucursal_id);
             }
@@ -100,7 +100,7 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
 
         if (targetEntrenadorId && targetEntrenadorId !== user.id) {
             const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
-            if (usuarioDB && ['Administrador', 'Dueño', 'SuperAdministrador'].includes(usuarioDB.rol)) {
+            if (usuarioDB && ['Administrador', 'SuperAdministrador'].includes(usuarioDB.rol)) {
                 entrenadorId = targetEntrenadorId;
             }
         }
@@ -194,7 +194,7 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userProfile && userProfile.rol !== 'Dueño' && userProfile.rol !== 'SuperAdministrador') {
+    if (userProfile && userProfile.rol !== 'SuperAdministrador') {
         if (userProfile.sucursal_id) {
             alumnosQuery = alumnosQuery.eq('sucursal_id', userProfile.sucursal_id);
         }
