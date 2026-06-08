@@ -152,6 +152,7 @@ const DetalleAlumno = () => {
                                         <img
                                             src={alumno.foto_url}
                                             alt={`${alumno.nombres} ${alumno.apellidos}`}
+                                            loading="lazy"
                                             className="w-32 h-32 rounded-md border-2 border-primary object-cover mb-2"
                                         />
                                         <p className="text-xs text-text-secondary text-center">Foto actual</p>
@@ -169,6 +170,7 @@ const DetalleAlumno = () => {
                                 <img
                                     src={alumno.foto_url}
                                     alt={`${alumno.nombres} ${alumno.apellidos}`}
+                                    loading="lazy"
                                     className="w-32 h-32 rounded-md border-2 border-primary object-cover"
                                 />
                             ) : (

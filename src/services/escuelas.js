@@ -13,7 +13,7 @@ export const getEscuelaActual = async () => {
 
     const { data, error } = await supabase
         .from('escuelas')
-        .select('*')
+        .select('id, nombre, logo_url, zona_horaria, activa, slogan')
         .eq('id', escuelaId)
         .single();
 

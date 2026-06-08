@@ -30,7 +30,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     // 2. Obtener datos completos de ambos alumnos
     const { data: destino, error: errDestino } = await supabase
         .from('alumnos')
-        .select('*')
+        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', destinoId)
         .single();
 
@@ -38,7 +38,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
 
     const { data: origen, error: errOrigen } = await supabase
         .from('alumnos')
-        .select('*')
+        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', origenId)
         .single();
 
@@ -183,7 +183,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     // 8. Retornar los datos actualizados del alumno destino
     const { data: resultado, error: errResultado } = await supabase
         .from('alumnos')
-        .select('*')
+        .select('id, nombres, apellidos')
         .eq('id', destinoId)
         .single();
 

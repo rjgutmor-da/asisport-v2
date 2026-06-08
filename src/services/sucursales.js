@@ -9,7 +9,7 @@ export const getSucursales = async () => {
     const escuelaId = await obtenerEscuelaId();
     const { data, error } = await supabase
         .from('sucursales')
-        .select('*')
+        .select('id, nombre, direccion, telefono')
         .eq('escuela_id', escuelaId)
         .order('nombre', { ascending: true });
 
@@ -23,7 +23,7 @@ export const getSucursales = async () => {
 export const getSucursalById = async (sucursalId) => {
     const { data, error } = await supabase
         .from('sucursales')
-        .select('*')
+        .select('id, nombre, direccion, telefono')
         .eq('id', sucursalId)
         .single();
 

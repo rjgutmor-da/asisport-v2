@@ -79,7 +79,10 @@ export const createAlumno = async (alumnoData, photoFile) => {
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
-            .upload(filePath, photoFile);
+            .upload(filePath, photoFile, {
+                cacheControl: '86400',
+                upsert: false
+            });
 
         if (uploadError) throw new Error('Error al subir la foto: ' + uploadError.message);
 

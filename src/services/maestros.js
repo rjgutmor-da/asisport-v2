@@ -11,7 +11,7 @@ export const getCanchas = async () => {
 
     const { data, error } = await supabase
         .from('canchas')
-        .select('*')
+        .select('id, nombre')
         .eq('escuela_id', escuelaId)
         .eq('activo', true);
 
@@ -31,7 +31,7 @@ export const getHorarios = async () => {
 
     const { data, error } = await supabase
         .from('horarios')
-        .select('*')
+        .select('id, hora')
         .eq('escuela_id', escuelaId)
         .eq('activo', true)
         .order('hora', { ascending: true });
@@ -167,7 +167,7 @@ export const getAllCanchas = async () => {
     const { data, error } = await supabase
         .from('canchas')
         // Se incluye la sucursal relacionada para mostrarla en la UI
-        .select('*, sucursal:sucursales(id, nombre)')
+        .select('id, nombre, activo, sucursal_id, sucursal:sucursales(id, nombre)')
         .eq('escuela_id', escuelaId)
         .order('nombre', { ascending: true });
 
@@ -315,7 +315,7 @@ export const getAllHorarios = async () => {
 
     const { data, error } = await supabase
         .from('horarios')
-        .select('*')
+        .select('id, hora, activo, escuela_id')
         .eq('escuela_id', escuelaId)
         .order('hora', { ascending: true });
 

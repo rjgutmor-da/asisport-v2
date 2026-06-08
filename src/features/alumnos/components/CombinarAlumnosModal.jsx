@@ -54,7 +54,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
     const renderFoto = (alumno, size = 'w-10 h-10') => {
         if (!alumno) return null;
         if (alumno.foto_url) {
-            return <img src={alumno.foto_url} alt="" className={`${size} rounded-full object-cover border border-primary/30`} />;
+            return <img src={alumno.foto_url} alt="" loading="lazy" className={`${size} rounded-full object-cover border border-primary/30`} />;
         }
         const initials = `${alumno.nombres?.[0] || ''}${alumno.apellidos?.[0] || ''}`.toUpperCase();
         return (

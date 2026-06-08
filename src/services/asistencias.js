@@ -179,7 +179,7 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
     if (!canchaId && !horarioId) {
         const { count, error } = await supabase
             .from('asistencias_normales')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('fecha', fecha)
             .eq('entrenador_id', user.id);
 
@@ -213,7 +213,7 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
     // Contar asistencias solo de estos alumnos para esta fecha y entrenador
     const { count, error } = await supabase
         .from('asistencias_normales')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('fecha', fecha)
         .eq('entrenador_id', user.id)
         .in('alumno_id', alumnoIds);
@@ -271,7 +271,7 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
 
     const { data, error } = await supabase
         .from('v_estadisticas_asistencia_diaria')
-        .select('*')
+        .select('fecha, presentes, licencias, profesor_asignado_id, cancha_id, horario_id, escuela_id')
         .eq('escuela_id', escuelaId)
         .gte('fecha', fechaInicio)
         .lte('fecha', fechaFin);

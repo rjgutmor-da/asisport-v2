@@ -29,7 +29,7 @@ const RegistroActividad = () => {
 
     const { data, error } = await supabase
       .from('audit_log')
-      .select('*')
+      .select('id, created_at, modulo, accion, detalle, usuario_nombre')
       .eq('escuela_id', escuelaId)
       .eq('ip_address', 'AsiSport')   // Solo actividades propias de AsiSport
       .gte('created_at', dInicio)
