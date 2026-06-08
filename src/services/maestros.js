@@ -3,22 +3,22 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { cacheService } from '../lib/cacheService';
 
 export const getCanchas = async () => {
-    // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('canchas');
+    // Verificar caché antes de consultar Supabase (usamos canchas_v2 para forzar recarga con sucursal_id)
+    const cached = cacheService.get('canchas_v2');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
         .from('canchas')
-        .select('id, nombre')
+        .select('id, nombre, sucursal_id')
         .eq('escuela_id', escuelaId)
         .eq('activo', true);
 
     if (error) throw error;
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('canchas', data);
+    cacheService.set('canchas_v2', data);
     return data;
 };
 
