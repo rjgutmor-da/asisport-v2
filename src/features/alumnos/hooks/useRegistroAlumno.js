@@ -95,7 +95,7 @@ export const useRegistroAlumno = (onSuccess) => {
      */
     const canchasFiltradas = useMemo(() => {
         if (!formData.sucursal_id) return canchas;
-        return canchas.filter(c => String(c.sucursal_id) === String(formData.sucursal_id));
+        return canchas.filter(c => !c.sucursal_id || String(c.sucursal_id) === String(formData.sucursal_id));
     }, [formData.sucursal_id, canchas]);
 
     /**
