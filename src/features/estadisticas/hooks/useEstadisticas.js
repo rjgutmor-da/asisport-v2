@@ -294,6 +294,33 @@ export const useEstadisticas = () => {
         // Filtrar las asistencias individuales
         const alumnosMap = new Map(alumnos.map(a => [a.id, a]));
         
+        // Obtener la lista única de alumnos activos que coinciden con los filtros aplicados
+        const matchingAlumnos = alumnos.filter(alumno => {
+            if (alumno.archivado) return false;
+            if (alumno.estado === 'ELIMINADO SISTEMA') return false;
+
+            // Filtro por Entrenador
+            if (debouncedEntrenadores.length > 0 && !debouncedEntrenadores.includes(alumno.profesor_asignado_id)) {
+                return false;
+            }
+            // Filtro por Cancha/Grupo
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) {
+                return false;
+            }
+            // Filtro por Horario
+            if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) {
+                return false;
+            }
+            // Filtro por Categoría
+            if (debouncedCategorias.length > 0) {
+                const subLabel = `Sub-${alumno.sub}`;
+                if (!debouncedCategorias.includes(subLabel)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
         const filteredDetalle = asistenciasDetalle.filter(asistencia => {
             const alumno = alumnosMap.get(asistencia.alumno_id);
             if (!alumno) return false;
@@ -309,7 +336,11 @@ export const useEstadisticas = () => {
 
             if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) return false;
             if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) return false;
-            if (debouncedCategorias.length > 0 && !debouncedCategorias.includes(alumno.categoria_id)) return false;
+            
+            if (debouncedCategorias.length > 0) {
+                const subLabel = `Sub-${alumno.sub}`;
+                if (!debouncedCategorias.includes(subLabel)) return false;
+            }
             
             if (debouncedDias.length > 0) {
                 const dateObj = new Date(asistencia.fecha + 'T12:00:00');
@@ -319,19 +350,34 @@ export const useEstadisticas = () => {
             return true;
         });
 
-        if (!filteredDetalle.length) return { students: [], dates: [], hasAggregateData: false };
+        if (!filteredDetalle.length && !matchingAlumnos.length) return { students: [], dates: [], hasAggregateData: false };
 
         const dates = [...new Set(filteredDetalle.map(a => a.fecha))].sort();
 
-        const grouped = filteredDetalle.reduce((acc, curr) => {
+        // Inicializar grouped con todos los alumnos que coinciden para asegurar que aparezcan
+        const grouped = {};
+        matchingAlumnos.forEach(alumno => {
+            grouped[alumno.id] = {
+                id: alumno.id,
+                nombreCompleto: `${alumno.nombres} ${alumno.apellidos}`,
+                apellidos: alumno.apellidos || '',
+                nombres: alumno.nombres || '',
+                presentes: 0,
+                licencias: 0,
+                asistenciasPorFecha: {}
+            };
+        });
+
+        // Rellenar con los registros de asistencia existentes
+        filteredDetalle.forEach(curr => {
             const alumnoId = curr.alumno_id;
-            if (!acc[alumnoId]) {
+            if (!grouped[alumnoId]) {
                 const alumno = alumnosMap.get(alumnoId);
                 const nombreFormateado = alumno 
                     ? `${alumno.nombres} ${alumno.apellidos}` 
                     : 'Desconocido';
                 
-                acc[alumnoId] = {
+                grouped[alumnoId] = {
                     id: alumnoId,
                     nombreCompleto: nombreFormateado,
                     apellidos: alumno?.apellidos || '',
@@ -343,15 +389,17 @@ export const useEstadisticas = () => {
             }
 
             if (curr.estado === 'Presente') {
-                acc[alumnoId].presentes++;
-                acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'P';
+                grouped[alumnoId].presentes++;
+                grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'P';
             }
             else if (curr.estado === 'Licencia') {
-                acc[alumnoId].licencias++;
-                acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'L';
+                grouped[alumnoId].licencias++;
+                grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'L';
             }
-            return acc;
-        }, {});
+            else if (curr.estado === 'Ausente') {
+                grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'A';
+            }
+        });
 
         return {
             students: Object.values(grouped).sort((a, b) => {

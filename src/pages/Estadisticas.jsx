@@ -197,155 +197,207 @@ const Estadisticas = () => {
 
         setExportLoading(true);
         try {
-        // Cargar datos individuales bajo demanda
-        const detalle = await loadDetalleForExport();
-        if (!detalle || detalle.length === 0) {
-            setExportLoading(false);
-            return;
-        }
-
-        // Reconstruir exportData con detalle
-        // Recuperamos TODOS los alumnos de la escuela (incluyendo archivados) para tener sus nombres
-        const escuelaId = await obtenerEscuelaId();
-        const { data: allAlumnos, error: alumnosError } = await supabase
-            .from('alumnos')
-            .select('id, nombres, apellidos, profesor_asignado_id, cancha_id, horario_id, categoria_id')
-            .eq('escuela_id', escuelaId);
-
-        if (alumnosError) console.error("Error cargando alumnos para exportación:", alumnosError);
-
-        // Combinamos los alumnos de la caché con los descargados para máxima seguridad
-        const combinedAlumnos = [...(alumnos || []), ...(allAlumnos || [])];
-        const alumnosMap = new Map(combinedAlumnos.map(a => [a.id, a]));
-        
-        console.log(`Exportando ${detalle.length} registros para ${alumnosMap.size} alumnos...`);
-
-        const filteredDetalle = detalle.filter(a => {
-            const alumno = alumnosMap.get(a.alumno_id);
-            if (!alumno) return false;
-
-            // Filtro por Entrenador (Doble check: registro histórico o asignación actual)
-            if (selectedEntrenadores.length > 0) {
-                const matchRegistro = a.entrenador_id && selectedEntrenadores.includes(a.entrenador_id);
-                const matchAlumno = alumno.profesor_asignado_id && selectedEntrenadores.includes(alumno.profesor_asignado_id);
-                if (!matchRegistro && !matchAlumno) return false;
+            // Cargar datos individuales bajo demanda
+            const detalle = await loadDetalleForExport();
+            if (!detalle || detalle.length === 0) {
+                setExportLoading(false);
+                return;
             }
 
-            if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
-            if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
-            if (selectedCategorias.length > 0 && !selectedCategorias.includes(alumno.categoria_id)) return false;
+            // Reconstruir exportData con detalle
+            // Recuperamos TODOS los alumnos de la escuela (incluyendo archivados) para tener sus nombres
+            const escuelaId = await obtenerEscuelaId();
+            const { data: allAlumnos, error: alumnosError } = await supabase
+                .from('v_alumnos')
+                .select('id, nombres, apellidos, profesor_asignado_id, cancha_id, horario_id, sub, archivado, estado')
+                .eq('escuela_id', escuelaId);
 
-            if (selectedDias.length > 0) {
-                const dateObj = new Date(a.fecha + 'T12:00:00');
-                const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
-                if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) return false;
-            }
+            if (alumnosError) console.error("Error cargando alumnos para exportación:", alumnosError);
 
-            return true;
-        });
+            // Combinamos los alumnos de la caché con los descargados para máxima seguridad
+            const combinedAlumnos = [...(alumnos || []), ...(allAlumnos || [])];
+            const alumnosMap = new Map(combinedAlumnos.map(a => [a.id, a]));
+            
+            console.log(`Exportando ${detalle.length} registros para ${alumnosMap.size} alumnos...`);
 
-        if (filteredDetalle.length === 0) { setExportLoading(false); return; }
+            // Obtener la lista única de alumnos y filtrar los alumnos activos que coinciden con los filtros aplicados
+            const uniqueAlumnos = Array.from(alumnosMap.values());
+            const matchingAlumnos = uniqueAlumnos.filter(alumno => {
+                if (alumno.archivado) return false;
+                if (alumno.estado === 'ELIMINADO SISTEMA') return false;
 
-        const dates = [...new Set(filteredDetalle.map(r => r.fecha))].sort();
-        const grouped = filteredDetalle.reduce((acc, curr) => {
-            const alumnoId = curr.alumno_id;
-            if (!acc[alumnoId]) {
-                const alumno = alumnosMap.get(alumnoId);
-                const nombreFormateado = alumno 
-                    ? `${alumno.nombres} ${alumno.apellidos}` 
-                    : 'Desconocido';
+                // Filtro por Entrenador
+                if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) {
+                    return false;
+                }
+                // Filtro por Cancha/Grupo
+                if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) {
+                    return false;
+                }
+                // Filtro por Horario
+                if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) {
+                    return false;
+                }
+                // Filtro por Categoría
+                if (selectedCategorias.length > 0) {
+                    const subLabel = `Sub-${alumno.sub}`;
+                    if (!selectedCategorias.includes(subLabel)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            // Filtrar las asistencias de acuerdo a los filtros aplicados
+            const filteredDetalle = detalle.filter(a => {
+                const alumno = alumnosMap.get(a.alumno_id);
+                if (!alumno) return false;
+
+                // Filtro por Entrenador (Doble check: registro histórico o asignación actual)
+                if (selectedEntrenadores.length > 0) {
+                    const matchRegistro = a.entrenador_id && selectedEntrenadores.includes(a.entrenador_id);
+                    const matchAlumno = alumno.profesor_asignado_id && selectedEntrenadores.includes(alumno.profesor_asignado_id);
+                    if (!matchRegistro && !matchAlumno) return false;
+                }
+
+                if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
+                if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
                 
-                acc[alumnoId] = {
-                    nombreCompleto: nombreFormateado,
-                    apellidos: alumno?.apellidos || '',
-                    nombres: alumno?.nombres || '',
-                    presentes: 0, licencias: 0, asistenciasPorFecha: {}
+                if (selectedCategorias.length > 0) {
+                    const subLabel = `Sub-${alumno.sub}`;
+                    if (!selectedCategorias.includes(subLabel)) return false;
+                }
+
+                if (selectedDias.length > 0) {
+                    const dateObj = new Date(a.fecha + 'T12:00:00');
+                    const diaNombre = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                    if (!selectedDias.map(d => d.toLowerCase()).includes(diaNombre.toLowerCase())) return false;
+                }
+
+                return true;
+            });
+
+            // Inicializar grouped con todos los alumnos que coinciden para asegurar que aparezcan
+            const grouped = {};
+            matchingAlumnos.forEach(alumno => {
+                grouped[alumno.id] = {
+                    nombreCompleto: `${alumno.nombres} ${alumno.apellidos}`,
+                    apellidos: alumno.apellidos || '',
+                    nombres: alumno.nombres || '',
+                    presentes: 0,
+                    licencias: 0,
+                    asistenciasPorFecha: {}
                 };
-            }
-            if (curr.estado === 'Presente') { acc[alumnoId].presentes++; acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'P'; }
-            else if (curr.estado === 'Licencia') { acc[alumnoId].licencias++; acc[alumnoId].asistenciasPorFecha[curr.fecha] = 'L'; }
-            return acc;
-        }, {});
-        
-        const students = Object.values(grouped).sort((a, b) => {
-            // Ordenar por nombre completo (A-Z) tal como solicitó el usuario
-            return a.nombreCompleto.localeCompare(b.nombreCompleto);
-        });
-        
-        if (students.length === 0) { setExportLoading(false); return; }
+            });
 
-        // students y dates ya están calculados arriba
+            // Rellenar con los registros de asistencia existentes
+            filteredDetalle.forEach(curr => {
+                const alumnoId = curr.alumno_id;
+                if (!grouped[alumnoId]) {
+                    const alumno = alumnosMap.get(alumnoId);
+                    const nombreFormateado = alumno 
+                        ? `${alumno.nombres} ${alumno.apellidos}` 
+                        : 'Desconocido';
+                    
+                    grouped[alumnoId] = {
+                        nombreCompleto: nombreFormateado,
+                        apellidos: alumno?.apellidos || '',
+                        nombres: alumno?.nombres || '',
+                        presentes: 0,
+                        licencias: 0,
+                        asistenciasPorFecha: {}
+                    };
+                }
+                if (curr.estado === 'Presente') {
+                    grouped[alumnoId].presentes++;
+                    grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'P';
+                } else if (curr.estado === 'Licencia') {
+                    grouped[alumnoId].licencias++;
+                    grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'L';
+                } else if (curr.estado === 'Ausente') {
+                    grouped[alumnoId].asistenciasPorFecha[curr.fecha] = 'A';
+                }
+            });
+            
+            const students = Object.values(grouped).sort((a, b) => {
+                // Ordenar por nombre completo (A-Z) tal como solicitó el usuario
+                return a.nombreCompleto.localeCompare(b.nombreCompleto);
+            });
+            
+            if (students.length === 0) { setExportLoading(false); return; }
 
-        // Formatear cabeceras de fechas (DD/MM)
-        const dateHeaders = dates.map(fecha => {
-            const d = new Date(fecha + 'T12:00:00');
-            return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
-        });
+            const dates = [...new Set(filteredDetalle.map(r => r.fecha))].sort();
 
-        // Resolver nombres de los filtros aplicados
-        const nombresEntrenadores = selectedEntrenadores.length === 0
-            ? 'Todos'
-            : selectedEntrenadores
-                .map(id => entrenadores.find(e => e.value === id)?.label ?? id)
-                .join(', ');
+            // Formatear cabeceras de fechas (DD/MM)
+            const dateHeaders = dates.map(fecha => {
+                const d = new Date(fecha + 'T12:00:00');
+                return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+            });
 
-        const nombresCanchas = selectedCanchas.length === 0
-            ? 'Todas'
-            : selectedCanchas
-                .map(id => canchas.find(c => c.value === id)?.label ?? id)
-                .join(', ');
+            // Resolver nombres de los filtros aplicados
+            const nombresEntrenadores = selectedEntrenadores.length === 0
+                ? 'Todos'
+                : selectedEntrenadores
+                    .map(id => entrenadores.find(e => e.value === id)?.label ?? id)
+                    .join(', ');
 
-        const nombresHorarios = selectedHorarios.length === 0
-            ? 'Todos'
-            : selectedHorarios
-                .map(id => horarios.find(h => h.value === id)?.label ?? id)
-                .join(', ');
+            const nombresCanchas = selectedCanchas.length === 0
+                ? 'Todas'
+                : selectedCanchas
+                    .map(id => canchas.find(c => c.value === id)?.label ?? id)
+                    .join(', ');
 
-        const nombresCategorias = selectedCategorias.length === 0
-            ? 'Todas'
-            : selectedCategorias.join(', ');
+            const nombresHorarios = selectedHorarios.length === 0
+                ? 'Todos'
+                : selectedHorarios
+                    .map(id => horarios.find(h => h.value === id)?.label ?? id)
+                    .join(', ');
 
-        // Crear encabezado del reporte con filtros detallados
-        const filterInfo = [
-            ['Reporte de Asistencias — AsiSport'],
-            [`Generado: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`],
-            [],
-            ['Filtros Aplicados'],
-            ['Período:', dateRangeText],
-            ['Entrenadores:', nombresEntrenadores],
-            ['Canchas:', nombresCanchas],
-            ['Horarios:', nombresHorarios],
-            ['Categorías:', nombresCategorias],
-            [], // Fila vacía separador
-            ['Alumno', 'Presentes', 'Licencias', ...dateHeaders]
-        ];
+            const nombresCategorias = selectedCategorias.length === 0
+                ? 'Todas'
+                : selectedCategorias.join(', ');
 
-        // Agregar datos de alumnos con su detalle diario
-        const dataRows = students.map(item => [
-            item.nombreCompleto,
-            item.presentes,
-            item.licencias,
-            ...dates.map(fecha => item.asistenciasPorFecha[fecha] || '')
-        ]);
+            // Crear encabezado del reporte con filtros detallados
+            const filterInfo = [
+                ['Reporte de Asistencias — AsiSport'],
+                [`Generado: ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`],
+                [],
+                ['Filtros Aplicados'],
+                ['Período:', dateRangeText],
+                ['Entrenadores:', nombresEntrenadores],
+                ['Grupos:', nombresCanchas],
+                ['Horarios:', nombresHorarios],
+                ['Categorías:', nombresCategorias],
+                [], // Fila vacía separador
+                ['Alumno', 'Presentes', 'Licencias', ...dateHeaders]
+            ];
 
-        const allRows = [...filterInfo, ...dataRows];
+            // Agregar datos de alumnos con su detalle diario
+            const dataRows = students.map(item => [
+                item.nombreCompleto,
+                item.presentes,
+                item.licencias,
+                ...dates.map(fecha => item.asistenciasPorFecha[fecha] || '')
+            ]);
 
-        const ws = XLSX.utils.aoa_to_sheet(allRows);
+            const allRows = [...filterInfo, ...dataRows];
 
-        // Ajustar anchos de columna dinámicamente
-        const baseCols = [
-            { wch: 35 }, // Alumno
-            { wch: 10 }, // Presentes
-            { wch: 10 }  // Licencias
-        ];
+            const ws = XLSX.utils.aoa_to_sheet(allRows);
 
-        // Agregar anchos para cada columna de fecha
-        const dateCols = dates.map(() => ({ wch: 6 }));
-        ws['!cols'] = [...baseCols, ...dateCols];
+            // Ajustar anchos de columna dinámicamente
+            const baseCols = [
+                { wch: 35 }, // Alumno
+                { wch: 10 }, // Presentes
+                { wch: 10 }  // Licencias
+            ];
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
-        XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
+            // Agregar anchos para cada columna de fecha
+            const dateCols = dates.map(() => ({ wch: 6 }));
+            ws['!cols'] = [...baseCols, ...dateCols];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
+            XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
         } catch (error) {
             console.error("Error crítico durante la exportación:", error);
             alert("No se pudo generar el reporte: " + error.message);
