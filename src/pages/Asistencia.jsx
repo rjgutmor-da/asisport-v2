@@ -6,6 +6,7 @@ import AsistenciaListItem from '../features/asistencias/components/AsistenciaLis
 
 import { useAsistencias } from '../features/asistencias/hooks/useAsistencias';
 import TabBar from '../components/dashboard/TabBar';
+import DesktopNavbar from '../components/layout/DesktopNavbar';
 
 /**
  * Página principal de Asistencias con flujo refinado
@@ -86,7 +87,7 @@ const Asistencia = () => {
             {/* Header */}
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-shrink-0">
                         <button
                             onClick={() => navigate('/dashboard')}
                             className="text-white hover:text-primary transition-colors"
@@ -96,10 +97,15 @@ const Asistencia = () => {
                         <h1 className="text-xl font-bold text-white">Asistencia</h1>
                     </div>
 
+                    {/* Menú de navegación superior para escritorio */}
+                    <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                        <DesktopNavbar className="text-[18px]" />
+                    </div>
+
                     <button
                         onClick={refresh}
                         disabled={loading}
-                        className="p-2 text-text-secondary hover:text-primary transition-colors"
+                        className="p-2 text-text-secondary hover:text-primary transition-colors flex-shrink-0"
                         title="Refrescar"
                     >
                         <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />

@@ -4,6 +4,7 @@ import { ArrowLeft, Archive, RotateCcw, Users, Search } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getAlumnosArchivados, restaurarAlumno } from '../../services/alumnos';
+import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const AlumnosArchivados = () => {
     const navigate = useNavigate();
@@ -55,14 +56,21 @@ const AlumnosArchivados = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
-            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center gap-4">
-                <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
-                    <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Archive />
-                    Alumnos Archivados
-                </h1>
+            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
+                    <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Archive />
+                        Alumnos Archivados
+                    </h1>
+                </div>
+
+                {/* Menú de navegación superior para escritorio */}
+                <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                    <DesktopNavbar className="text-[18px]" />
+                </div>
             </header>
 
             <main className="max-w-6xl mx-auto p-4 md:p-6">

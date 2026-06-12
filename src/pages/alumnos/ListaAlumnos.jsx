@@ -8,6 +8,7 @@ import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
 import { useAlumnos } from '../../features/alumnos/hooks/useAlumnos';
 import { useAuth } from '../../context/AuthContext';
 import TabBar from '../../components/dashboard/TabBar';
+import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 /**
  * Página principal de la lista de alumnos.
@@ -81,19 +82,7 @@ const ListaAlumnos = () => {
     // Usar el isAdmin del AuthContext (incluye SuperAdministrador, Administrador y Dueño)
     const esAdmin = isAdmin;
 
-    const navItems = [
-        { path: '/dashboard', icon: Home, label: 'Inicio', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos', icon: Users, label: 'Alumnos', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/estadisticas', icon: BarChart3, label: 'Stats', roles: ['SuperAdministrador', 'Administrador'] },
-    ];
 
-    const filteredNavItems = navItems.filter(item => {
-        if (!item.roles) return true;
-        return item.roles.includes(role);
-    });
 
     // Nombres de meses para cabecera de tabla
     const nombresMeses = [
@@ -208,23 +197,7 @@ const ListaAlumnos = () => {
 
                 {/* Menú de navegación superior para escritorio */}
                 <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
-                    {filteredNavItems.map((item) => {
-                        const active = location.pathname === item.path;
-                        return (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                                    active
-                                        ? 'text-primary font-bold border-b-2 border-primary pb-0.5'
-                                        : 'text-text-secondary hover:text-white pb-0.5 border-b-2 border-transparent'
-                                }`}
-                            >
-                                <item.icon size={16} />
-                                <span>{item.label}</span>
-                            </button>
-                        );
-                    })}
+                    <DesktopNavbar className="text-[18px]" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -392,7 +365,16 @@ const ListaAlumnos = () => {
                         />
                     )}
 
-                    {/* 2. Filtro Sub */}
+                    {/* 2. Filtro Grupo (movido de la posición 5 a la 2) */}
+                    <MultiSelectFilter
+                        label="Grupo"
+                        placeholder="Todos los Grupos"
+                        options={canchas}
+                        selectedValues={selectedCanchas}
+                        onChange={setSelectedCanchas}
+                    />
+
+                    {/* 3. Filtro Sub */}
                     <MultiSelectFilter
                         label="Categoría (Sub)"
                         placeholder="Todos los Sub"
@@ -410,22 +392,13 @@ const ListaAlumnos = () => {
                         onChange={setSelectedTipos}
                     />
 
-                    {/* 3. Filtro Horario */}
+                    {/* 4. Filtro Horario */}
                     <MultiSelectFilter
                         label="Horario"
                         placeholder="Todos los Horarios"
                         options={horarios}
                         selectedValues={selectedHorarios}
                         onChange={setSelectedHorarios}
-                    />
-
-                    {/* 4. Filtro Grupo */}
-                    <MultiSelectFilter
-                        label="Grupo"
-                        placeholder="Todos los Grupos"
-                        options={canchas}
-                        selectedValues={selectedCanchas}
-                        onChange={setSelectedCanchas}
                     />
                 </div>
 

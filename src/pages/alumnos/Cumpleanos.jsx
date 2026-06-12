@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Gift, Calendar, Clock } from 'lucide-react';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import { useCumpleanos } from '../../features/alumnos/hooks/useCumpleanos';
+import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const Cumpleanos = () => {
     const navigate = useNavigate();
@@ -24,16 +25,23 @@ const Cumpleanos = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
-            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className="text-white hover:text-primary transition-colors"
-                >
-                    <ArrowLeft size={24} />
-                </button>
-                <div className="flex items-center gap-2">
-                    <Gift className="text-primary" size={24} />
-                    <h1 className="text-xl font-bold text-white">Cumpleaños</h1>
+            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="text-white hover:text-primary transition-colors"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <Gift className="text-primary" size={24} />
+                        <h1 className="text-xl font-bold text-white">Cumpleaños</h1>
+                    </div>
+                </div>
+
+                {/* Menú de navegación superior para escritorio */}
+                <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                    <DesktopNavbar className="text-[18px]" />
                 </div>
             </header>
 

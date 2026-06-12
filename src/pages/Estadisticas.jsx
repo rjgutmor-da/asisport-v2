@@ -7,6 +7,7 @@ import { useEstadisticas } from '../features/estadisticas/hooks/useEstadisticas'
 
 import MultiSelectFilter from '../components/ui/MultiSelectFilter';
 import TabBar from '../components/dashboard/TabBar';
+import DesktopNavbar from '../components/layout/DesktopNavbar';
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 
@@ -52,7 +53,7 @@ const Estadisticas = () => {
         { id: 'direccion', label: 'Dirección' },
         { id: 'estado', label: 'Estado' },
         { id: 'es_arquero', label: 'Es Arquero' },
-        { id: 'cancha', label: 'Cancha' },
+        { id: 'cancha', label: 'Grupo' },
         { id: 'horario', label: 'Horario' },
         { id: 'entrenador', label: 'Entrenador Asignado' },
         { id: 'nombre_padre', label: 'Nombre del Padre' },
@@ -462,11 +463,16 @@ const Estadisticas = () => {
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
                     <button onClick={() => navigate('/dashboard')} className="text-white hover:text-primary transition-colors">
                         <ArrowLeft size={24} />
                     </button>
                     <h1 className="text-xl font-bold text-white">Estadísticas</h1>
+                </div>
+
+                {/* Menú de navegación superior para escritorio */}
+                <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                    <DesktopNavbar className="text-[18px]" />
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -622,7 +628,16 @@ const Estadisticas = () => {
                             placeholder="Todos"
                         />
 
-                        {/* 3. Categoría (Multi-select) */}
+                        {/* 3. Grupo (Multi-select, anteriormente Cancha) */}
+                        <MultiSelectFilter
+                            label="Grupo"
+                            options={canchas}
+                            selectedValues={selectedCanchas}
+                            onChange={setSelectedCanchas}
+                            placeholder="Todos"
+                        />
+
+                        {/* 4. Categoría (Multi-select) */}
                         <MultiSelectFilter
                             label="Categoría (Sub)"
                             options={availableCategorias}
@@ -631,22 +646,13 @@ const Estadisticas = () => {
                             placeholder="Todas"
                         />
 
-                        {/* 4. Horario (Multi-select) */}
+                        {/* 5. Horario (Multi-select) */}
                         <MultiSelectFilter
                             label="Horario"
                             options={horarios}
                             selectedValues={selectedHorarios}
                             onChange={setSelectedHorarios}
                             placeholder="Todos"
-                        />
-
-                        {/* 5. Cancha (Multi-select) */}
-                        <MultiSelectFilter
-                            label="Cancha"
-                            options={canchas}
-                            selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
-                            placeholder="Todas"
                         />
                     </div>
                 </div>
