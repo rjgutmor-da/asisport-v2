@@ -151,7 +151,6 @@ export const useRegistroAlumno = (onSuccess) => {
         if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'Fecha de nacimiento es requerida';
         if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona una cancha';
         if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
-        if (!formData.profesor_asignado_id) newErrors.profesor_asignado_id = 'Selecciona un profesor asignado';
 
         // Validación Representante Legal: solo el nombre es obligatorio, el teléfono es opcional
         const tieneNombrePadre = formData.nombre_padre && formData.nombre_padre.trim();

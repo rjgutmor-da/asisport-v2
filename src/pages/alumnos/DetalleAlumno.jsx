@@ -478,10 +478,10 @@ const DetalleAlumno = () => {
                             )}
 
                             <Select
-                                label="Profesor Asignado *"
+                                label="Profesor Asignado"
                                 name="profesor_asignado_id"
                                 value={formData.profesor_asignado_id || ''}
-                                options={entrenadores}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
                                 disabled={!editing}
                                 placeholder="Seleccionar entrenador..."

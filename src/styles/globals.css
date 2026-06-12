@@ -123,6 +123,12 @@
     input[type="number"] {
         -moz-appearance: textfield; /* Firefox */
     }
+
+    /* Cambiar el color del icono del calendario en inputs de tipo date */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+    }
 }
 
 /* Clases de utilidad personalizadas */

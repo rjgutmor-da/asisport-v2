@@ -287,10 +287,10 @@ const RegistroAlumno = () => {
                             />
                             
                             <Select
-                                label="Profesor Asignado *"
+                                label="Profesor Asignado"
                                 name="profesor_asignado_id"
                                 value={formData.profesor_asignado_id}
-                                options={entrenadores}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
                                 error={errors.profesor_asignado_id}
                                 disabled={isCoach}

@@ -116,7 +116,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
         sucursal_id: alumnoData.sucursal_id || userProfile?.sucursal_id || null,
         cancha_id: alumnoData.cancha_id,
         horario_id: alumnoData.horario_id,
-        profesor_asignado_id: alumnoData.profesor_asignado_id, // ✅ Guardar profesor asignado
+        profesor_asignado_id: alumnoData.profesor_asignado_id || null, // ✅ Guardar profesor asignado
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
         estado: 'Pendiente',
