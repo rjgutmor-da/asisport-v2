@@ -63,13 +63,12 @@ const DesktopNavbar = ({ className = "text-[18px]", gap = "gap-6" }) => {
                 Cumpleaños
             </button>
             {(role === 'SuperAdministrador' || role === 'Administrador') && (
-                <a 
-                    href={getSaasportUrl()} 
-                    target="SaaSportApp"
+                <button 
+                    onClick={() => window.open(getSaasportUrl(), 'EcosistemaSaaSport')}
                     className={`text-text-secondary hover:text-primary transition-colors font-medium ${className}`}
                 >
                     SaaSport
-                </a>
+                </button>
             )}
         </nav>
     );
