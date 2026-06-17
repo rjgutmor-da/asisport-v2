@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import imageCompression from 'browser-image-compression';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getSucursales } from '../../../services/sucursales';
+import { getCamposFaltantes } from '../utils/alumnoCompletitud';
 
 /**
  * Hook para manejar la lógica de detalle y edición de un alumno.
@@ -29,6 +30,9 @@ export const useAlumno = (id) => {
 
     // Estado del formulario de edición
     const [formData, setFormData] = useState({});
+
+    // Estado de errores de validación
+    const [errors, setErrors] = useState({});
 
     // Estado para la nueva foto seleccionada (archivo)
     const [photoFile, setPhotoFile] = useState(null);
@@ -104,6 +108,10 @@ export const useAlumno = (id) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+        // Limpiar error del campo modificado
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
     };
 
 
@@ -200,6 +208,20 @@ export const useAlumno = (id) => {
 
     // Guardar todos los cambios (datos y foto)
     const saveChanges = async () => {
+        const newErrors = {};
+        if (!formData.nombres?.trim()) newErrors.nombres = 'El nombre es requerido';
+        if (!formData.apellidos?.trim()) newErrors.apellidos = 'El apellido es requerido';
+        if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
+        if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona un grupo';
+        if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
+        if (!formData.sucursal_id) newErrors.sucursal_id = 'Selecciona una sucursal';
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            addToast('Por favor, corrige los errores en el formulario', 'error');
+            return false;
+        }
+
         setSaving(true);
         try {
             // 1. Si hay una nueva foto, subirla primero
@@ -276,23 +298,12 @@ export const useAlumno = (id) => {
     const cancelEditing = () => {
         setFormData(alumno);
         setPhotoFile(null);
+        setErrors({});
         setEditing(false);
     };
 
-    // Aprobar alumno (cambiar estado de Pendiente a Aprobado)
-    const handleAprobar = async () => {
-        try {
-            const { aprobarAlumno } = await import('../../../services/alumnos');
-            await aprobarAlumno(id);
-            setAlumno(prev => ({ ...prev, estado: 'Aprobado' }));
-            addToast('Alumno aprobado correctamente', 'success');
-            return true;
-        } catch (error) {
-            console.error(error);
-            addToast(error.message, 'error');
-            return false;
-        }
-    };
+    // Cálculo dinámico de campos faltantes
+    const camposFaltantes = alumno ? getCamposFaltantes(alumno) : [];
 
     return {
         alumno,
@@ -301,6 +312,7 @@ export const useAlumno = (id) => {
         saving,
         formData,
         photoFile,
+        errors,
         maestros: { canchas, horarios, entrenadores, sucursales },
 
         setEditing,
@@ -308,6 +320,6 @@ export const useAlumno = (id) => {
         setPhotoFile,
         saveChanges,
         cancelEditing,
-        handleAprobar
+        camposFaltantes
     };
 };

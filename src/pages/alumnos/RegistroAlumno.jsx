@@ -235,10 +235,10 @@ const RegistroAlumno = () => {
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
-                                        label="Sucursal"
+                                        label="Sucursal *"
                                         name="sucursal_id"
                                         value={formData.sucursal_id}
-                                        options={[{ value: '', label: 'Todas las sucursales' }, ...sucursales]}
+                                        options={sucursales}
                                         onChange={handleChange}
                                         error={errors.sucursal_id}
                                     />

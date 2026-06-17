@@ -119,7 +119,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
         profesor_asignado_id: alumnoData.profesor_asignado_id || null, // ✅ Guardar profesor asignado
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
-        estado: 'Pendiente',
+        estado: 'Activo',
         escuela_id: escuelaId,
         created_by: user.id,
         tipo: alumnoData.tipo || 'Formativo',
@@ -317,6 +317,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
             nombre_padre, telefono_padre, nombre_madre, telefono_madre,
             telefono_deportista, whatsapp_preferido, created_at, sub,
             asistencias_mes_actual, asistencias_mes_anterior, tipo, mensualidad,
+            colegio, direccion, sucursal_id,
             cancha:canchas(nombre),
             horario:horarios(hora)
         `, { count: 'exact' })
@@ -337,9 +338,29 @@ export const getAlumnosPaginados = async (filtros = {}) => {
         query = query.ilike('terminos_busqueda', search);
     }
 
-    // Filtro por estado
-    if (activeFilter === 'pendientes') query = query.eq('estado', 'Pendiente');
-    else if (activeFilter === 'arqueros') query = query.eq('es_arquero', true);
+    // Filtro por estado / completitud
+    if (activeFilter === 'pendientes') {
+        // Filtro dinámico: buscar alumnos con información incompleta
+        // Se buscan alumnos donde algún campo obligatorio sea NULL o vacío.
+        // Para representantes: es incompleto si AMBOS nombres están vacíos
+        // o si AMBOS teléfonos están vacíos.
+        query = query.or(
+            'carnet_identidad.is.null,carnet_identidad.eq.,' +
+            'colegio.is.null,colegio.eq.,' +
+            'direccion.is.null,direccion.eq.,' +
+            'foto_url.is.null,foto_url.eq.,' +
+            'tipo.is.null,tipo.eq.,' +
+            'mensualidad.is.null,' +
+            'cancha_id.is.null,' +
+            'horario_id.is.null,' +
+            'profesor_asignado_id.is.null,' +
+            'sucursal_id.is.null,' +
+            'and(or(nombre_padre.is.null,nombre_padre.eq.),or(nombre_madre.is.null,nombre_madre.eq.)),' +
+            'and(or(telefono_padre.is.null,telefono_padre.eq.),or(telefono_madre.is.null,telefono_madre.eq.))'
+        );
+    } else if (activeFilter === 'arqueros') {
+        query = query.eq('es_arquero', true);
+    }
 
     // Filtros de Maestros
     if (entrenadorIds.length > 0) query = query.in('profesor_asignado_id', entrenadorIds);
@@ -379,7 +400,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo')
+        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -435,25 +456,9 @@ export const restaurarAlumno = async (alumnoId) => {
     return data;
 };
 
-/**
- * Aprobar un alumno
- * Regla: Cambia el estado de 'Pendiente' a 'Aprobado'
- * Solo Admin/SuperAdmin deberían realizar esta acción
- */
-export const aprobarAlumno = async (alumnoId) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-
-    const { data, error } = await supabase
-        .from('alumnos')
-        .update({ estado: 'Aprobado' })
-        .eq('id', alumnoId)
-        .select()
-        .single();
-
-    if (error) throw new Error('Error al aprobar alumno: ' + error.message);
-    return data;
-};
+// La función aprobarAlumno fue eliminada.
+// El estado de completitud ahora se calcula dinámicamente
+// según los campos faltantes del alumno (ver alumnoCompletitud.js).
 
 /**
  * Obtener alumnos archivados

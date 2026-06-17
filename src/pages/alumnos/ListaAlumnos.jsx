@@ -7,6 +7,7 @@ import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlum
 import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
 import { useAlumnos } from '../../features/alumnos/hooks/useAlumnos';
 import { useAuth } from '../../context/AuthContext';
+import { getCamposFaltantes } from '../../features/alumnos/utils/alumnoCompletitud';
 import TabBar from '../../components/dashboard/TabBar';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
@@ -72,7 +73,6 @@ const ListaAlumnos = () => {
         toggleAlumnoSelection,
         handleSelectAll,
         sendBulkWhatsApp,
-        aprobarTodos,
         handleArchivarAlumno,
         handleCombinarAlumnos,
         introMessage,
@@ -464,18 +464,7 @@ const ListaAlumnos = () => {
                             Arqueros
                         </button>
 
-                        {esAdmin && activeFilter === 'pendientes' && alumnos.length > 0 && (
-                            <button
-                                onClick={async () => {
-                                    if (window.confirm(`¿Aprobar los ${alumnos.length} alumnos mostrados?`)) {
-                                        await aprobarTodos();
-                                    }
-                                }}
-                                className="px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap bg-success text-white hover:bg-green-700 transition-colors"
-                            >
-                                Aprobar Resultados
-                            </button>
-                        )}
+
 
                         {/* Limpiar Filtros */}
                         {hayFiltrosActivos && (
@@ -551,6 +540,7 @@ const ListaAlumnos = () => {
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesAnteriorStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesActualStr.substring(0, 3)}</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12">Sub</th>
+                                        <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-10 md:w-14">Info</th>
                                         {esAdmin && (
                                             <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-16 md:w-20">Acciones</th>
                                         )}
@@ -618,6 +608,38 @@ const ListaAlumnos = () => {
                                                 <td className="p-2 md:p-3 text-center text-primary font-bold text-sm">
                                                     {subAnio}
                                                 </td>
+                                                {/* Indicador de campos faltantes */}
+                                                {(() => {
+                                                    const camposFaltantes = getCamposFaltantes(alumno);
+                                                    if (camposFaltantes.length === 0) {
+                                                        return (
+                                                            <td className="p-2 md:p-3 text-center">
+                                                                <span className="text-success text-sm" title="Información completa">✓</span>
+                                                            </td>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <td className="p-2 md:p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="relative group/tooltip inline-block">
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-warning/15 text-warning text-[10px] md:text-xs font-bold rounded border border-warning/30 cursor-help">
+                                                                    ⚠ {camposFaltantes.length}
+                                                                </span>
+                                                                {/* Tooltip con campos faltantes */}
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface border border-border rounded-md shadow-xl text-left min-w-[200px] max-w-[280px] z-50 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200">
+                                                                    <p className="text-[10px] font-bold text-warning uppercase mb-1">Información faltante:</p>
+                                                                    <ul className="space-y-0.5">
+                                                                        {camposFaltantes.map((campo, i) => (
+                                                                            <li key={i} className="text-[11px] text-text-secondary flex items-center gap-1">
+                                                                                <span className="text-warning">•</span> {campo}
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-surface border-r border-b border-border transform rotate-45 -mt-1"></div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })()}
                                                 {esAdmin && (
                                                     <td className="p-2 md:p-3 text-center" onClick={(e) => e.stopPropagation()}>
                                                         <button

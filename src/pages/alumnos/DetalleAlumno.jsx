@@ -33,13 +33,14 @@ const DetalleAlumno = () => {
         saving,
         formData,
         photoFile,
+        errors,
         maestros: { canchas, horarios, entrenadores, sucursales },
         setEditing,
         handleChange,
         setPhotoFile,
         saveChanges,
         cancelEditing,
-        handleAprobar
+        camposFaltantes
     } = useAlumno(id);
 
     if (loading) {
@@ -189,27 +190,14 @@ const DetalleAlumno = () => {
                             {alumno.nombres} {alumno.apellidos}
                         </h2>
 
-                        <div className="flex gap-2 mb-4">
-                            {alumno.estado === 'Pendiente' && (
-                                <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 bg-warning/20 text-warning text-sm font-bold rounded">
-                                        Pendiente
-                                    </span>
-                                    <button
-                                        onClick={async () => {
-                                            if (window.confirm(`¿Aprobar al alumno ${alumno.nombres}?`)) {
-                                                await handleAprobar();
-                                            }
-                                        }}
-                                        className="px-3 py-1 bg-success text-white text-xs font-bold rounded hover:bg-green-700 transition-colors uppercase"
-                                    >
-                                        Aprobar Ahora
-                                    </button>
-                                </div>
-                            )}
-                            {alumno.estado === 'Aprobado' && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {camposFaltantes.length > 0 ? (
+                                <span className="px-3 py-1 bg-warning/20 text-warning text-sm font-bold rounded">
+                                    Info. Incompleta ({camposFaltantes.length})
+                                </span>
+                            ) : (
                                 <span className="px-3 py-1 bg-success/20 text-success text-sm font-bold rounded">
-                                    Aprobado
+                                    Completo
                                 </span>
                             )}
                             {alumno.es_arquero && (
@@ -232,6 +220,27 @@ const DetalleAlumno = () => {
                     </div>
                 </div>
 
+                {/* Banner de información incompleta */}
+                {camposFaltantes.length > 0 && (
+                    <div className="bg-warning/10 border border-warning/30 rounded-md p-4">
+                        <p className="text-warning font-bold text-sm mb-2">
+                            ⚠ Información incompleta — Faltan {camposFaltantes.length} campo{camposFaltantes.length > 1 ? 's' : ''}:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {camposFaltantes.map((campo, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-warning/10 text-warning/80 text-xs font-medium rounded border border-warning/20">
+                                    {campo}
+                                </span>
+                            ))}
+                        </div>
+                        {!editing && (
+                            <p className="text-text-secondary text-xs mt-2">
+                                Haz clic en "Editar" para completar la información faltante.
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {/* Formulario de Datos */}
                 <div className="bg-surface border border-border rounded-md p-6 space-y-6">
                     {/* Datos Personales */}
@@ -247,6 +256,7 @@ const DetalleAlumno = () => {
                                 value={formData.nombres || ''}
                                 onChange={handleChange}
                                 disabled={!editing}
+                                error={errors?.nombres}
                             />
                             <Input
                                 label="Apellidos *"
@@ -254,6 +264,7 @@ const DetalleAlumno = () => {
                                 value={formData.apellidos || ''}
                                 onChange={handleChange}
                                 disabled={!editing}
+                                error={errors?.apellidos}
                             />
                         </div>
 
@@ -265,6 +276,7 @@ const DetalleAlumno = () => {
                                 value={formData.fecha_nacimiento || ''}
                                 onChange={handleChange}
                                 disabled={!editing}
+                                error={errors?.fecha_nacimiento}
                             />
                             <Input
                                 label="Carnet de Identidad"
@@ -447,6 +459,7 @@ const DetalleAlumno = () => {
                                 options={canchas}
                                 onChange={handleChange}
                                 disabled={!editing}
+                                error={errors?.cancha_id}
                             />
                             <Select
                                 label="Horario de Entrenamiento *"
@@ -455,6 +468,7 @@ const DetalleAlumno = () => {
                                 options={horarios}
                                 onChange={handleChange}
                                 disabled={!editing}
+                                error={errors?.horario_id}
                             />
                         </div>
 
@@ -462,12 +476,13 @@ const DetalleAlumno = () => {
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
-                                        label="Sucursal"
+                                        label="Sucursal *"
                                         name="sucursal_id"
                                         value={formData.sucursal_id || ''}
-                                        options={[{ value: '', label: 'Sin asignar' }, ...sucursales]}
+                                        options={sucursales}
                                         onChange={handleChange}
                                         disabled={!editing}
+                                        error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
                                         Selecciona una sucursal para filtrar los grupos y profesores disponibles

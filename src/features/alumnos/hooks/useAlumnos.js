@@ -6,6 +6,7 @@ import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getCanchasParaEntrenador, getHorariosParaEntrenador, getEntrenadores } from '../../../services/maestros';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { esAlumnoIncompleto } from '../utils/alumnoCompletitud';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
@@ -193,7 +194,8 @@ export const useAlumnos = () => {
             let temp = facetData;
 
             // Filtro por estado
-            if (activeFilter === 'pendientes') temp = temp.filter(a => a.estado === 'Pendiente');
+            // Filtro por completitud dinámica
+            if (activeFilter === 'pendientes') temp = temp.filter(a => esAlumnoIncompleto(a));
             else if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
 
             // Filtros cruzados — se excluye el propio filtro para calcular sus opciones disponibles
@@ -349,21 +351,7 @@ export const useAlumnos = () => {
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
-    const aprobarTodos = async () => {
-        const pendientes = facetData.filter(a => a.estado === 'Pendiente');
-        if (pendientes.length === 0) return;
-        try {
-            const { supabase: sb } = await import('../../../lib/supabaseClient');
-            const { error } = await sb.from('alumnos').update({ estado: 'Aprobado' }).in('id', pendientes.map(a => a.id));
-            if (error) throw error;
-            addToast(`${pendientes.length} alumnos aprobados correctamente`, 'success');
-            fetchPage();
-            return true;
-        } catch (error) {
-            addToast('Error al aprobar alumnos', 'error');
-            return false;
-        }
-    };
+
 
     const handleArchivarAlumno = async (alumnoId) => {
         try {
@@ -429,7 +417,6 @@ export const useAlumnos = () => {
         toggleAlumnoSelection,
         handleSelectAll,
         sendBulkWhatsApp,
-        aprobarTodos,
         handleArchivarAlumno,
         handleCombinarAlumnos,
         introMessage,

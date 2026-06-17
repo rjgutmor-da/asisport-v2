@@ -65,7 +65,7 @@ const DesktopNavbar = ({ className = "text-[18px]", gap = "gap-6" }) => {
             {(role === 'SuperAdministrador' || role === 'Administrador') && (
                 <a 
                     href={getSaasportUrl()} 
-                    target="_blank"
+                    target="SaaSportApp"
                     rel="noopener noreferrer"
                     className={`text-text-secondary hover:text-primary transition-colors font-medium ${className}`}
                 >
