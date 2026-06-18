@@ -9,6 +9,7 @@ import {
     registrarAsistenciasPorLote,
     verificarEstadoEnvio
 } from '../../../services/asistencias';
+import { subirFotoAsistenciaGrupal } from '../../../services/fotoAsistenciaGrupal';
 
 export const useAsistencias = () => {
     const { addToast } = useToast();
@@ -33,6 +34,11 @@ export const useAsistencias = () => {
 
     // Estado local de cambios pendientes (Map: alumnoId -> estado)
     const [localChanges, setLocalChanges] = useState(new Map());
+
+    // Estado para foto grupal de asistencia (capturada pero aún no subida)
+    const [fotoGrupal, setFotoGrupalState] = useState(null);
+    const [fotoGrupalPreview, setFotoGrupalPreview] = useState(null);
+    const [subiendoFoto, setSubiendoFoto] = useState(false);
 
     // --- DATOS MAESTROS (Caché centralizada) ---
     const { 
@@ -141,6 +147,23 @@ export const useAsistencias = () => {
         });
     };
 
+    // --- Funciones para foto grupal ---
+    const setFotoGrupal = (file) => {
+        setFotoGrupalState(file);
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => setFotoGrupalPreview(e.target.result);
+            reader.readAsDataURL(file);
+        } else {
+            setFotoGrupalPreview(null);
+        }
+    };
+
+    const clearFotoGrupal = () => {
+        setFotoGrupalState(null);
+        setFotoGrupalPreview(null);
+    };
+
     const handleSubmit = async () => {
         if (enviosRealizados >= 2) {
             addToast('Ya has realizado el límite de envíos para hoy.', 'error');
@@ -170,6 +193,25 @@ export const useAsistencias = () => {
             }
 
             const resultados = await registrarAsistenciasPorLote(asistencias, selectedDate, selectedEntrenador);
+
+            // Subir foto grupal si existe (después de registrar asistencias exitosamente)
+            if (fotoGrupal && resultados.exitosos > 0) {
+                try {
+                    setSubiendoFoto(true);
+                    await subirFotoAsistenciaGrupal(fotoGrupal, {
+                        fecha: selectedDate,
+                        canchaId: selectedCancha || null,
+                        horarioId: selectedHorario || null,
+                    });
+                    console.log('📸 Foto grupal subida exitosamente');
+                    clearFotoGrupal();
+                } catch (fotoError) {
+                    console.error('[Error] Fallo al subir foto grupal:', fotoError);
+                    addToast('Las asistencias se guardaron, pero hubo un error al subir la foto grupal.', 'warning');
+                } finally {
+                    setSubiendoFoto(false);
+                }
+            }
 
             if (resultados.fallidos > 0) {
                 const errorStr = resultados.errores.length > 0 ? JSON.stringify(resultados.errores[0]) : '';
@@ -247,6 +289,7 @@ export const useAsistencias = () => {
     return {
         loading,
         submitting,
+        subiendoFoto,
         alumnos,
         selectedDate,
         resumen,
@@ -266,6 +309,11 @@ export const useAsistencias = () => {
         isAdmin,
         entrenadores,
         selectedEntrenador,
-        setSelectedEntrenador
+        setSelectedEntrenador,
+        // Foto grupal
+        fotoGrupal,
+        fotoGrupalPreview,
+        setFotoGrupal,
+        clearFotoGrupal
     };
 };

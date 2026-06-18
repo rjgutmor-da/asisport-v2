@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle, MapPin, Clock, Camera, X, ImageIcon } from 'lucide-react';
 import Select from '../components/ui/Select';
 import AsistenciaListItem from '../features/asistencias/components/AsistenciaListItem';
 
 import { useAsistencias } from '../features/asistencias/hooks/useAsistencias';
+import { getEscuelaActual } from '../services/escuelas';
 import TabBar from '../components/dashboard/TabBar';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
 
@@ -17,6 +18,7 @@ const Asistencia = () => {
     const {
         loading,
         submitting,
+        subiendoFoto,
         alumnos,
         selectedDate,
         resumen, // { total, presentes, licencias, ausentes, cambiosPendientes }
@@ -36,13 +38,95 @@ const Asistencia = () => {
         isAdmin,
         entrenadores,
         selectedEntrenador,
-        setSelectedEntrenador
+        setSelectedEntrenador,
+        // Foto grupal
+        fotoGrupal,
+        fotoGrupalPreview,
+        setFotoGrupal,
+        clearFotoGrupal
     } = useAsistencias();
 
     // Estados para modales
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSummaryModal, setShowSummaryModal] = useState(false);
     const [lastSubmissionResult, setLastSubmissionResult] = useState(null);
+
+    // Estado para discriminación por escuela (foto grupal)
+    const [requiereFotoGrupal, setRequiereFotoGrupal] = useState(false);
+
+    // Estado para modal de cámara
+    const [showCameraModal, setShowCameraModal] = useState(false);
+    const videoRef = useRef(null);
+    const streamRef = useRef(null);
+
+    // Verificar si la escuela actual requiere foto grupal
+    useEffect(() => {
+        const verificarEscuela = async () => {
+            try {
+                const escuela = await getEscuelaActual();
+                // Discriminación: solo "Fundación Inter Stars" requiere foto grupal
+                const ESCUELAS_CON_FOTO_GRUPAL = ['Fundación Inter Stars'];
+                setRequiereFotoGrupal(ESCUELAS_CON_FOTO_GRUPAL.includes(escuela?.nombre));
+            } catch (error) {
+                console.error('Error al verificar escuela:', error);
+                setRequiereFotoGrupal(false);
+            }
+        };
+        verificarEscuela();
+    }, []);
+
+    // --- Funciones de cámara para foto grupal ---
+    const iniciarCamara = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+            streamRef.current = stream;
+            setShowCameraModal(true);
+            // Esperar a que el video se renderice
+            setTimeout(() => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.play();
+                }
+            }, 100);
+        } catch (err) {
+            console.error('Error al acceder a la cámara:', err);
+            alert('No se pudo acceder a la cámara. Verifica los permisos.');
+        }
+    };
+
+    const detenerCamara = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setShowCameraModal(false);
+    };
+
+    const capturarFoto = () => {
+        if (!videoRef.current) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+            detenerCamara();
+            const file = new File([blob], `foto_grupal_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setFotoGrupal(file);
+        }, 'image/jpeg', 0.92);
+    };
+
+    // Limpiar cámara al desmontar
+    useEffect(() => {
+        return () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, []);
 
     // Formatear fecha
     const formatDateDisplay = (dateStr) => {
@@ -76,7 +160,7 @@ const Asistencia = () => {
         return "Enviado (Bloqueado)";
     };
 
-    const isButtonDisabled = loading || submitting || enviosRealizados >= 2;
+    const isButtonDisabled = loading || submitting || subiendoFoto || enviosRealizados >= 2;
 
     // Determinar si los filtros obligatorios están seleccionados
     // Para entrenadores (no admin) la cancha y horario son obligatorios
@@ -276,39 +360,128 @@ const Asistencia = () => {
             {/* Botón flotante siempre visible (sticky) - solo si filtros están completos */}
             {filtrosCompletos && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent md:hidden z-20">
-                    <button
-                        onClick={onSendClick}
-                        disabled={isButtonDisabled}
-                        className={`
-                        w-full font-bold py-4 px-6 rounded-lg
-                        flex items-center justify-center gap-3
-                        transition-all shadow-lg
-                        ${isButtonDisabled
-                                ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
-                                : enviosRealizados === 1
-                                    ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
-                                    : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
-                            }
-                    `}
-                    >
-                        {submitting ? (
-                            <>
-                                <Loader2 className="animate-spin" size={20} />
-                                Enviando...
-                            </>
-                        ) : (
-                            <>
-                                <Send size={20} />
-                                {getButtonText()}
-                            </>
-                        )}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Botón Tomar Foto - Visible en todas las escuelas, habilitado solo para las que pagan */}
+                        <>
+                            <button
+                                onClick={requiereFotoGrupal ? iniciarCamara : undefined}
+                                disabled={isButtonDisabled || !requiereFotoGrupal}
+                                className={`
+                                    font-bold py-4 px-4 rounded-lg
+                                    flex items-center justify-center gap-2
+                                    transition-all shadow-lg flex-shrink-0
+                                    ${!requiereFotoGrupal
+                                        ? 'bg-surface border border-border text-text-secondary/40 cursor-not-allowed opacity-50'
+                                        : isButtonDisabled
+                                            ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
+                                            : fotoGrupalPreview
+                                                ? 'bg-success text-white shadow-success/30'
+                                                : 'bg-surface border border-primary text-primary hover:bg-primary/10 shadow-primary/20'
+                                    }
+                                `}
+                                title={requiereFotoGrupal ? 'Tomar foto grupal' : 'Funcionalidad no disponible en tu plan'}
+                            >
+                                <Camera size={20} />
+                            </button>
+
+                            {/* Miniatura de foto tomada */}
+                            {fotoGrupalPreview && (
+                                <div className="relative flex-shrink-0">
+                                    <img
+                                        src={fotoGrupalPreview}
+                                        alt="Foto grupal"
+                                        className="w-12 h-12 rounded-lg object-cover border-2 border-success shadow-lg"
+                                    />
+                                    <button
+                                        onClick={clearFotoGrupal}
+                                        disabled={isButtonDisabled}
+                                        className="absolute -top-2 -right-2 p-0.5 bg-error rounded-full text-white shadow-lg hover:bg-red-600 transition-colors"
+                                        title="Borrar foto y retomar"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            )}
+                        </>
+
+                        {/* Botón Enviar */}
+                        <button
+                            onClick={onSendClick}
+                            disabled={isButtonDisabled}
+                            className={`
+                                flex-1 font-bold py-4 px-6 rounded-lg
+                                flex items-center justify-center gap-3
+                                transition-all shadow-lg
+                                ${isButtonDisabled
+                                    ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
+                                    : enviosRealizados === 1
+                                        ? 'bg-warning text-white hover:bg-warning/90 shadow-warning/30'
+                                        : 'bg-primary text-white hover:bg-primary/90 shadow-primary/30'
+                                }
+                            `}
+                        >
+                            {submitting || subiendoFoto ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} />
+                                    {subiendoFoto ? 'Subiendo foto...' : 'Enviando...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Send size={20} />
+                                    {getButtonText()}
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             )}
 
             {/* Versión Desktop - solo si filtros están completos */}
             {filtrosCompletos && (
-                <div className="hidden md:block fixed bottom-8 right-8 z-20">
+                <div className="hidden md:flex fixed bottom-8 right-8 z-20 items-center gap-3">
+                    {/* Botón Tomar Foto Desktop - Visible en todas las escuelas, habilitado solo para las que pagan */}
+                    <>
+                        {fotoGrupalPreview && (
+                            <div className="relative flex-shrink-0">
+                                <img
+                                    src={fotoGrupalPreview}
+                                    alt="Foto grupal"
+                                    className="w-12 h-12 rounded-lg object-cover border-2 border-success shadow-lg"
+                                />
+                                <button
+                                    onClick={clearFotoGrupal}
+                                    disabled={isButtonDisabled}
+                                    className="absolute -top-2 -right-2 p-0.5 bg-error rounded-full text-white shadow-lg hover:bg-red-600 transition-colors"
+                                    title="Borrar foto y retomar"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                        <button
+                            onClick={requiereFotoGrupal ? iniciarCamara : undefined}
+                            disabled={isButtonDisabled || !requiereFotoGrupal}
+                            className={`
+                                font-bold py-3 px-4 rounded-lg
+                                flex items-center gap-2
+                                transition-all shadow-lg
+                                ${!requiereFotoGrupal
+                                    ? 'bg-surface border border-border text-text-secondary/40 cursor-not-allowed opacity-50'
+                                    : isButtonDisabled
+                                        ? 'bg-surface border border-border text-text-secondary cursor-not-allowed'
+                                        : fotoGrupalPreview
+                                            ? 'bg-success text-white shadow-success/30'
+                                            : 'bg-surface border border-primary text-primary hover:bg-primary/10 shadow-primary/20'
+                                }
+                            `}
+                            title={requiereFotoGrupal ? 'Tomar foto grupal' : 'Funcionalidad no disponible en tu plan'}
+                        >
+                            <Camera size={20} />
+                            {fotoGrupalPreview ? 'Foto ✓' : 'Foto'}
+                        </button>
+                    </>
+
+                    {/* Botón Enviar Desktop */}
                     <button
                         onClick={onSendClick}
                         disabled={isButtonDisabled}
@@ -324,10 +497,10 @@ const Asistencia = () => {
                             }
                     `}
                     >
-                        {submitting ? (
+                        {submitting || subiendoFoto ? (
                             <>
                                 <Loader2 className="animate-spin" size={20} />
-                                Enviando...
+                                {subiendoFoto ? 'Subiendo foto...' : 'Enviando...'}
                             </>
                         ) : (
                             <>
@@ -341,6 +514,38 @@ const Asistencia = () => {
 
             {/* Tab Bar (Solo Mobile) */}
             <TabBar />
+
+            {/* MODAL DE CÁMARA para foto grupal */}
+            {showCameraModal && (
+                <div className="fixed inset-0 bg-black z-50 flex flex-col">
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                        <div className="flex items-center justify-center gap-6">
+                            <button
+                                onClick={detenerCamara}
+                                className="px-5 py-3 bg-error/90 text-white font-bold rounded-full text-sm hover:bg-error shadow-xl transition-all active:scale-95"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={capturarFoto}
+                                className="w-16 h-16 bg-white rounded-full border-4 border-primary shadow-2xl hover:scale-105 transition-all active:scale-95 flex items-center justify-center"
+                            >
+                                <Camera size={28} className="text-primary" />
+                            </button>
+                            <div className="w-[76px]" /> {/* Spacer para centrar el botón de captura */}
+                        </div>
+                        <p className="text-center text-white/70 text-xs mt-3 font-medium">
+                            Toma una foto grupal de los alumnos presentes
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
