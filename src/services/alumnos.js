@@ -119,7 +119,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
         profesor_asignado_id: alumnoData.profesor_asignado_id || null, // ✅ Guardar profesor asignado
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
-        estado: 'Activo',
+        estado: 'Pendiente',
         escuela_id: escuelaId,
         created_by: user.id,
         tipo: alumnoData.tipo || 'Formativo',
