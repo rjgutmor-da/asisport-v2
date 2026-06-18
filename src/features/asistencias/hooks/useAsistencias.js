@@ -9,6 +9,7 @@ import {
     registrarAsistenciasPorLote,
     verificarEstadoEnvio
 } from '../../../services/asistencias';
+import { getAlumnosFacets } from '../../../services/alumnos';
 import { subirFotoAsistenciaGrupal } from '../../../services/fotoAsistenciaGrupal';
 
 export const useAsistencias = () => {
@@ -48,9 +49,77 @@ export const useAsistencias = () => {
         isLoading: loadingMaestros 
     } = useMasterData();
 
-    const canchas = useMemo(() => rawCanchas.map(c => ({ value: c.id, label: c.nombre })), [rawCanchas]);
-    const horarios = useMemo(() => rawHorarios.map(h => ({ value: h.id, label: h.hora })), [rawHorarios]);
+    // Estado para facetas (alumnos simplificados) para filtrado inteligente
+    const [facetsData, setFacetsData] = useState([]);
+
+    // Cargar facetas (alumnos) para filtrado inteligente de canchas y horarios
+    useEffect(() => {
+        const fetchFacets = async () => {
+            if (!userProfile) return;
+            
+            // Si es admin y no seleccionó entrenador, traemos todo (userId = null)
+            // Si es admin y seleccionó entrenador, traemos de ese entrenador
+            // Si no es admin, traemos del usuario actual
+            const targetUserId = isAdmin ? (selectedEntrenador || null) : userProfile.id;
+            const roleForFacets = isAdmin && !selectedEntrenador ? 'Administrador' : 'Entrenador';
+            
+            try {
+                const data = await getAlumnosFacets({ userId: targetUserId, userRole: roleForFacets });
+                setFacetsData(data);
+            } catch (err) {
+                console.error("Error fetching facets", err);
+            }
+        };
+        fetchFacets();
+    }, [userProfile, isAdmin, selectedEntrenador]);
+
+    const canchas = useMemo(() => {
+        if (isAdmin && !selectedEntrenador) {
+            return rawCanchas.map(c => ({ value: c.id, label: c.nombre }));
+        }
+
+        const canchasMap = new Map();
+        facetsData.forEach(a => {
+            if (a.cancha_id) {
+                const cInfo = rawCanchas.find(rc => rc.id === a.cancha_id);
+                if (cInfo) canchasMap.set(cInfo.id, { value: cInfo.id, label: cInfo.nombre });
+            }
+        });
+        
+        return Array.from(canchasMap.values()).sort((a,b) => a.label.localeCompare(b.label));
+    }, [facetsData, rawCanchas, isAdmin, selectedEntrenador]);
+
+    const horarios = useMemo(() => {
+        // Si no hay cancha seleccionada y es admin viendo todos, mostrar todos los horarios
+        if (isAdmin && !selectedEntrenador && !selectedCancha) {
+            return rawHorarios.map(h => ({ value: h.id, label: h.hora }));
+        }
+
+        const horariosMap = new Map();
+        facetsData.forEach(a => {
+            // Filtrar por cancha si hay una seleccionada
+            if (selectedCancha && a.cancha_id !== selectedCancha) return;
+            
+            if (a.horario_id) {
+                const hInfo = rawHorarios.find(rh => rh.id === a.horario_id);
+                if (hInfo) horariosMap.set(hInfo.id, { value: hInfo.id, label: hInfo.hora });
+            }
+        });
+
+        return Array.from(horariosMap.values()).sort((a,b) => a.label.localeCompare(b.label));
+    }, [facetsData, rawHorarios, selectedCancha, isAdmin, selectedEntrenador]);
+
     const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
+
+    // Limpiar horario si el nuevo grupo seleccionado no contiene el horario actual
+    useEffect(() => {
+        if (selectedHorario && horarios.length > 0) {
+            const horarioValido = horarios.find(h => h.value === selectedHorario);
+            if (!horarioValido) {
+                setSelectedHorario('');
+            }
+        }
+    }, [horarios, selectedHorario, selectedCancha]);
 
     // --- DATOS DE ASISTENCIA (TanStack Query) ---
     const { 
