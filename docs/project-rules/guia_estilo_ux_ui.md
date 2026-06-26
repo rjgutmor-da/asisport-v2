@@ -89,6 +89,8 @@ Todas las variables están definidas en `/src/styles/globals.css`:
   /* ==================== */
   /* TIPOGRAFÍA           */
   /* ==================== */
+  --font-family-primary: 'Inter', sans-serif;
+  --font-family-secondary: 'Montserrat', sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-base: 16px;
@@ -135,6 +137,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-family-primary)'],
+        highlight: ['var(--font-family-secondary)'],
+      },
       colors: {
         primary: 'var(--color-primary)',
         background: 'var(--color-background)',

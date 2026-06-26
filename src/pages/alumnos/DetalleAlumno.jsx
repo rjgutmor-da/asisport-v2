@@ -444,7 +444,7 @@ const DetalleAlumno = () => {
                                 label="Mensualidad"
                                 name="mensualidad"
                                 type="number"
-                                value={formData.mensualidad || ''}
+                                value={formData.mensualidad ?? ''}
                                 onChange={handleChange}
                                 disabled={!editing}
                                 placeholder="0 o en blanco para becado"
