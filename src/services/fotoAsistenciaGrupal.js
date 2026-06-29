@@ -69,6 +69,9 @@ export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horario
 
     const escuelaId = await obtenerEscuelaId();
 
+    // 0. Consultar si ya existe una foto para este grupo, horario y fecha
+    const fotoExistente = await obtenerFotoAsistenciaGrupal(fecha, canchaId, horarioId);
+
     // 1. Comprimir la foto
     const fotoComprimida = await comprimirFotoGrupal(file);
     console.log(`📸 Foto grupal comprimida: ${(fotoComprimida.size / 1024).toFixed(1)} KB`);
@@ -96,23 +99,53 @@ export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horario
         .from('fotos-asistencias')
         .getPublicUrl(rutaArchivo);
 
-    // 5. Guardar referencia en la tabla
-    const { error: errorInsert } = await supabase
-        .from('fotos_asistencia_grupal')
-        .insert({
-            escuela_id: escuelaId,
-            fecha,
-            cancha_id: canchaId || null,
-            horario_id: horarioId || null,
-            entrenador_id: user.id,
-            foto_url: publicUrl,
-        });
+    if (fotoExistente) {
+        // 5a. Actualizar referencia en la tabla
+        const { error: errorUpdate } = await supabase
+            .from('fotos_asistencia_grupal')
+            .update({
+                foto_url: publicUrl,
+            })
+            .eq('id', fotoExistente.id);
 
-    if (errorInsert) {
-        console.error('[Error] Fallo al guardar referencia de foto grupal:', errorInsert);
-        // Intentar limpiar el archivo subido para no dejar basura
-        await supabase.storage.from('fotos-asistencias').remove([rutaArchivo]);
-        throw new Error('Error al registrar la foto grupal: ' + errorInsert.message);
+        if (errorUpdate) {
+            console.error('[Error] Fallo al actualizar referencia de foto grupal:', errorUpdate);
+            // Intentar limpiar el archivo subido para no dejar basura
+            await supabase.storage.from('fotos-asistencias').remove([rutaArchivo]);
+            throw new Error('Error al actualizar el registro de la foto grupal: ' + errorUpdate.message);
+        }
+
+        // 6a. Eliminar el archivo antiguo de Storage para evitar basura
+        const rutaVieja = fotoExistente.foto_url.split('/public/fotos-asistencias/')[1];
+        if (rutaVieja) {
+            const { error: errorRemove } = await supabase.storage
+                .from('fotos-asistencias')
+                .remove([rutaVieja]);
+            if (errorRemove) {
+                console.warn('[Advertencia] No se pudo eliminar la foto antigua del Storage:', errorRemove);
+            } else {
+                console.log('🗑️ Foto antigua eliminada de Storage con éxito:', rutaVieja);
+            }
+        }
+    } else {
+        // 5b. Guardar nueva referencia en la tabla
+        const { error: errorInsert } = await supabase
+            .from('fotos_asistencia_grupal')
+            .insert({
+                escuela_id: escuelaId,
+                fecha,
+                cancha_id: canchaId || null,
+                horario_id: horarioId || null,
+                entrenador_id: user.id,
+                foto_url: publicUrl,
+            });
+
+        if (errorInsert) {
+            console.error('[Error] Fallo al guardar referencia de foto grupal:', errorInsert);
+            // Intentar limpiar el archivo subido para no dejar basura
+            await supabase.storage.from('fotos-asistencias').remove([rutaArchivo]);
+            throw new Error('Error al registrar la foto grupal: ' + errorInsert.message);
+        }
     }
 
     return publicUrl;
