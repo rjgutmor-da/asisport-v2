@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ClipboardCheck, Users, Cake, UserPlus, Settings, BarChart3, Activity } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { can } from '../../config/roles';
 
 const TabBar = () => {
     const navigate = useNavigate();
@@ -10,18 +11,17 @@ const TabBar = () => {
     const isActive = (path) => location.pathname === path;
 
     const navItems = [
-        { path: '/dashboard', icon: Home, label: 'Inicio', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos', icon: Users, label: 'Alumnos', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', roles: ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'] },
-        { path: '/estadisticas', icon: BarChart3, label: 'Stats', roles: ['SuperAdministrador', 'Administrador'] },
+        { path: '/dashboard', icon: Home, label: 'Inicio', permission: 'asisport.access' },
+        { path: '/asistencia', icon: ClipboardCheck, label: 'Asist.', permission: 'asisport.access' },
+        { path: '/alumnos', icon: Users, label: 'Alumnos', permission: 'asisport.access' },
+        { path: '/alumnos/registro', icon: UserPlus, label: 'Reg.', permission: 'asisport.access' },
+        { path: '/alumnos/cumpleanos', icon: Cake, label: 'Cumple', permission: 'asisport.access' },
+        { path: '/estadisticas', icon: BarChart3, label: 'Stats', permission: 'asisport.viewStatistics' },
     ];
 
 
     const filteredNavItems = navItems.filter(item => {
-        if (!item.roles) return true;
-        return item.roles.includes(role);
+        return can(role, item.permission);
     });
 
     if (location.pathname === '/asistencia') return null;

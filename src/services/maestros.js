@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { cacheService } from '../lib/cacheService';
+import { getDataScope } from '../config/roles';
 
 export const getCanchas = async () => {
     // Verificar caché antes de consultar Supabase (usamos canchas_v2 para forzar recarga con sucursal_id)
@@ -50,7 +51,8 @@ export const getHorarios = async () => {
  * @param {string|null} userRole - Rol del usuario
  */
 export const getCanchasParaEntrenador = async (userId = null, userRole = null) => {
-    const esEntrenador = userRole === 'Entrenador' || userRole === 'Entrenarqueros';
+    const dataScope = getDataScope(userRole);
+    const esEntrenador = dataScope === 'assigned_students' || dataScope === 'goalkeepers';
 
     if (!esEntrenador) {
         // Para admins devolver todas las canchas activas
@@ -67,9 +69,9 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userRole === 'Entrenador' && userId) {
+    if (dataScope === 'assigned_students' && userId) {
         query = query.eq('profesor_asignado_id', userId);
-    } else if (userRole === 'Entrenarqueros') {
+    } else if (dataScope === 'goalkeepers') {
         query = query.eq('es_arquero', true);
     }
 
@@ -94,7 +96,8 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
  * @param {string|null} userRole - Rol del usuario
  */
 export const getHorariosParaEntrenador = async (userId = null, userRole = null) => {
-    const esEntrenador = userRole === 'Entrenador' || userRole === 'Entrenarqueros';
+    const dataScope = getDataScope(userRole);
+    const esEntrenador = dataScope === 'assigned_students' || dataScope === 'goalkeepers';
 
     if (!esEntrenador) {
         // Para admins devolver todos los horarios activos
@@ -110,9 +113,9 @@ export const getHorariosParaEntrenador = async (userId = null, userRole = null) 
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userRole === 'Entrenador' && userId) {
+    if (dataScope === 'assigned_students' && userId) {
         query = query.eq('profesor_asignado_id', userId);
-    } else if (userRole === 'Entrenarqueros') {
+    } else if (dataScope === 'goalkeepers') {
         query = query.eq('es_arquero', true);
     }
 

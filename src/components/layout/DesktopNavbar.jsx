@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getSaasportUrl } from '../../lib/navegacion';
+import { can } from '../../config/roles';
 
 /**
  * DesktopNavbar — Componente de navegación superior para PC.
@@ -62,7 +63,7 @@ const DesktopNavbar = ({ className = "text-[18px]", gap = "gap-6" }) => {
             >
                 Cumpleaños
             </button>
-            {(role === 'SuperAdministrador' || role === 'Administrador') && (
+            {can(role, 'saasport.access') && (
                 <button 
                     onClick={() => window.open(getSaasportUrl(), 'EcosistemaSaaSport')}
                     className={`text-text-secondary hover:text-primary transition-colors font-medium ${className}`}

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { obtenerLunesDeEstaSemana } from '../lib/dateHelpers';
+import { can, getDataScope } from '../config/roles';
 
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
 
@@ -31,7 +32,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
 
         if (userError) throw userError;
 
-        const esAdmin = ['Administrador', 'SuperAdministrador'].includes(usuarioDB.rol);
+        const esAdmin = can(usuarioDB.rol, 'asisport.manageAttendanceForOthers');
         let targetEntrenadorId = user.id;
 
         if (esAdmin && entrenadorId) {
@@ -55,7 +56,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
             .eq('profesor_asignado_id', targetEntrenadorId)
             .eq('asistencias_normales.fecha', fecha); // Filtro en la relación (join filter)
 
-        if (usuarioDB.rol !== 'SuperAdministrador') {
+        if (getDataScope(usuarioDB.rol) !== 'school') {
             if (usuarioDB.sucursal_id) {
                 query = query.eq('sucursal_id', usuarioDB.sucursal_id);
             }
@@ -100,7 +101,7 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
 
         if (targetEntrenadorId && targetEntrenadorId !== user.id) {
             const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
-            if (usuarioDB && ['Administrador', 'SuperAdministrador'].includes(usuarioDB.rol)) {
+            if (usuarioDB && can(usuarioDB.rol, 'asisport.manageAttendanceForOthers')) {
                 entrenadorId = targetEntrenadorId;
             }
         }

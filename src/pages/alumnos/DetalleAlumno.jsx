@@ -8,6 +8,7 @@ import Select from '../../components/ui/Select';
 import FileInput from '../../components/ui/FileInput';
 import { useAlumno } from '../../features/alumnos/hooks/useAlumno';
 import { archivarAlumno } from '../../services/alumnos';
+import { can } from '../../config/roles';
 
 /**
  * Página de detalle y edición de un alumno.
@@ -22,7 +23,7 @@ const DetalleAlumno = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { addToast } = useToast();
-    const { user } = useAuth();
+    const { user, role } = useAuth();
 
 
 
@@ -506,7 +507,7 @@ const DetalleAlumno = () => {
                 </div>
 
                 {/* Botón de Archivar (solo Admin/SuperAdmin) */}
-                {(user?.rol === 'SuperAdministrador' || user?.rol === 'Administrador') && (
+                {can(role, 'asisport.editStudents') && (
                     <div className="bg-surface border border-error/30 rounded-md p-6">
                         <h3 className="text-lg font-semibold text-error mb-2">Zona de Peligro</h3>
                         <p className="text-text-secondary text-sm mb-4">

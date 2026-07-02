@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { ROLES } from '../config/roles';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 export const getUsuarios = async () => {
@@ -33,8 +34,7 @@ export const getUsuarios = async () => {
 };
 
 export const updateUserRole = async (userId, newRole) => {
-    const validRoles = ['SuperAdministrador', 'Administrador', 'Entrenador', 'Entrenarqueros'];
-    if (!validRoles.includes(newRole)) {
+    if (!ROLES.includes(newRole)) {
         throw new Error('Rol no válido');
     }
 

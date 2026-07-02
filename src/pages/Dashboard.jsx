@@ -9,6 +9,7 @@ import LogoPlaneta from '../assets/LogoPlaneta.png';
 import { getEscuelaActual } from '../services/escuelas';
 import { useState, useEffect } from 'react';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
+import { can } from '../config/roles';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -91,7 +92,7 @@ const Dashboard = () => {
 
 
                     {/* Nuevo Módulo de Estadísticas (Solo Admin/SuperAdmin) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador') && (
+                    {can(role, 'asisport.viewStatistics') && (
                         <>
                             <ModuleCard
                                 icon={<BarChart3 size={60} />}
@@ -114,7 +115,7 @@ const Dashboard = () => {
                     />
 
                     {/* Módulo de Actividad (Solo SuperAdmin/Administrador) */}
-                    {(role === 'SuperAdministrador' || role === 'Administrador') && (
+                    {can(role, 'asisport.viewActivityLog') && (
                         <ModuleCard
                             icon={<Activity size={60} />}
                             label="Actividad"

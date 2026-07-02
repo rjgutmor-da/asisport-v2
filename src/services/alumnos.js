@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
+import { getDataScope } from '../config/roles';
 
 // Validar foto (máx 200 KB)
 export const validatePhoto = (file) => {
@@ -169,6 +170,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
  */
 export const getAlumnos = async (filtros = {}) => {
     const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
+    const dataScope = getDataScope(userRole);
 
     // Regla #1: Autenticación obligatoria
     const { data: { user } } = await supabase.auth.getUser();
@@ -223,19 +225,19 @@ export const getAlumnos = async (filtros = {}) => {
     }
 
     // Filtro por sucursal (para Administradores y Entrenadores)
-    if (userRole !== 'SuperAdministrador') {
+    if (dataScope !== 'school') {
         if (userProfile?.sucursal_id) {
             query = query.eq('sucursal_id', userProfile.sucursal_id);
         }
     }
 
     // Filtro por rol: Entrenador solo ve sus alumnos asignados
-    if (userRole === 'Entrenador' && userId) {
+    if (dataScope === 'assigned_students' && userId) {
         query = query.eq('profesor_asignado_id', userId);
     }
 
     // Filtro por rol: Entrenarqueros solo ve arqueros
-    if (userRole === 'Entrenarqueros') {
+    if (dataScope === 'goalkeepers') {
         query = query.eq('es_arquero', true);
     }
 
@@ -370,9 +372,10 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     if (tipos.length > 0) query = query.in('tipo', tipos);
 
     // Restricciones de Rol
-    if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
-    if (userRole === 'Entrenarqueros') query = query.eq('es_arquero', true);
-    if (userRole !== 'SuperAdministrador' && userProfile?.sucursal_id) {
+    const dataScope = getDataScope(userRole);
+    if (dataScope === 'assigned_students' && userId) query = query.eq('profesor_asignado_id', userId);
+    if (dataScope === 'goalkeepers') query = query.eq('es_arquero', true);
+    if (dataScope !== 'school' && userProfile?.sucursal_id) {
         query = query.eq('sucursal_id', userProfile.sucursal_id);
     }
 
@@ -405,8 +408,9 @@ export const getAlumnosFacets = async (filtros = {}) => {
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userRole === 'Entrenador' && userId) query = query.eq('profesor_asignado_id', userId);
-    if (userRole === 'Entrenarqueros') query = query.eq('es_arquero', true);
+    const dataScope = getDataScope(userRole);
+    if (dataScope === 'assigned_students' && userId) query = query.eq('profesor_asignado_id', userId);
+    if (dataScope === 'goalkeepers') query = query.eq('es_arquero', true);
 
     const { data, error } = await query;
     if (error) throw error;

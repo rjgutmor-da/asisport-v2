@@ -6,6 +6,7 @@ import ResetPassword from './pages/ResetPassword'
 import { ToastProvider } from './components/ui/Toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
+import { rolesWithPermission } from './config/roles'
 
 // Lazy loading de rutas — cada página se carga solo cuando el usuario navega a ella
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -105,13 +106,13 @@ function App() {
                             } />
 
                             <Route path="/estadisticas" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador']}>
+                                <ProtectedRoute allowedRoles={rolesWithPermission('asisport.viewStatistics')}>
                                     <Estadisticas />
                                 </ProtectedRoute>
                             } />
 
                             <Route path="/registro-actividad" element={
-                                <ProtectedRoute allowedRoles={['SuperAdministrador', 'Administrador']}>
+                                <ProtectedRoute allowedRoles={rolesWithPermission('asisport.viewActivityLog')}>
                                     <RegistroActividad />
                                 </ProtectedRoute>
                             } />
