@@ -5,7 +5,7 @@ import HeroCard from '../components/dashboard/HeroCard';
 import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
 import { useAuth } from '../context/AuthContext';
-import LogoPlaneta from '../assets/LogoPlaneta.png';
+import LogoPorDefecto from '../assets/LogoPorDefecto.png';
 import { getEscuelaActual } from '../services/escuelas';
 import { useState, useEffect } from 'react';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
@@ -15,9 +15,13 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const { role } = useAuth();
     const [escuela, setEscuela] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getEscuelaActual().then(setEscuela).catch(console.error);
+        getEscuelaActual()
+            .then(setEscuela)
+            .catch(console.error)
+            .finally(() => setLoading(false));
     }, []);
 
     return (
@@ -47,19 +51,22 @@ const Dashboard = () => {
                     
                     {/* Brand Section: Logo + Phrase (Dynamic) */}
                     <div className="flex flex-col items-center text-center">
-                        {escuela?.logo_url ? (
+                        {loading ? (
+                            <div className="w-44 h-24 md:w-[340px] md:h-[210px] bg-white/5 animate-pulse rounded-xl flex items-center justify-center">
+                                {/* Contenedor transparente de carga para evitar saltos bruscos */}
+                            </div>
+                        ) : escuela?.logo_url ? (
                             <div className="flex flex-col items-center gap-4">
                                 <img 
                                     src={escuela.logo_url} 
                                     alt={`Logo ${escuela.nombre}`} 
                                     className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
                                 />
-
                             </div>
                         ) : (
                             <img 
-                                src={LogoPlaneta} 
-                                alt="Logo Planeta FC" 
+                                src={LogoPorDefecto} 
+                                alt="Logo por defecto" 
                                 className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
                             />
                         )}
