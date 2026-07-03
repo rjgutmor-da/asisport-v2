@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink, FileSpreadsheet, Home, ClipboardCheck, Cake, UserPlus, BarChart3 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
 import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
@@ -10,6 +9,11 @@ import { useAuth } from '../../context/AuthContext';
 import { getCamposFaltantes } from '../../features/alumnos/utils/alumnoCompletitud';
 import TabBar from '../../components/dashboard/TabBar';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
+import { getEscuelaActual } from '../../services/escuelas';
+import {
+    exportarListaBuenaFe,
+    obtenerEntrenadoresListaBuenaFe
+} from '../../features/alumnos/utils/exportarListaBuenaFe';
 
 /**
  * Página principal de la lista de alumnos.
@@ -26,7 +30,7 @@ import DesktopNavbar from '../../components/layout/DesktopNavbar';
 const ListaAlumnos = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { isAdmin, role } = useAuth();
+    const { isAdmin, role, userProfile } = useAuth();
 
     // Control del modal de combinar alumnos
     const [showCombinarModal, setShowCombinarModal] = React.useState(false);
@@ -217,7 +221,7 @@ const ListaAlumnos = () => {
                     {/* Si hay alumnos tiqueados (convocados), el reporte incluye solo ellos.
                         Si no hay tiqueados, usa todos los alumnos filtrados por los filtros generales. */}
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             // Determinar qué alumnos incluir en el reporte
                             const hayTiqueados = selectedAlumnos.length > 0;
                             const alumnosParaReporte = hayTiqueados
@@ -226,50 +230,23 @@ const ListaAlumnos = () => {
 
                             if (alumnosParaReporte.length === 0) return;
 
-                            // Construir el texto de filtros aplicados para el encabezado
-                            const filtrosTexto = [
-                                selectedCanchas.length > 0 ? `Grupos: ${selectedCanchas.map(id => canchas.find(c => c.value === id)?.label).join(', ')}` : '',
-                                selectedHorarios.length > 0 ? `Horarios: ${selectedHorarios.map(id => horarios.find(h => h.value === id)?.label).join(', ')}` : '',
-                                selectedSubs.length > 0 ? `Categorías: ${selectedSubs.map(s => `Sub ${s}`).join(', ')}` : '',
-                                selectedTipos.length > 0 ? `Tipos: ${selectedTipos.join(', ')}` : '',
-                                selectedEntrenadores.length > 0 ? `Entrenadores: ${selectedEntrenadores.map(id => entrenadores.find(e => e.value === id)?.label).join(', ')}` : ''
-                            ].filter(Boolean).join(' | ') || 'Ninguno';
+                            try {
+                                const escuela = await getEscuelaActual();
+                                const nombresEntrenadores = obtenerEntrenadoresListaBuenaFe({
+                                    alumnos: alumnosParaReporte,
+                                    entrenadores,
+                                    usuarioActual: userProfile
+                                });
 
-                            // Indicar en el encabezado si es selección manual o por filtros
-                            const origenTexto = hayTiqueados
-                                ? `Selección manual: ${selectedAlumnos.length} convocados`
-                                : `Filtros generales: ${filtrosTexto}`;
-
-                            const headers = [
-                                ['LISTA DE BUENA FE - ASISPORT'],
-                                [`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`],
-                                [`Origen: ${origenTexto}`],
-                                [],
-                                ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad', 'Tipo']
-                            ];
-
-                            const dataRows = alumnosParaReporte.map(a => [
-                                a.nombres,
-                                a.apellidos,
-                                new Date(a.fecha_nacimiento).toLocaleDateString('es-ES'),
-                                a.carnet_identidad || '-',
-                                a.tipo || '-'
-                            ]);
-
-                            const ws = XLSX.utils.aoa_to_sheet([...headers, ...dataRows]);
-
-                            // Ajustar anchos de columnas
-                            ws['!cols'] = [
-                                { wch: 30 }, // Nombres
-                                { wch: 30 }, // Apellidos
-                                { wch: 20 }, // Fecha Nacimiento
-                                { wch: 20 }, // CI
-                                { wch: 15 }  // Tipo
-                            ];
-
-                            const wb = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(wb, ws, "Lista de Buena Fe");
-                            XLSX.writeFile(wb, `Lista_Buena_Fe_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                exportarListaBuenaFe({
+                                    alumnos: alumnosParaReporte,
+                                    nombreEscuela: escuela.nombre,
+                                    nombresEntrenadores
+                                });
+                            } catch (error) {
+                                console.error('Error al generar la Lista de Buena Fe:', error);
+                                window.alert('No se pudo generar la Lista de Buena Fe. Intenta nuevamente.');
+                            }
                         }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-bold transition-colors ${
                             selectedAlumnos.length > 0
