@@ -453,27 +453,18 @@ const DetalleAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 1. Entrenador (Profesor Asignado) */}
                             <Select
-                                label="Grupo *"
-                                name="cancha_id"
-                                value={formData.cancha_id || ''}
-                                options={canchas}
+                                label="Profesor Asignado"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id || ''}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
                                 disabled={!editing}
-                                error={errors?.cancha_id}
+                                placeholder="Seleccionar entrenador..."
                             />
-                            <Select
-                                label="Horario de Entrenamiento *"
-                                name="horario_id"
-                                value={formData.horario_id || ''}
-                                options={horarios}
-                                onChange={handleChange}
-                                disabled={!editing}
-                                error={errors?.horario_id}
-                            />
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 2. Sucursal */}
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
@@ -486,21 +477,34 @@ const DetalleAlumno = () => {
                                         error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
-                                        Selecciona una sucursal para filtrar los grupos y profesores disponibles
+                                        Selecciona una sucursal para filtrar los grupos y horarios disponibles
                                     </p>
                                 </div>
                             ) : (
                                 <div></div>
                             )}
+                        </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 3. Grupo */}
                             <Select
-                                label="Profesor Asignado"
-                                name="profesor_asignado_id"
-                                value={formData.profesor_asignado_id || ''}
-                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                label="Grupo *"
+                                name="cancha_id"
+                                value={formData.cancha_id || ''}
+                                options={canchas}
                                 onChange={handleChange}
                                 disabled={!editing}
-                                placeholder="Seleccionar entrenador..."
+                                error={errors?.cancha_id}
+                            />
+                            {/* 4. Horario de Entrenamiento */}
+                            <Select
+                                label="Horario de Entrenamiento *"
+                                name="horario_id"
+                                value={formData.horario_id || ''}
+                                options={horarios}
+                                onChange={handleChange}
+                                disabled={!editing}
+                                error={errors?.horario_id}
                             />
                         </div>
                     </section>
