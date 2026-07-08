@@ -1,5 +1,5 @@
-import React from 'react';
-import { Loader2, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Loader2, Lock, ChevronRight } from 'lucide-react';
 import { useFichaMedica } from '../hooks/useFichaMedica';
 import AntecedentesCard from './AntecedentesCard';
 import EvaluacionesTimeline from './EvaluacionesTimeline';
@@ -27,6 +27,29 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
         agregarEvaluacion,
         editarEvaluacion,
     } = useFichaMedica(alumnoId);
+
+    // Estado para controlar si la sección está expandida o contraída.
+    // Se guarda la preferencia del usuario en localStorage para una mejor experiencia.
+    const [expandido, setExpandido] = useState(() => {
+        try {
+            const guardado = localStorage.getItem('asisport_ficha_medica_expandido');
+            return guardado !== null ? JSON.parse(guardado) : true;
+        } catch (e) {
+            return true;
+        }
+    });
+
+    const toggleExpandido = () => {
+        setExpandido(prev => {
+            const nuevoEstado = !prev;
+            try {
+                localStorage.setItem('asisport_ficha_medica_expandido', JSON.stringify(nuevoEstado));
+            } catch (e) {
+                // Silencioso en caso de error
+            }
+            return nuevoEstado;
+        });
+    };
 
     if (!canView) return null;
 
@@ -66,10 +89,20 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
     return (
         <div className="space-y-4">
             {/* Encabezado de sección */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-primary border-b border-border pb-2 flex-grow">
-                    Ficha Médica
-                </h3>
+            <div className="flex items-center justify-between border-b border-border pb-2">
+                <button
+                    onClick={toggleExpandido}
+                    className="flex items-center gap-2 text-lg font-semibold text-primary hover:text-primary/80 transition-colors text-left focus:outline-none select-none"
+                    aria-expanded={expandido}
+                >
+                    <ChevronRight
+                        size={20}
+                        className={`text-primary transition-transform duration-200 ${
+                            expandido ? 'rotate-90' : 'rotate-0'
+                        }`}
+                    />
+                    <span>Ficha Médica</span>
+                </button>
                 {evaluaciones.length > 0 && (
                     <ExportarFichaMedica
                         alumno={alumno}
@@ -80,23 +113,28 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
                 )}
             </div>
 
-            {/* Antecedentes estáticos */}
-            <AntecedentesCard
-                ficha={ficha}
-                canManage={canManage}
-                onSave={guardarFicha}
-                saving={saving}
-            />
+            {/* Contenido de la Ficha Médica (antecedentes y evaluaciones) */}
+            {expandido && (
+                <div className="space-y-4">
+                    {/* Antecedentes estáticos */}
+                    <AntecedentesCard
+                        ficha={ficha}
+                        canManage={canManage}
+                        onSave={guardarFicha}
+                        saving={saving}
+                    />
 
-            {/* Historial de evaluaciones */}
-            <EvaluacionesTimeline
-                evaluaciones={evaluaciones}
-                canManage={canManage}
-                puedeEditar={puedeEditar}
-                onAgregar={agregarEvaluacion}
-                onEditar={editarEvaluacion}
-                saving={saving}
-            />
+                    {/* Historial de evaluaciones */}
+                    <EvaluacionesTimeline
+                        evaluaciones={evaluaciones}
+                        canManage={canManage}
+                        puedeEditar={puedeEditar}
+                        onAgregar={agregarEvaluacion}
+                        onEditar={editarEvaluacion}
+                        saving={saving}
+                    />
+                </div>
+            )}
         </div>
     );
 };
