@@ -24,6 +24,7 @@ const DetalleAlumno = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { user, role } = useAuth();
+    const canEditStudents = can(role, 'asisport.editStudents');
 
 
 
@@ -92,7 +93,7 @@ const DetalleAlumno = () => {
                     </h1>
                 </div>
 
-                {!editing ? (
+                {!editing && canEditStudents ? (
                     <div className="flex gap-2">
                         <button
                             onClick={() => navigate('/alumnos/registro', {
@@ -121,7 +122,7 @@ const DetalleAlumno = () => {
                             Editar
                         </button>
                     </div>
-                ) : (
+                ) : editing ? (
                     <div className="flex gap-2">
                         <button
                             onClick={cancelEditing}
@@ -139,7 +140,7 @@ const DetalleAlumno = () => {
                             {saving ? 'Guardando...' : 'Guardar'}
                         </button>
                     </div>
-                )}
+                ) : null}
             </header>
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
