@@ -42,12 +42,14 @@ const Dashboard = () => {
 
                 {/* Columna Izquierda (Asistencia + Brand) - Ajustada para separar logo en móvil */}
                 <div className="flex flex-col items-center gap-10 md:gap-8 pt-0 w-full">
-                    <HeroCard
-                        icon={<ClipboardCheck size={48} className="md:size-28" />}
-                        label="Asistencia"
-                        onClick={() => navigate('/asistencia')}
-                        className="min-h-[140px] md:min-h-[440px]"
-                    />
+                    {role !== 'Medico' && (
+                        <HeroCard
+                            icon={<ClipboardCheck size={48} className="md:size-28" />}
+                            label="Asistencia"
+                            onClick={() => navigate('/asistencia')}
+                            className="min-h-[140px] md:min-h-[440px]"
+                        />
+                    )}
                     
                     {/* Brand Section: Logo + Phrase (Dynamic) */}
                     <div className="flex flex-col items-center text-center">
@@ -75,12 +77,14 @@ const Dashboard = () => {
 
                 {/* Columna Derecha - Grid de Módulos */}
                 <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-2 md:content-start pt-0">
-                    <ModuleCard
-                        icon={<UserPlus size={60} />}
-                        label="Registro Alumnos"
-                        onClick={() => navigate('/alumnos/registro')}
-                        size="compact"
-                    />
+                    {role !== 'Medico' && (
+                        <ModuleCard
+                            icon={<UserPlus size={60} />}
+                            label="Registro Alumnos"
+                            onClick={() => navigate('/alumnos/registro')}
+                            size="compact"
+                        />
+                    )}
 
                     <ModuleCard
                         icon={<Users size={60} />}
@@ -114,12 +118,14 @@ const Dashboard = () => {
 
 
                     {/* Módulo de Alumnos Archivados */}
-                    <ModuleCard
-                        icon={<Archive size={60} />}
-                        label="Alumnos Archivados"
-                        onClick={() => navigate('/alumnos/archivados')}
-                        size="compact"
-                    />
+                    {role !== 'Medico' && (
+                        <ModuleCard
+                            icon={<Archive size={60} />}
+                            label="Alumnos Archivados"
+                            onClick={() => navigate('/alumnos/archivados')}
+                            size="compact"
+                        />
+                    )}
 
                     {/* Módulo de Actividad (Solo SuperAdmin/Administrador) */}
                     {can(role, 'asisport.viewActivityLog') && (

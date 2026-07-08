@@ -10,6 +10,7 @@ import { getCamposFaltantes } from '../../features/alumnos/utils/alumnoCompletit
 import TabBar from '../../components/dashboard/TabBar';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
 import { getEscuelaActual } from '../../services/escuelas';
+import { can } from '../../config/roles';
 import {
     exportarListaBuenaFe,
     obtenerEntrenadoresListaBuenaFe
@@ -164,15 +165,19 @@ const ListaAlumnos = () => {
                         <h2 className="text-xl font-semibold text-white mb-2">
                             Aún no hay alumnos registrados
                         </h2>
-                        <p className="text-text-secondary mb-6">
-                            Haz clic en "Registrar Alumno" para comenzar.
-                        </p>
-                        <button
-                            onClick={() => navigate('/alumnos/registro')}
-                            className="bg-primary text-white px-6 py-3 rounded-md font-semibold hover:bg-orange-600 transition-colors"
-                        >
-                            Registrar Alumno
-                        </button>
+                        {can(role, 'asisport.editStudents') && (
+                            <>
+                                <p className="text-text-secondary mb-6">
+                                    Haz clic en "Registrar Alumno" para comenzar.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/alumnos/registro')}
+                                    className="bg-primary text-white px-6 py-3 rounded-md font-semibold hover:bg-orange-600 transition-colors"
+                                >
+                                    Registrar Alumno
+                                </button>
+                            </>
+                        )}
                     </div>
                 </main>
             </div>
@@ -706,24 +711,26 @@ const ListaAlumnos = () => {
             </main>
 
             {/* Botón Flotante "+" */}
-            <button
-                onClick={() => navigate('/alumnos/registro')}
-                className="
-                    fixed bottom-6 right-6
-                    w-14 h-14
-                    bg-primary text-white
-                    rounded-full
-                    shadow-lg
-                    flex items-center justify-center
-                    hover:bg-orange-600
-                    active:scale-95
-                    transition-all
-                    z-50
-                "
-                aria-label="Registrar nuevo alumno"
-            >
-                <Plus size={28} />
-            </button>
+            {can(role, 'asisport.editStudents') && (
+                <button
+                    onClick={() => navigate('/alumnos/registro')}
+                    className="
+                        fixed bottom-6 right-6
+                        w-14 h-14
+                        bg-primary text-white
+                        rounded-full
+                        shadow-lg
+                        flex items-center justify-center
+                        hover:bg-orange-600
+                        active:scale-95
+                        transition-all
+                        z-50
+                    "
+                    aria-label="Registrar nuevo alumno"
+                >
+                    <Plus size={28} />
+                </button>
+            )}
 
             {/* Modal de Combinar Alumnos */}
             <CombinarAlumnosModal

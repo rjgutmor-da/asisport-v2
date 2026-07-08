@@ -45,12 +45,14 @@ const DesktopNavbar = ({ className = "text-[18px]", gap = "gap-6" }) => {
             >
                 Inicio
             </button>
-            <button 
-                onClick={() => navigate('/asistencia')} 
-                className={linkStyle('/asistencia')}
-            >
-                Asistencia
-            </button>
+            {role !== 'Medico' && (
+                <button 
+                    onClick={() => navigate('/asistencia')} 
+                    className={linkStyle('/asistencia')}
+                >
+                    Asistencia
+                </button>
+            )}
             <button 
                 onClick={() => navigate('/alumnos')} 
                 className={linkStyle('/alumnos')}

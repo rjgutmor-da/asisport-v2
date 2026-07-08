@@ -6,7 +6,7 @@ import ResetPassword from './pages/ResetPassword'
 import { ToastProvider } from './components/ui/Toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
-import { rolesWithPermission } from './config/roles'
+import { rolesWithPermission, ROLES } from './config/roles'
 
 // Lazy loading de rutas — cada página se carga solo cuando el usuario navega a ella
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -70,13 +70,13 @@ function App() {
                             } />
 
                             <Route path="/asistencia" element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={ROLES.filter(r => r !== 'Medico')}>
                                     <Asistencia />
                                 </ProtectedRoute>
                             } />
 
                             <Route path="/alumnos/registro" element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={ROLES.filter(r => r !== 'Medico')}>
                                     <RegistroAlumno />
                                 </ProtectedRoute>
                             } />
@@ -94,7 +94,7 @@ function App() {
                             } />
 
                             <Route path="/alumnos/archivados" element={
-                                <ProtectedRoute>
+                                <ProtectedRoute allowedRoles={ROLES.filter(r => r !== 'Medico')}>
                                     <AlumnosArchivados />
                                 </ProtectedRoute>
                             } />

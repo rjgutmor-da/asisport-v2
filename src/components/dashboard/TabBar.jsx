@@ -21,6 +21,9 @@ const TabBar = () => {
 
 
     const filteredNavItems = navItems.filter(item => {
+        if (role === 'Medico' && (item.path === '/asistencia' || item.path === '/alumnos/registro')) {
+            return false;
+        }
         return can(role, item.permission);
     });
 
