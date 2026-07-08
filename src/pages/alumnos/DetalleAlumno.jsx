@@ -9,6 +9,7 @@ import FileInput from '../../components/ui/FileInput';
 import { useAlumno } from '../../features/alumnos/hooks/useAlumno';
 import { archivarAlumno } from '../../services/alumnos';
 import { can } from '../../config/roles';
+import FichaMedica from '../../features/fichas_medicas/components/FichaMedica';
 
 /**
  * Página de detalle y edición de un alumno.
@@ -509,6 +510,16 @@ const DetalleAlumno = () => {
                         </div>
                     </section>
                 </div>
+
+                {/* Sección Ficha Médica */}
+                {can(role, 'medica.view') && (
+                    <FichaMedica
+                        alumnoId={id}
+                        alumno={alumno}
+                        canView={can(role, 'medica.view')}
+                        canManage={can(role, 'medica.manage')}
+                    />
+                )}
 
                 {/* Botón de Archivar (solo Admin/SuperAdmin) */}
                 {can(role, 'asisport.editStudents') && (

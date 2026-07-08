@@ -17,7 +17,7 @@ export const getUsuarios = async () => {
 
     let query = supabase
         .from('usuarios')
-        .select('id, email, nombres, apellidos, rol, sucursal_id, activo')
+        .select('id, email, nombres, apellidos, rol, sucursal_id, activo, matricula_medica')
         .eq('escuela_id', escuelaId);
 
     // Filtrar por sucursal si es Administrador o Entrenador
@@ -133,6 +133,11 @@ export const createUserDirectly = async (userData) => {
     if (!userData.nombres?.trim()) throw new Error('El nombre es obligatorio.');
     if (!userData.apellidos?.trim()) throw new Error('Los apellidos son obligatorios.');
 
+    // Validación específica para el rol Médico
+    if (userData.rol === 'Medico' && !userData.matricula_medica?.trim()) {
+        throw new Error('La matrícula médica es obligatoria para el rol Médico.');
+    }
+
     // Regla de negocio: El rol 'SuperAdministrador' debe ser único por escuela
     if (userData.rol === 'SuperAdministrador') {
         const { data: existingSuperAdmin, error: checkError } = await supabase
@@ -194,7 +199,9 @@ export const createUserDirectly = async (userData) => {
         rol: userData.rol,
         sucursal_id: userData.sucursal_id || null,
         escuela_id: escuelaId,
-        activo: true
+        activo: true,
+        // Matrícula médica: solo aplica para el rol Médico
+        matricula_medica: userData.rol === 'Medico' ? (userData.matricula_medica?.trim() || null) : null,
     };
 
     const { error: dbError } = await supabase
