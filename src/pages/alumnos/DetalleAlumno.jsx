@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Loader2, Archive, Trash2, MessageCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Loader2, Trash2, MessageCircle, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import FileInput from '../../components/ui/FileInput';
 import { useAlumno } from '../../features/alumnos/hooks/useAlumno';
-import { archivarAlumno } from '../../services/alumnos';
 import { can } from '../../config/roles';
 import FichaMedica from '../../features/fichas_medicas/components/FichaMedica';
 
@@ -521,33 +520,7 @@ const DetalleAlumno = () => {
                     />
                 )}
 
-                {/* Botón de Archivar (solo Admin/SuperAdmin) */}
-                {can(role, 'asisport.editStudents') && (
-                    <div className="bg-surface border border-error/30 rounded-md p-6">
-                        <h3 className="text-lg font-semibold text-error mb-2">Zona de Peligro</h3>
-                        <p className="text-text-secondary text-sm mb-4">
-                            Archivar un alumno lo eliminará de las listas activas, pero sus datos y asistencias se conservarán.
-                        </p>
-                        <button
-                            onClick={async () => {
-                                if (!window.confirm(`¿Estás seguro de archivar a ${alumno.nombres} ${alumno.apellidos}? El alumno dejará de aparecer en listas activas.`)) {
-                                    return;
-                                }
-                                try {
-                                    await archivarAlumno(id);
-                                    addToast('Alumno archivado correctamente', 'success');
-                                    navigate('/alumnos');
-                                } catch (error) {
-                                    addToast(error.message, 'error');
-                                }
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-md hover:bg-red-700 transition-colors"
-                        >
-                            <Archive size={18} />
-                            Archivar Alumno
-                        </button>
-                    </div>
-                )}
+
             </main>
         </div>
     );
