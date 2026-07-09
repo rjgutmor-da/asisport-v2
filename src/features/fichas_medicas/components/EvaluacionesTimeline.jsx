@@ -9,7 +9,7 @@ import { useToast } from '../../../components/ui/Toast';
  * Muestra todas las evaluaciones ordenadas de más reciente a más antigua.
  * La primera se muestra expandida por defecto.
  */
-const EvaluacionesTimeline = ({ evaluaciones, canManage, puedeEditar, onAgregar, onEditar, saving }) => {
+const EvaluacionesTimeline = ({ evaluaciones, canManage, puedeEditar, onAgregar, onEditar, saving, alumno, ficha }) => {
     const { addToast } = useToast();
     const [mostrarModal, setMostrarModal] = useState(false);
 
@@ -86,6 +86,8 @@ const EvaluacionesTimeline = ({ evaluaciones, canManage, puedeEditar, onAgregar,
                                 canManage={canManage}
                                 puedeEditar={puedeEditar}
                                 onEditar={handleEditar}
+                                alumno={alumno}
+                                ficha={ficha}
                             />
                         ))
                     )}

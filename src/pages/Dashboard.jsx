@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School, Activity } from 'lucide-react';
+import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School, Activity, HeartPulse } from 'lucide-react';
 import HeroCard from '../components/dashboard/HeroCard';
 import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
@@ -42,37 +42,74 @@ const Dashboard = () => {
 
                 {/* Columna Izquierda (Asistencia + Brand) - Ajustada para separar logo en móvil */}
                 <div className="flex flex-col items-center gap-10 md:gap-8 pt-0 w-full">
-                    {role !== 'Medico' && (
-                        <HeroCard
-                            icon={<ClipboardCheck size={48} className="md:size-28" />}
-                            label="Asistencia"
-                            onClick={() => navigate('/asistencia')}
-                            className="min-h-[140px] md:min-h-[440px]"
-                        />
-                    )}
-                    
-                    {/* Brand Section: Logo + Phrase (Dynamic) */}
-                    <div className="flex flex-col items-center text-center">
-                        {loading ? (
-                            <div className="w-44 h-24 md:w-[340px] md:h-[210px] bg-white/5 animate-pulse rounded-xl flex items-center justify-center">
-                                {/* Contenedor transparente de carga para evitar saltos bruscos */}
+                    {role !== 'Medico' ? (
+                        <>
+                            <HeroCard
+                                icon={<ClipboardCheck size={48} className="md:size-28" />}
+                                label="Asistencia"
+                                onClick={() => navigate('/asistencia')}
+                                className="min-h-[140px] md:min-h-[440px]"
+                            />
+                            
+                            {/* Brand Section: Logo + Phrase (Dynamic) */}
+                            <div className="flex flex-col items-center text-center">
+                                {loading ? (
+                                    <div className="w-44 h-24 md:w-[340px] md:h-[210px] bg-white/5 animate-pulse rounded-xl flex items-center justify-center">
+                                        {/* Contenedor transparente de carga para evitar saltos bruscos */}
+                                    </div>
+                                ) : escuela?.logo_url ? (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <img 
+                                            src={escuela.logo_url} 
+                                            alt={`Logo ${escuela.nombre}`} 
+                                            className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                                        />
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={LogoPorDefecto} 
+                                        alt="Logo por defecto" 
+                                        className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
+                                    />
+                                )}
                             </div>
-                        ) : escuela?.logo_url ? (
-                            <div className="flex flex-col items-center gap-4">
-                                <img 
-                                    src={escuela.logo_url} 
-                                    alt={`Logo ${escuela.nombre}`} 
-                                    className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                        </>
+                    ) : (
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full">
+                            {/* Brand Section: Logo */}
+                            <div className="flex flex-col items-center text-center">
+                                {loading ? (
+                                    <div className="w-44 h-24 md:w-[210px] md:h-[130px] bg-white/5 animate-pulse rounded-xl flex items-center justify-center">
+                                        {/* Contenedor transparente de carga para evitar saltos bruscos */}
+                                    </div>
+                                ) : escuela?.logo_url ? (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <img 
+                                            src={escuela.logo_url} 
+                                            alt={`Logo ${escuela.nombre}`} 
+                                            className="w-32 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300 drop-shadow-2xl"
+                                        />
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={LogoPorDefecto} 
+                                        alt="Logo por defecto" 
+                                        className="w-44 h-auto md:w-[210px] transition-transform hover:scale-105 duration-300"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Card Ficha Médica */}
+                            <div className="w-full md:w-[240px]">
+                                <ModuleCard
+                                    icon={<HeartPulse size={60} />}
+                                    label="Ficha Médica"
+                                    onClick={() => navigate('/alumnos')}
+                                    size="compact"
                                 />
                             </div>
-                        ) : (
-                            <img 
-                                src={LogoPorDefecto} 
-                                alt="Logo por defecto" 
-                                className="w-44 h-auto md:w-[340px] transition-transform hover:scale-105 duration-300"
-                            />
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Columna Derecha - Grid de Módulos */}

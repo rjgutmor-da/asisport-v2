@@ -3,7 +3,7 @@ import { Loader2, Lock, ChevronRight } from 'lucide-react';
 import { useFichaMedica } from '../hooks/useFichaMedica';
 import AntecedentesCard from './AntecedentesCard';
 import EvaluacionesTimeline from './EvaluacionesTimeline';
-import ExportarFichaMedica from './ExportarFichaMedica';
+
 
 /**
  * Contenedor principal del módulo Ficha Médica.
@@ -88,7 +88,6 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
 
     return (
         <div className="space-y-4">
-            {/* Encabezado de sección */}
             <div className="flex items-center justify-between border-b border-border pb-2">
                 <button
                     onClick={toggleExpandido}
@@ -103,14 +102,6 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
                     />
                     <span>Ficha Médica</span>
                 </button>
-                {evaluaciones.length > 0 && (
-                    <ExportarFichaMedica
-                        alumno={alumno}
-                        ficha={ficha}
-                        evaluaciones={evaluaciones}
-                        canManage={canManage}
-                    />
-                )}
             </div>
 
             {/* Contenido de la Ficha Médica (antecedentes y evaluaciones) */}
@@ -132,6 +123,8 @@ const FichaMedica = ({ alumnoId, alumno, canManage, canView }) => {
                         onAgregar={agregarEvaluacion}
                         onEditar={editarEvaluacion}
                         saving={saving}
+                        alumno={alumno}
+                        ficha={ficha}
                     />
                 </div>
             )}

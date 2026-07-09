@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 import { obtenerEscuelaId } from '../../../lib/rpcHelper';
 
@@ -27,129 +27,365 @@ const formatFecha = (fechaStr) => {
 };
 
 /**
- * Genera y descarga el PDF de la ficha médica completa del alumno.
- * Incluye el logo de la escuela, antecedentes y todas las evaluaciones.
+ * Calcula la edad a partir de la fecha de nacimiento.
  */
-const exportarPDF = async (alumno, ficha, evaluaciones) => {
+const calcularEdad = (fechaNac) => {
+    if (!fechaNac) return '—';
+    const hoy = new Date();
+    const nac = new Date(fechaNac);
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const m = hoy.getMonth() - nac.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) {
+        edad--;
+    }
+    return edad + ' años';
+};
+
+/**
+ * Formatea los síntomas de esfuerzo JSONB para el PDF.
+ */
+const formatSintomas = (sintomas) => {
+    if (!sintomas) return 'No refiere';
+    const parts = [];
+    if (sintomas.palpitaciones) parts.push('Palpitaciones anómalas');
+    if (sintomas.dolor_pecho) parts.push('Dolor/presión en el pecho');
+    if (sintomas.sincope) parts.push('Síncope (desmayos)');
+    if (sintomas.disnea) parts.push('Disnea desproporcionada');
+    if (sintomas.detalle?.trim()) parts.push(sintomas.detalle.trim());
+    return parts.length > 0 ? parts.join(', ') : 'No refiere';
+};
+
+/**
+ * Genera y descarga el PDF en modo claro y con branding naranja AsiSport.
+ */
+const exportarPDF = async (alumno, ficha, ev) => {
     const escuela = await getEscuelaInfo();
 
-    // Construir el HTML del PDF usando estilos inline
     const logoHtml = escuela?.logo_url
-        ? `<img src="${escuela.logo_url}" alt="Logo" style="height:60px;object-fit:contain;" crossorigin="anonymous" />`
-        : `<div style="width:60px;height:60px;background:#FF6B35;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:20px;">${(escuela?.nombre || 'E')[0]}</div>`;
+        ? `<img src="${escuela.logo_url}" alt="Logo" style="height:55px;object-fit:contain;" crossorigin="anonymous" />`
+        : `<div style="width:50px;height:50px;background:#FF6B35;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:20px;">${(escuela?.nombre || 'E')[0]}</div>`;
 
     const aptitudColor = {
-        'Apto': '#00D26A',
-        'Apto con restricciones': '#FFB020',
+        'Apto': '#00B85C',
+        'Apto con restricciones': '#FF9F0A',
         'No apto': '#FF3B30',
-    };
+    }[ev.aptitud_deportiva] || '#666666';
 
-    const evaluacionesHtml = evaluaciones.map(ev => {
-        const imc = ev.peso_kg && ev.talla_cm
-            ? (ev.peso_kg / Math.pow(ev.talla_cm / 100, 2)).toFixed(1)
-            : null;
-        const color = aptitudColor[ev.aptitud_deportiva] || '#A0A0A0';
-        const nombreMedico = ev.medico
-            ? `Dr./Dra. ${ev.medico.nombres} ${ev.medico.apellidos}${ev.medico.matricula_medica ? ' · Mat. ' + ev.medico.matricula_medica : ''}`
-            : '';
+    const imc = ev.peso_kg && ev.talla_cm
+        ? (ev.peso_kg / Math.pow(ev.talla_cm / 100, 2)).toFixed(1)
+        : null;
 
-        return `
-        <div style="margin-bottom:20px;border:1px solid #2D2D2D;border-radius:8px;overflow:hidden;page-break-inside:avoid;">
-            <div style="background:#1A1A1A;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-                <div>
-                    <span style="color:#FFFFFF;font-weight:600;font-size:14px;">${formatFecha(ev.fecha_evaluacion)}</span>
-                    ${nombreMedico ? `<span style="color:#A0A0A0;font-size:12px;margin-left:12px;">${nombreMedico}</span>` : ''}
-                </div>
-                <span style="background:${color}20;color:${color};border:1px solid ${color}50;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;">${ev.aptitud_deportiva}</span>
-            </div>
-            <div style="padding:14px 16px;background:#0A0A0A;">
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
-                    ${[
-                        ['Presión arterial', ev.presion_arterial ? ev.presion_arterial + ' mmHg' : null],
-                        ['Frec. cardíaca', ev.frecuencia_cardiaca ? ev.frecuencia_cardiaca + ' lpm' : null],
-                        ['Frec. respiratoria', ev.frecuencia_respiratoria ? ev.frecuencia_respiratoria + ' rpm' : null],
-                        ['Sat. oxígeno', ev.saturacion_oxigeno ? ev.saturacion_oxigeno + '%' : null],
-                        ['Peso', ev.peso_kg ? ev.peso_kg + ' kg' : null],
-                        ['Talla', ev.talla_cm ? ev.talla_cm + ' cm' : null],
-                        ...(imc ? [['IMC', imc + ' kg/m²']] : []),
-                    ].filter(([, v]) => v).map(([label, val]) => `
-                        <div style="background:#1A1A1A;border:1px solid #2D2D2D;border-radius:6px;padding:8px;">
-                            <div style="color:#A0A0A0;font-size:10px;">${label}</div>
-                            <div style="color:#FFFFFF;font-weight:600;font-size:13px;">${val}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                ${ev.estado_general ? `<p style="margin:4px 0;font-size:12px;color:#A0A0A0;">Estado general: <strong style="color:#FFFFFF;">${ev.estado_general}</strong></p>` : ''}
-                ${ev.examen_fisico ? `<p style="margin:4px 0;font-size:12px;color:#A0A0A0;">Examen físico: <span style="color:#FFFFFF;">${ev.examen_fisico}</span></p>` : ''}
-                ${ev.observaciones ? `<p style="margin:4px 0;font-size:12px;color:#A0A0A0;">Observaciones: <span style="color:#FFFFFF;">${ev.observaciones}</span></p>` : ''}
-                ${ev.proxima_revision ? `<p style="margin:8px 0 0;font-size:12px;color:#FFB020;font-weight:600;">📅 Próxima revisión: ${formatFecha(ev.proxima_revision)}</p>` : ''}
-            </div>
-        </div>`;
-    }).join('');
-
-    const ultimaAptitud = evaluaciones[0]?.aptitud_deportiva;
-    const colorUltima = aptitudColor[ultimaAptitud] || '#A0A0A0';
+    const nombreMedico = ev.medico
+        ? `Dr./Dra. ${ev.medico.nombres} ${ev.medico.apellidos}${ev.medico.matricula_medica ? ' · Mat. ' + ev.medico.matricula_medica : ''}`
+        : 'Médico del Plantel';
 
     const html = `
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <title>Ficha Médica - ${alumno.nombres} ${alumno.apellidos}</title>
+        <title>Evaluación Médica - ${alumno.nombres} ${alumno.apellidos}</title>
         <style>
             * { box-sizing: border-box; }
-            body { margin: 0; padding: 24px; font-family: 'Segoe UI', Arial, sans-serif; background: #0A0A0A; color: #FFFFFF; }
-            @media print { body { padding: 0; } @page { margin: 15mm; } }
+            body { 
+                margin: 0; 
+                padding: 30px; 
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+                background: #FFFFFF; 
+                color: #1F2937; 
+                line-height: 1.4;
+            }
+            @media print { 
+                body { padding: 0; } 
+                @page { margin: 15mm; } 
+            }
+            .section-title {
+                background: #F9FAFB; 
+                border-left: 4px solid #FF6B35; 
+                padding: 6px 12px; 
+                margin-top: 20px;
+                margin-bottom: 12px; 
+                font-weight: bold; 
+                font-size: 13px; 
+                color: #FF6B35; 
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .grid-cols-4 {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+            .grid-cols-2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .card {
+                border: 1px solid #E5E7EB; 
+                border-radius: 6px; 
+                padding: 8px 10px; 
+                background: #F9FAFB;
+            }
+            .card-label {
+                color: #6B7280; 
+                font-size: 9px; 
+                text-transform: uppercase;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+            .card-value {
+                color: #111827; 
+                font-weight: bold; 
+                font-size: 13px;
+                margin-top: 2px;
+            }
+            .info-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+                margin-bottom: 12px;
+            }
+            .info-table td {
+                padding: 6px 8px;
+                border-bottom: 1px solid #F3F4F6;
+            }
+            .info-table td.label {
+                color: #6B7280;
+                font-weight: 600;
+                width: 35%;
+            }
+            .info-table td.value {
+                color: #111827;
+                font-weight: 500;
+            }
         </style>
     </head>
     <body>
-        <!-- Encabezado -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #FF6B35;">
-            <div style="display:flex;align-items:center;gap:16px;">
+        <!-- Encabezado con Branding AsiSport Naranja -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #FF6B35;">
+            <div style="display:flex;align-items:center;gap:15px;">
                 ${logoHtml}
                 <div>
-                    <div style="color:#A0A0A0;font-size:12px;">${escuela?.nombre || 'Escuela'}</div>
-                    <div style="font-size:22px;font-weight:700;color:#FFFFFF;">${alumno.nombres} ${alumno.apellidos}</div>
-                    <div style="color:#A0A0A0;font-size:13px;">
-                        Ficha Médica · Generada el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    <div style="color:#FF6B35;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">AsiSport · SaaSport</div>
+                    <div style="font-size:20px;font-weight:800;color:#111827;">EVALUACIÓN MÉDICA DE APTITUD FÍSICA</div>
+                    <div style="color:#6B7280;font-size:11px;margin-top:2px;">
+                        Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </div>
                 </div>
             </div>
-            ${ultimaAptitud ? `<span style="background:${colorUltima}20;color:${colorUltima};border:1px solid ${colorUltima}50;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;">${ultimaAptitud}</span>` : ''}
+            ${alumno.foto_url ? `<img src="${alumno.foto_url}" alt="Foto ${alumno.nombres}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #FF6B35;" crossorigin="anonymous" />` : ''}
         </div>
 
-        <!-- Antecedentes -->
-        ${ficha ? `
-        <div style="margin-bottom:24px;border:1px solid #2D2D2D;border-radius:8px;overflow:hidden;">
-            <div style="background:#1A1A1A;padding:12px 16px;border-bottom:1px solid #2D2D2D;">
-                <span style="color:#FF6B35;font-weight:600;font-size:14px;">🛡 Antecedentes Médicos</span>
+        <!-- 1. Datos Generales -->
+        <div class="section-title">1. Datos Generales</div>
+        <div class="grid-cols-2" style="margin-bottom:15px;">
+            <table class="info-table">
+                <tr>
+                    <td class="label">Jugador:</td>
+                    <td class="value" style="font-weight:bold;">${alumno.apellidos}, ${alumno.nombres}</td>
+                </tr>
+                <tr>
+                    <td class="label">F. Nacimiento:</td>
+                    <td class="value">${formatFecha(alumno.fecha_nacimiento)}</td>
+                </tr>
+                <tr>
+                    <td class="label">Edad:</td>
+                    <td class="value">${calcularEdad(alumno.fecha_nacimiento)}</td>
+                </tr>
+                <tr>
+                    <td class="label">Género:</td>
+                    <td class="value" style="text-transform:capitalize;">${alumno.genero || alumno.sexo || '—'}</td>
+                </tr>
+            </table>
+            <table class="info-table">
+                <tr>
+                    <td class="label">Deporte:</td>
+                    <td class="value" style="font-weight:bold;color:#FF6B35;">${ev.deporte || 'Fútbol'}</td>
+                </tr>
+                <tr>
+                    <td class="label">Club / Escuela:</td>
+                    <td class="value">${escuela?.nombre || '—'}</td>
+                </tr>
+                <tr>
+                    <td class="label">Fecha Revisión:</td>
+                    <td class="value">${formatFecha(ev.fecha_evaluacion)}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 2. Antecedentes Médicos (Anamnesis Dirigida) -->
+        <div class="section-title">2. Antecedentes Médicos (Anamnesis)</div>
+        <table class="info-table" style="margin-bottom:15px;">
+            <tr>
+                <td class="label">Antecedentes Personales:</td>
+                <td class="value">${ficha?.antecedentes_personales || 'No refiere patologías crónicas de base.'}</td>
+            </tr>
+            <tr>
+                <td class="label">Alergias:</td>
+                <td class="value">${ficha?.alergias || 'No refiere.'}</td>
+            </tr>
+            <tr>
+                <td class="label">Cirugías Previas:</td>
+                <td class="value">${ficha?.cirugias_previas || 'No refiere.'}</td>
+            </tr>
+            <tr>
+                <td class="label">Muerte Súbita Familiar:</td>
+                <td class="value" style="${ficha?.antecedentes_familiares?.tiene ? 'color:#FF3B30;font-weight:bold;' : ''}">
+                    ${ficha?.antecedentes_familiares?.tiene ? `Sí: ${ficha.antecedentes_familiares.detalle}` : 'No refiere antecedentes familiares críticos.'}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Síntomas de Esfuerzo:</td>
+                <td class="value" style="${Object.entries(ficha?.sintomas_esfuerzo || {}).some(([k, v]) => k !== 'detalle' && v) ? 'color:#FF9F0A;font-weight:bold;' : ''}">
+                    ${formatSintomas(ficha?.sintomas_esfuerzo)}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Historial de Trauma Craneal:</td>
+                <td class="value" style="${ficha?.trauma_craneal?.tiene ? 'color:#007AFF;font-weight:bold;' : ''}">
+                    ${ficha?.trauma_craneal?.tiene ? `Sí: ${ficha.trauma_craneal.detalle}` : 'No refiere conmociones ni traumas previos.'}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Club anterior:</td>
+                <td class="value">${ficha?.club_anterior || '—'}</td>
+            </tr>
+        </table>
+
+        <!-- 3. Signos Vitales y Antropometría -->
+        <div class="section-title">3. Signos Vitales y Antropometría</div>
+        <div class="grid-cols-4" style="margin-bottom:12px;">
+            <div class="card">
+                <div class="card-label">Presión arterial</div>
+                <div class="card-value">${ev.presion_arterial || '— mmHg'}</div>
             </div>
-            <div style="padding:14px 16px;background:#0A0A0A;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                ${[
-                    ['Antecedentes personales', ficha.antecedentes_personales],
-                    ['Alergias', ficha.alergias],
-                    ['Cirugías previas', ficha.cirugias_previas],
-                    ['Club / equipo anterior', ficha.club_anterior],
-                ].filter(([, v]) => v).map(([label, val]) => `
-                    <div>
-                        <div style="color:#A0A0A0;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">${label}</div>
-                        <div style="color:#FFFFFF;font-size:13px;margin-top:2px;">${val}</div>
-                    </div>
-                `).join('')}
+            <div class="card">
+                <div class="card-label">Frec. cardíaca</div>
+                <div class="card-value">${ev.frecuencia_cardiaca ? ev.frecuencia_cardiaca + ' lpm' : '— lpm'}</div>
             </div>
+            <div class="card">
+                <div class="card-label">Frec. respiratoria</div>
+                <div class="card-value">${ev.frecuencia_respiratoria ? ev.frecuencia_respiratoria + ' rpm' : '— rpm'}</div>
+            </div>
+            <div class="card" style="border-color:#FF6B35;background:#FFF5F2;">
+                <div class="card-label" style="color:#FF6B35;">Sat. Oxígeno SpO₂</div>
+                <div class="card-value" style="color:#FF6B35;">${ev.saturacion_oxigeno ? ev.saturacion_oxigeno + '%' : '— %'}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Peso</div>
+                <div class="card-value">${ev.peso_kg ? ev.peso_kg + ' kg' : '— kg'}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Talla</div>
+                <div class="card-value">${ev.talla_cm ? ev.talla_cm + ' cm' : '— cm'}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">IMC</div>
+                <div class="card-value">${imc ? imc + ' kg/m²' : '—'}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Pulsos periféricos</div>
+                <div class="card-value" style="font-size:11px;">${ev.pulsos_perifericos || '—'}</div>
+            </div>
+        </div>
+
+        <!-- 4. Evaluación Física por Sistemas -->
+        <div class="section-title">4. Exploración Clínica por Sistemas</div>
+        <div class="grid-cols-2" style="margin-bottom:15px;gap:15px;">
+            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Cardiovascular</p>
+                <p style="margin:3px 0;">• Auscultación supino: <strong>${ev.eval_cardiovascular?.auscultacion_supino || 'Normal'}</strong></p>
+                <p style="margin:3px 0;">• Auscultación bipedestación: <strong>${ev.eval_cardiovascular?.auscultacion_bipedestacion || 'Normal'}</strong></p>
+                <p style="margin:3px 0;">• Soplos detectados: <strong style="color:${ev.eval_cardiovascular?.soplos ? '#FF3B30' : '#00B85C'};">${ev.eval_cardiovascular?.soplos ? 'Sí' : 'No'}</strong></p>
+                ${ev.eval_cardiovascular?.observaciones ? `<p style="margin:3px 0;color:#555;">• Obs: ${ev.eval_cardiovascular.observaciones}</p>` : ''}
+            </div>
+            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Respiratorio</p>
+                <p style="margin:3px 0;">• Auscultación pulmonar: <strong>${ev.eval_respiratorio?.auscultacion || 'Normal'}</strong></p>
+                ${ev.eval_respiratorio?.hallazgos ? `<p style="margin:3px 0;color:#555;">• Hallazgos: ${ev.eval_respiratorio.hallazgos}</p>` : ''}
+            </div>
+            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;grid-column: span 2;">
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Músculo-esquelético y Articular</p>
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                    <span>• Estabilidad ligamentosa: <strong>${ev.eval_musculoesqueletico?.estabilidad_ligamentosa || 'Normal'}</strong></span>
+                    <span>• Test de Adams (columna): <strong>${ev.eval_musculoesqueletico?.test_adams || 'Normal'}</strong></span>
+                    <span>• Tibial anterior (Osgood-Schlatter): <strong>${ev.eval_musculoesqueletico?.osgood_schlatter || 'Negativo'}</strong></span>
+                </div>
+                ${ev.eval_musculoesqueletico?.observaciones ? `<p style="margin:6px 0 0 0;color:#555;">• Observaciones: ${ev.eval_musculoesqueletico.observaciones}</p>` : ''}
+            </div>
+        </div>
+
+        <!-- 5. Evaluación Funcional -->
+        <div class="section-title">5. Evaluación Funcional (Consultorio)</div>
+        <div class="grid-cols-4" style="margin-bottom:15px;font-size:11px;">
+            <div class="card" style="text-align:center;">
+                <div class="card-label">Marcha</div>
+                <div class="card-value" style="font-size:12px;color:${ev.eval_funcional?.marcha === 'Normal' ? '#00B85C' : '#FF3B30'};">${ev.eval_funcional?.marcha || 'Normal'}</div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-label">Equilibrio</div>
+                <div class="card-value" style="font-size:12px;color:${ev.eval_funcional?.equilibrio === 'Adecuado' ? '#00B85C' : '#FF3B30'};">${ev.eval_funcional?.equilibrio || 'Adecuado'}</div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-label">Fuerza general</div>
+                <div class="card-value" style="font-size:12px;color:${ev.eval_funcional?.fuerza === 'Adecuada' ? '#00B85C' : '#FF3B30'};">${ev.eval_funcional?.fuerza || 'Adecuada'}</div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="card-label">Dolor al movimiento</div>
+                <div class="card-value" style="font-size:12px;color:${ev.eval_funcional?.dolor_movimiento ? '#FF9F0A' : '#00B85C'};">
+                    ${ev.eval_funcional?.dolor_movimiento ? `Sí (${ev.eval_funcional.dolor_zona || 'zona indet.'})` : 'No'}
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Aptitud Deportiva -->
+        <div class="section-title">6. Dictamen de Aptitud Deportiva</div>
+        <div style="border:2px solid ${aptitudColor};border-radius:8px;padding:12px 15px;background:#FAFAFA;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <span style="font-size:11px;color:#6B7280;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">Dictamen del Médico Evaluador</span>
+                <div style="font-size:20px;font-weight:800;color:${aptitudColor};margin-top:2px;">${ev.aptitud_deportiva.toUpperCase()}</div>
+            </div>
+            <div style="font-size:12px;color:#4B5563;text-align:right;">
+                <div>Evaluador: <strong>${nombreMedico}</strong></div>
+            </div>
+        </div>
+
+        ${ev.aptitud_deportiva === 'Apto con restricciones' && ev.restricciones_aptitud ? `
+        <div style="border:1px solid #FF9F0A;border-radius:6px;padding:10px 12px;background:#FFFBEB;margin-bottom:15px;font-size:12px;">
+            <strong style="color:#B45309;text-transform:uppercase;font-size:10px;letter-spacing:0.5px;">Restricciones / Condiciones Médicas:</strong>
+            <p style="margin:4px 0 0 0;color:#1F2937;line-height:1.4;">${ev.restricciones_aptitud}</p>
         </div>
         ` : ''}
 
-        <!-- Evaluaciones -->
-        <div style="margin-bottom:16px;">
-            <h3 style="color:#FF6B35;font-size:14px;font-weight:600;margin-bottom:12px;">📊 Historial de Evaluaciones</h3>
-            ${evaluacionesHtml}
+        ${ev.observaciones ? `
+        <div style="font-size:12px;margin-bottom:15px;">
+            <strong>Observaciones y Recomendaciones adicionales:</strong>
+            <p style="margin:4px 0 0 0;color:#4B5563;line-height:1.4;">${ev.observaciones}</p>
+        </div>
+        ` : ''}
+
+        ${ev.proxima_revision ? `
+        <div style="font-size:12px;color:#B45309;font-weight:bold;margin-bottom:20px;">
+            📅 Próxima revisión sugerida: ${formatFecha(ev.proxima_revision)}
+        </div>
+        ` : ''}
+
+        <!-- Firmas y Cierre -->
+        <div style="margin-top:40px;border-top:1px solid #E5E7EB;padding-top:15px;display:flex;justify-content:space-between;font-size:11px;color:#6B7280;">
+            <div>
+                Este documento es una certificación médica de aptitud física emitida para el ciclo deportivo actual.<br/>
+                La veracidad de los datos clínicos y del dictamen corresponden al profesional firmante.
+            </div>
+            <div style="text-align:right;">
+                <strong>${nombreMedico}</strong><br/>
+                Médico Evaluador Autorizado
+            </div>
         </div>
     </body>
     </html>`;
 
-    // Abrir en nueva ventana para imprimir/guardar como PDF
-    const ventana = window.open('', '_blank', 'width=900,height=700');
+    const ventana = window.open('', '_blank', 'width=900,height=750');
     ventana.document.write(html);
     ventana.document.close();
     ventana.focus();
@@ -157,117 +393,30 @@ const exportarPDF = async (alumno, ficha, evaluaciones) => {
 };
 
 /**
- * Exporta la lista de aptitudes de todos los alumnos en Excel (CSV).
- * Cada fila: Alumno, Última evaluación, Aptitud, Médico, Próxima revisión
- */
-const exportarExcel = async (alumno, evaluaciones) => {
-    if (!evaluaciones.length) return;
-
-    const ultima = evaluaciones[0];
-    const rows = evaluaciones.map(ev => {
-        const nombreMedico = ev.medico ? `${ev.medico.nombres} ${ev.medico.apellidos}` : '';
-        const matricula = ev.medico?.matricula_medica || '';
-        return [
-            `${alumno.apellidos}, ${alumno.nombres}`,
-            ev.fecha_evaluacion,
-            ev.aptitud_deportiva,
-            ev.presion_arterial || '',
-            ev.frecuencia_cardiaca || '',
-            ev.frecuencia_respiratoria || '',
-            ev.saturacion_oxigeno || '',
-            ev.peso_kg || '',
-            ev.talla_cm || '',
-            ev.estado_general || '',
-            ev.observaciones?.replace(/\n/g, ' ') || '',
-            ev.proxima_revision || '',
-            nombreMedico,
-            matricula,
-        ];
-    });
-
-    const headers = [
-        'Alumno', 'Fecha evaluación', 'Aptitud deportiva',
-        'Presión arterial', 'Frec. cardíaca (lpm)', 'Frec. respiratoria (rpm)',
-        'Sat. oxígeno (%)', 'Peso (kg)', 'Talla (cm)', 'Estado general',
-        'Observaciones', 'Próxima revisión', 'Médico evaluador', 'Matrícula médico',
-    ];
-
-    const csvContent = [headers, ...rows]
-        .map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ficha-medica_${alumno.apellidos}_${alumno.nombres}_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-};
-
-/**
- * Botón desplegable de exportación (PDF + Excel/CSV).
+ * Botón directo para exportar el PDF de una evaluación específica.
  */
 const ExportarFichaMedica = ({ alumno, ficha, evaluaciones }) => {
-    const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handlePDF = async () => {
-        setLoading('pdf');
-        setOpen(false);
+        if (!evaluaciones || evaluaciones.length === 0) return;
+        setLoading(true);
         try {
-            await exportarPDF(alumno, ficha, evaluaciones);
-        } finally {
-            setLoading(null);
-        }
-    };
-
-    const handleExcel = async () => {
-        setLoading('excel');
-        setOpen(false);
-        try {
-            await exportarExcel(alumno, evaluaciones);
+            await exportarPDF(alumno, ficha, evaluaciones[0]);
         } finally {
             setLoading(null);
         }
     };
 
     return (
-        <div className="relative">
-            <button
-                onClick={() => setOpen(p => !p)}
-                className="flex items-center gap-1.5 text-sm text-text-secondary border border-border hover:border-primary hover:text-white px-3 py-1.5 rounded transition-colors"
-                disabled={!!loading}
-            >
-                <Download size={14} />
-                {loading === 'pdf' ? 'Generando PDF...' : loading === 'excel' ? 'Descargando...' : 'Exportar'}
-            </button>
-
-            {open && (
-                <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                    <div className="absolute right-0 top-full mt-1 z-20 bg-surface border border-border rounded-md shadow-lg overflow-hidden min-w-[180px]">
-                        <button
-                            onClick={handlePDF}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors"
-                        >
-                            <FileText size={15} className="text-error" />
-                            Exportar PDF
-                        </button>
-                        <div className="h-px bg-border" />
-                        <button
-                            onClick={handleExcel}
-                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors"
-                        >
-                            <FileSpreadsheet size={15} className="text-success" />
-                            Exportar Excel / CSV
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+        <button
+            onClick={handlePDF}
+            className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 hover:bg-primary/10 px-3 py-1.5 rounded transition-all duration-200 font-bold"
+            disabled={loading}
+        >
+            <Download size={13} />
+            {loading ? 'Generando PDF...' : 'Exportar PDF'}
+        </button>
     );
 };
 

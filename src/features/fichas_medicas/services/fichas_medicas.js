@@ -35,6 +35,9 @@ export const upsertFichaMedica = async (fichaData) => {
         alergias: fichaData.alergias?.trim() || null,
         cirugias_previas: fichaData.cirugias_previas?.trim() || null,
         club_anterior: fichaData.club_anterior?.trim() || null,
+        antecedentes_familiares: fichaData.antecedentes_familiares || null,
+        sintomas_esfuerzo: fichaData.sintomas_esfuerzo || null,
+        trauma_craneal: fichaData.trauma_craneal || null,
         updated_by: user.id,
     };
 
@@ -103,6 +106,13 @@ export const createEvaluacion = async (evalData) => {
         aptitud_deportiva: evalData.aptitud_deportiva,
         observaciones: evalData.observaciones?.trim() || null,
         proxima_revision: evalData.proxima_revision || null,
+        pulsos_perifericos: evalData.pulsos_perifericos || null,
+        eval_cardiovascular: evalData.eval_cardiovascular || null,
+        eval_respiratorio: evalData.eval_respiratorio || null,
+        eval_musculoesqueletico: evalData.eval_musculoesqueletico || null,
+        eval_funcional: evalData.eval_funcional || null,
+        deporte: evalData.deporte || 'Fútbol',
+        restricciones_aptitud: evalData.restricciones_aptitud?.trim() || null,
         medico_id: user.id,
     };
 
@@ -157,6 +167,13 @@ export const updateEvaluacion = async (evaluacionId, evalData) => {
         aptitud_deportiva: evalData.aptitud_deportiva,
         observaciones: evalData.observaciones?.trim() || null,
         proxima_revision: evalData.proxima_revision || null,
+        pulsos_perifericos: evalData.pulsos_perifericos || null,
+        eval_cardiovascular: evalData.eval_cardiovascular || null,
+        eval_respiratorio: evalData.eval_respiratorio || null,
+        eval_musculoesqueletico: evalData.eval_musculoesqueletico || null,
+        eval_funcional: evalData.eval_funcional || null,
+        deporte: evalData.deporte || 'Fútbol',
+        restricciones_aptitud: evalData.restricciones_aptitud?.trim() || null,
     };
 
     const { data, error } = await supabase
