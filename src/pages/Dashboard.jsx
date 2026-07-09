@@ -10,18 +10,24 @@ import { getEscuelaActual } from '../services/escuelas';
 import { useState, useEffect } from 'react';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
 import { can } from '../config/roles';
+import { isFichaMedicaHabilitada } from '../features/fichas_medicas/services/fichas_medicas';
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const { role } = useAuth();
     const [escuela, setEscuela] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [medicaHabilitada, setMedicaHabilitada] = useState(false);
 
     useEffect(() => {
         getEscuelaActual()
             .then(setEscuela)
             .catch(console.error)
             .finally(() => setLoading(false));
+
+        isFichaMedicaHabilitada()
+            .then(setMedicaHabilitada)
+            .catch(console.error);
     }, []);
 
     return (
@@ -86,7 +92,7 @@ const Dashboard = () => {
                         />
                     )}
 
-                    {can(role, 'medica.view') && (
+                    {can(role, 'medica.view') && medicaHabilitada && (
                         <ModuleCard
                             icon={<HeartPulse size={60} />}
                             label="Ficha Médica"
