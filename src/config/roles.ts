@@ -7,7 +7,7 @@ export const ROLE_MATRIX = {
     'finance.delete': true, 'finance.reconcile': true, 'finance.manageAccounts': true,
     'finance.cxc.view': true, 'finance.cxc.create': true, 'finance.cxc.edit': true, 'finance.cxc.void': true,
     'finance.cxp.view': true, 'finance.boxes.view': true, 'finance.statistics.view': true,
-    'attendancePhotos.view': true, 'medica.view': true, 'medica.manage': false,
+    'attendancePhotos.view': true, 'medica.view': true, 'medica.manage': true,
   }},
   Administrador: { label: 'Administrador', dataScope: 'branch', permissions: {
     'asisport.access': true, 'asisport.viewStatistics': true, 'asisport.viewActivityLog': true,
