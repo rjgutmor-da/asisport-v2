@@ -188,16 +188,16 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
                     </div>
                 ) : (
                     <>
-                        {/* Club / equipo anterior */}
+                        {/* Club y Equipo */}
                         <div className="px-5 py-3.5">
-                            <p className="text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide">Club / equipo anterior</p>
+                            <p className="text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide">Club y Equipo</p>
                             {editing ? (
                                 <input
                                     type="text"
                                     name="club_anterior"
                                     value={form.club_anterior}
                                     onChange={handleChange}
-                                    placeholder="Ingresa club anterior..."
+                                    placeholder="Ingresa club y equipo..."
                                     className="w-full bg-background border border-border rounded text-white text-sm px-3 py-2 focus:outline-none focus:border-primary placeholder-text-secondary"
                                 />
                             ) : (

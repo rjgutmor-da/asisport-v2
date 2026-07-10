@@ -63,7 +63,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
 
     const logoHtml = escuela?.logo_url
         ? `<img src="${escuela.logo_url}" alt="Logo" style="height:55px;object-fit:contain;" crossorigin="anonymous" />`
-        : `<div style="width:50px;height:50px;background:#FF6B35;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:20px;">${(escuela?.nombre || 'E')[0]}</div>`;
+        : `<img src="/icon-512.png" alt="Logo" style="height:55px;object-fit:contain;" />`;
 
     const aptitudColor = {
         'Apto': '#00B85C',
@@ -100,14 +100,14 @@ const exportarPDF = async (alumno, ficha, ev) => {
                 @page { margin: 15mm; } 
             }
             .section-title {
-                background: #F9FAFB; 
-                border-left: 4px solid #FF6B35; 
+                background: #F0F6FF; 
+                border-left: 4px solid #1E3A8A; 
                 padding: 6px 12px; 
                 margin-top: 20px;
                 margin-bottom: 12px; 
                 font-weight: bold; 
                 font-size: 13px; 
-                color: #FF6B35; 
+                color: #1E3A8A; 
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
@@ -163,27 +163,30 @@ const exportarPDF = async (alumno, ficha, ev) => {
     </head>
     <body>
         <!-- Encabezado con Branding AsiSport Naranja -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #FF6B35;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #1E3A8A;">
             <div style="display:flex;align-items:center;gap:15px;">
                 ${logoHtml}
                 <div>
-                    <div style="color:#FF6B35;font-weight:bold;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">AsiSport · SaaSport</div>
                     <div style="font-size:20px;font-weight:800;color:#111827;">EVALUACIÓN MÉDICA DE APTITUD FÍSICA</div>
                     <div style="color:#6B7280;font-size:11px;margin-top:2px;">
                         Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </div>
                 </div>
             </div>
-            ${alumno.foto_url ? `<img src="${alumno.foto_url}" alt="Foto ${alumno.nombres}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #FF6B35;" crossorigin="anonymous" />` : ''}
+            ${alumno.foto_url ? `<img src="${alumno.foto_url}" alt="Foto ${alumno.nombres}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid #1E3A8A;" crossorigin="anonymous" />` : ''}
         </div>
 
         <!-- 1. Datos Generales -->
         <div class="section-title">1. Datos Generales</div>
-        <div class="grid-cols-2" style="margin-bottom:15px;">
+        <div class="grid-cols-2" style="margin-bottom:12px;">
             <table class="info-table">
                 <tr>
                     <td class="label">Jugador:</td>
-                    <td class="value" style="font-weight:bold;">${alumno.apellidos}, ${alumno.nombres}</td>
+                    <td class="value" style="font-weight:bold;">${alumno.nombres} ${alumno.apellidos}</td>
+                </tr>
+                <tr>
+                    <td class="label">C.I. / Documento:</td>
+                    <td class="value">${alumno.carnet_identidad || '—'}</td>
                 </tr>
                 <tr>
                     <td class="label">F. Nacimiento:</td>
@@ -193,25 +196,39 @@ const exportarPDF = async (alumno, ficha, ev) => {
                     <td class="label">Edad:</td>
                     <td class="value">${calcularEdad(alumno.fecha_nacimiento)}</td>
                 </tr>
-                <tr>
-                    <td class="label">Género:</td>
-                    <td class="value" style="text-transform:capitalize;">${alumno.genero || alumno.sexo || '—'}</td>
-                </tr>
             </table>
             <table class="info-table">
                 <tr>
                     <td class="label">Deporte:</td>
-                    <td class="value" style="font-weight:bold;color:#FF6B35;">${ev.deporte || 'Fútbol'}</td>
+                    <td class="value" style="font-weight:bold;color:#1E3A8A;">${ev.deporte || 'Fútbol'}</td>
                 </tr>
                 <tr>
                     <td class="label">Club / Escuela:</td>
                     <td class="value">${escuela?.nombre || '—'}</td>
                 </tr>
                 <tr>
+                    <td class="label">Grupo / Categoría:</td>
+                    <td class="value">${alumno.cancha?.nombre || '—'}</td>
+                </tr>
+                <tr>
+                    <td class="label">Horario:</td>
+                    <td class="value">${alumno.horario?.hora || '—'}</td>
+                </tr>
+                <tr>
                     <td class="label">Fecha Revisión:</td>
                     <td class="value">${formatFecha(ev.fecha_evaluacion)}</td>
                 </tr>
             </table>
+        </div>
+
+        <!-- Contacto de Emergencia -->
+        <div style="font-size:11px;color:#4B5563;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:8px 12px;margin-bottom:15px;display:flex;justify-content:space-between;gap:20px;">
+            <div>
+                <strong>Contacto Padre:</strong> ${alumno.nombre_padre || '—'} ${alumno.telefono_padre ? `(${alumno.telefono_padre})` : ''}
+            </div>
+            <div>
+                <strong>Contacto Madre:</strong> ${alumno.nombre_madre || '—'} ${alumno.telefono_madre ? `(${alumno.telefono_madre})` : ''}
+            </div>
         </div>
 
         <!-- 2. Antecedentes Médicos (Anamnesis Dirigida) -->
@@ -248,7 +265,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
                 </td>
             </tr>
             <tr>
-                <td class="label">Club anterior:</td>
+                <td class="label">Club y Equipo:</td>
                 <td class="value">${ficha?.club_anterior || '—'}</td>
             </tr>
         </table>
@@ -268,9 +285,9 @@ const exportarPDF = async (alumno, ficha, ev) => {
                 <div class="card-label">Frec. respiratoria</div>
                 <div class="card-value">${ev.frecuencia_respiratoria ? ev.frecuencia_respiratoria + ' rpm' : '— rpm'}</div>
             </div>
-            <div class="card" style="border-color:#FF6B35;background:#FFF5F2;">
-                <div class="card-label" style="color:#FF6B35;">Sat. Oxígeno SpO₂</div>
-                <div class="card-value" style="color:#FF6B35;">${ev.saturacion_oxigeno ? ev.saturacion_oxigeno + '%' : '— %'}</div>
+            <div class="card" style="border-color:#1E3A8A;background:#F0F6FF;">
+                <div class="card-label" style="color:#1E3A8A;">Sat. Oxígeno SpO₂</div>
+                <div class="card-value" style="color:#1E3A8A;">${ev.saturacion_oxigeno ? ev.saturacion_oxigeno + '%' : '— %'}</div>
             </div>
             <div class="card">
                 <div class="card-label">Peso</div>
@@ -294,19 +311,19 @@ const exportarPDF = async (alumno, ficha, ev) => {
         <div class="section-title">4. Exploración Clínica por Sistemas</div>
         <div class="grid-cols-2" style="margin-bottom:15px;gap:15px;">
             <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Cardiovascular</p>
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Cardiovascular</p>
                 <p style="margin:3px 0;">• Auscultación supino: <strong>${ev.eval_cardiovascular?.auscultacion_supino || 'Normal'}</strong></p>
                 <p style="margin:3px 0;">• Auscultación bipedestación: <strong>${ev.eval_cardiovascular?.auscultacion_bipedestacion || 'Normal'}</strong></p>
                 <p style="margin:3px 0;">• Soplos detectados: <strong style="color:${ev.eval_cardiovascular?.soplos ? '#FF3B30' : '#00B85C'};">${ev.eval_cardiovascular?.soplos ? 'Sí' : 'No'}</strong></p>
                 ${ev.eval_cardiovascular?.observaciones ? `<p style="margin:3px 0;color:#555;">• Obs: ${ev.eval_cardiovascular.observaciones}</p>` : ''}
             </div>
             <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Respiratorio</p>
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Respiratorio</p>
                 <p style="margin:3px 0;">• Auscultación pulmonar: <strong>${ev.eval_respiratorio?.auscultacion || 'Normal'}</strong></p>
                 ${ev.eval_respiratorio?.hallazgos ? `<p style="margin:3px 0;color:#555;">• Hallazgos: ${ev.eval_respiratorio.hallazgos}</p>` : ''}
             </div>
             <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;grid-column: span 2;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#FF6B35;text-transform:uppercase;font-size:10px;">Sistema Músculo-esquelético y Articular</p>
+                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Músculo-esquelético y Articular</p>
                 <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                     <span>• Estabilidad ligamentosa: <strong>${ev.eval_musculoesqueletico?.estabilidad_ligamentosa || 'Normal'}</strong></span>
                     <span>• Test de Adams (columna): <strong>${ev.eval_musculoesqueletico?.test_adams || 'Normal'}</strong></span>
@@ -317,7 +334,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
         </div>
 
         <!-- 5. Evaluación Funcional -->
-        <div class="section-title">5. Evaluación Funcional (Consultorio)</div>
+        <div class="section-title" style="page-break-before: always;">5. Evaluación Funcional (Consultorio)</div>
         <div class="grid-cols-4" style="margin-bottom:15px;font-size:11px;">
             <div class="card" style="text-align:center;">
                 <div class="card-label">Marcha</div>
