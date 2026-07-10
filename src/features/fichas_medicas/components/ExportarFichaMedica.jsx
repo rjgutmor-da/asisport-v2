@@ -107,6 +107,10 @@ const exportarPDF = async (alumno, ficha, ev) => {
                     page-break-inside: avoid;
                 }
             }
+            .section-block {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
             .section-title {
                 background: #F0F6FF; 
                 border-left: 4px solid #1E3A8A; 
@@ -219,12 +223,8 @@ const exportarPDF = async (alumno, ficha, ev) => {
                     <td class="value">${alumno.cancha?.nombre || '—'}</td>
                 </tr>
                 <tr>
-                    <td class="label">Horario:</td>
-                    <td class="value">${alumno.horario?.hora || '—'}</td>
-                </tr>
-                <tr>
-                    <td class="label">Fecha Revisión:</td>
-                    <td class="value">${formatFecha(ev.fecha_evaluacion)}</td>
+                    <td class="label">Club y Equipo:</td>
+                    <td class="value">${ficha?.club_anterior || '—'}</td>
                 </tr>
             </table>
         </div>
@@ -261,10 +261,6 @@ const exportarPDF = async (alumno, ficha, ev) => {
                 <td class="value" style="${ficha?.trauma_craneal?.tiene ? 'color:#007AFF;font-weight:bold;' : ''}">
                     ${ficha?.trauma_craneal?.tiene ? `Sí: ${ficha.trauma_craneal.detalle}` : 'No refiere conmociones ni traumas previos.'}
                 </td>
-            </tr>
-            <tr>
-                <td class="label">Club y Equipo:</td>
-                <td class="value">${ficha?.club_anterior || '—'}</td>
             </tr>
         </table>
 
@@ -306,28 +302,30 @@ const exportarPDF = async (alumno, ficha, ev) => {
         </div>
 
         <!-- 4. Evaluación Física por Sistemas -->
-        <div class="section-title">4. Exploración Clínica por Sistemas</div>
-        <div class="grid-cols-2" style="margin-bottom:15px;gap:15px;">
-            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Cardiovascular</p>
-                <p style="margin:3px 0;">• Auscultación supino: <strong>${ev.eval_cardiovascular?.auscultacion_supino || 'Normal'}</strong></p>
-                <p style="margin:3px 0;">• Auscultación bipedestación: <strong>${ev.eval_cardiovascular?.auscultacion_bipedestacion || 'Normal'}</strong></p>
-                <p style="margin:3px 0;">• Soplos detectados: <strong style="color:${ev.eval_cardiovascular?.soplos ? '#FF3B30' : '#00B85C'};">${ev.eval_cardiovascular?.soplos ? 'Sí' : 'No'}</strong></p>
-                ${ev.eval_cardiovascular?.observaciones ? `<p style="margin:3px 0;color:#555;">• Obs: ${ev.eval_cardiovascular.observaciones}</p>` : ''}
-            </div>
-            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Respiratorio</p>
-                <p style="margin:3px 0;">• Auscultación pulmonar: <strong>${ev.eval_respiratorio?.auscultacion || 'Normal'}</strong></p>
-                ${ev.eval_respiratorio?.hallazgos ? `<p style="margin:3px 0;color:#555;">• Hallazgos: ${ev.eval_respiratorio.hallazgos}</p>` : ''}
-            </div>
-            <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;grid-column: span 2;">
-                <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Músculo-esquelético y Articular</p>
-                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                    <span>• Estabilidad ligamentosa: <strong>${ev.eval_musculoesqueletico?.estabilidad_ligamentosa || 'Normal'}</strong></span>
-                    <span>• Test de Adams (columna): <strong>${ev.eval_musculoesqueletico?.test_adams || 'Normal'}</strong></span>
-                    <span>• Tibial anterior (Osgood-Schlatter): <strong>${ev.eval_musculoesqueletico?.osgood_schlatter || 'Negativo'}</strong></span>
+        <div class="section-block">
+            <div class="section-title">4. Exploración Clínica por Sistemas</div>
+            <div class="grid-cols-2" style="margin-bottom:15px;gap:15px;">
+                <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Cardiovascular</p>
+                    <p style="margin:3px 0;">• Auscultación supino: <strong>${ev.eval_cardiovascular?.auscultacion_supino || 'Normal'}</strong></p>
+                    <p style="margin:3px 0;">• Auscultación bipedestación: <strong>${ev.eval_cardiovascular?.auscultacion_bipedestacion || 'Normal'}</strong></p>
+                    <p style="margin:3px 0;">• Soplos detectados: <strong style="color:${ev.eval_cardiovascular?.soplos ? '#FF3B30' : '#00B85C'};">${ev.eval_cardiovascular?.soplos ? 'Sí' : 'No'}</strong></p>
+                    ${ev.eval_cardiovascular?.observaciones ? `<p style="margin:3px 0;color:#555;">• Obs: ${ev.eval_cardiovascular.observaciones}</p>` : ''}
                 </div>
-                ${ev.eval_musculoesqueletico?.observaciones ? `<p style="margin:6px 0 0 0;color:#555;">• Observaciones: ${ev.eval_musculoesqueletico.observaciones}</p>` : ''}
+                <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Respiratorio</p>
+                    <p style="margin:3px 0;">• Auscultación pulmonar: <strong>${ev.eval_respiratorio?.auscultacion || 'Normal'}</strong></p>
+                    ${ev.eval_respiratorio?.hallazgos ? `<p style="margin:3px 0;color:#555;">• Hallazgos: ${ev.eval_respiratorio.hallazgos}</p>` : ''}
+                </div>
+                <div style="border:1px solid #E5E7EB;border-radius:6px;padding:10px;font-size:11px;background:#FAFAFA;grid-column: span 2;">
+                    <p style="margin:0 0 6px 0;font-weight:bold;color:#1E3A8A;text-transform:uppercase;font-size:10px;">Sistema Músculo-esquelético y Articular</p>
+                    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                        <span>• Estabilidad ligamentosa: <strong>${ev.eval_musculoesqueletico?.estabilidad_ligamentosa || 'Normal'}</strong></span>
+                        <span>• Test de Adams (columna): <strong>${ev.eval_musculoesqueletico?.test_adams || 'Normal'}</strong></span>
+                        <span>• Tibial anterior (Osgood-Schlatter): <strong>${ev.eval_musculoesqueletico?.osgood_schlatter || 'Negativo'}</strong></span>
+                    </div>
+                    ${ev.eval_musculoesqueletico?.observaciones ? `<p style="margin:6px 0 0 0;color:#555;">• Observaciones: ${ev.eval_musculoesqueletico.observaciones}</p>` : ''}
+                </div>
             </div>
         </div>
 
