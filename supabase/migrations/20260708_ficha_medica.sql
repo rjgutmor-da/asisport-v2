@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS public.fichas_medicas (
     antecedentes_personales text,
     alergias                text,
     cirugias_previas        text,
-    club_anterior           varchar(200),
 
     -- Auditoría
     created_by  uuid REFERENCES public.usuarios(id) ON DELETE SET NULL,

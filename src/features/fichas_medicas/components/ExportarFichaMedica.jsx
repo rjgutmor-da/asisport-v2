@@ -223,8 +223,8 @@ const exportarPDF = async (alumno, ficha, ev) => {
                     <td class="value">${alumno.cancha?.nombre || '—'}</td>
                 </tr>
                 <tr>
-                    <td class="label">Club y Equipo:</td>
-                    <td class="value">${ficha?.club_anterior || '—'}</td>
+                    <td class="label">Fecha Revisión:</td>
+                    <td class="value">${formatFecha(ev.fecha_evaluacion)}</td>
                 </tr>
             </table>
         </div>

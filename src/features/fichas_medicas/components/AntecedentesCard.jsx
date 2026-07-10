@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Edit2, Save, X, Heart, AlertTriangle } from 'lucide-react';
 import { useToast } from '../../../components/ui/Toast';
-import { getEscuelaActual } from '../../../services/escuelas';
 
 /**
  * Tarjeta de Antecedentes Médicos (datos estáticos del alumno).
@@ -10,25 +9,14 @@ import { getEscuelaActual } from '../../../services/escuelas';
 const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
     const { addToast } = useToast();
     const [editing, setEditing] = useState(false);
-    const [escuelaNombre, setEscuelaNombre] = useState('');
     const [form, setForm] = useState({
         antecedentes_personales: ficha?.antecedentes_personales || '',
         alergias: ficha?.alergias || '',
         cirugias_previas: ficha?.cirugias_previas || '',
-        club_anterior: ficha?.club_anterior || '',
         antecedentes_familiares: ficha?.antecedentes_familiares || { tiene: false, detalle: '' },
         sintomas_esfuerzo: ficha?.sintomas_esfuerzo || { palpitaciones: false, dolor_pecho: false, sincope: false, disnea: false, detalle: '' },
         trauma_craneal: ficha?.trauma_craneal || { tiene: false, detalle: '' },
     });
-
-    // Cargar el nombre de la escuela actual al montar el componente
-    useEffect(() => {
-        getEscuelaActual()
-            .then(esc => {
-                if (esc) setEscuelaNombre(esc.nombre);
-            })
-            .catch(console.error);
-    }, []);
 
     // Sincronizar si cambia la ficha desde afuera
     useEffect(() => {
@@ -37,7 +25,6 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
                 antecedentes_personales: ficha?.antecedentes_personales || '',
                 alergias: ficha?.alergias || '',
                 cirugias_previas: ficha?.cirugias_previas || '',
-                club_anterior: ficha?.club_anterior || '',
                 antecedentes_familiares: ficha?.antecedentes_familiares || { tiene: false, detalle: '' },
                 sintomas_esfuerzo: ficha?.sintomas_esfuerzo || { palpitaciones: false, dolor_pecho: false, sincope: false, disnea: false, detalle: '' },
                 trauma_craneal: ficha?.trauma_craneal || { tiene: false, detalle: '' },
@@ -91,14 +78,6 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
         }));
     };
 
-    const handleEdit = () => {
-        setForm(prev => ({
-            ...prev,
-            club_anterior: prev.club_anterior || escuelaNombre || ''
-        }));
-        setEditing(true);
-    };
-
     const handleSave = async () => {
         try {
             await onSave(form);
@@ -114,7 +93,6 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
             antecedentes_personales: ficha?.antecedentes_personales || '',
             alergias: ficha?.alergias || '',
             cirugias_previas: ficha?.cirugias_previas || '',
-            club_anterior: ficha?.club_anterior || '',
             antecedentes_familiares: ficha?.antecedentes_familiares || { tiene: false, detalle: '' },
             sintomas_esfuerzo: ficha?.sintomas_esfuerzo || { palpitaciones: false, dolor_pecho: false, sincope: false, disnea: false, detalle: '' },
             trauma_craneal: ficha?.trauma_craneal || { tiene: false, detalle: '' },
@@ -125,7 +103,6 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
     const sinDatos = !ficha?.antecedentes_personales &&
                      !ficha?.alergias &&
                      !ficha?.cirugias_previas &&
-                     !ficha?.club_anterior &&
                      !ficha?.antecedentes_familiares?.tiene &&
                      !ficha?.sintomas_esfuerzo?.palpitaciones &&
                      !ficha?.sintomas_esfuerzo?.dolor_pecho &&
@@ -147,7 +124,7 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
 
                 {canManage && !editing && (
                     <button
-                        onClick={handleEdit}
+                        onClick={() => setEditing(true)}
                         className="flex items-center gap-1.5 text-sm text-primary hover:text-orange-400 transition-colors font-medium"
                     >
                         <Edit2 size={15} />
@@ -188,25 +165,6 @@ const AntecedentesCard = ({ ficha, canManage, onSave, saving }) => {
                     </div>
                 ) : (
                     <>
-                        {/* Club y Equipo */}
-                        <div className="px-5 py-3.5">
-                            <p className="text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide">Club y Equipo</p>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    name="club_anterior"
-                                    value={form.club_anterior}
-                                    onChange={handleChange}
-                                    placeholder="Ingresa club y equipo..."
-                                    className="w-full bg-background border border-border rounded text-white text-sm px-3 py-2 focus:outline-none focus:border-primary placeholder-text-secondary"
-                                />
-                            ) : (
-                                <p className="text-white text-sm leading-relaxed">
-                                    {form.club_anterior || <span className="text-text-secondary italic">No especificado</span>}
-                                </p>
-                            )}
-                        </div>
-
                         {/* Antecedentes personales */}
                         <div className="px-5 py-3.5">
                             <p className="text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide">Antecedentes personales</p>

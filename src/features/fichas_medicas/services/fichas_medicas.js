@@ -20,7 +20,7 @@ export const getFichaMedica = async (alumnoId) => {
 /**
  * Crea o actualiza la ficha médica (antecedentes) de un alumno.
  * Solo el rol Médico puede ejecutar esto (RLS lo garantiza en BD).
- * @param {object} fichaData - { alumno_id, antecedentes_personales, alergias, cirugias_previas, club_anterior }
+ * @param {object} fichaData - { alumno_id, antecedentes_personales, alergias, cirugias_previas }
  */
 export const upsertFichaMedica = async (fichaData) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -34,7 +34,6 @@ export const upsertFichaMedica = async (fichaData) => {
         antecedentes_personales: fichaData.antecedentes_personales?.trim() || null,
         alergias: fichaData.alergias?.trim() || null,
         cirugias_previas: fichaData.cirugias_previas?.trim() || null,
-        club_anterior: fichaData.club_anterior?.trim() || null,
         antecedentes_familiares: fichaData.antecedentes_familiares || null,
         sintomas_esfuerzo: fichaData.sintomas_esfuerzo || null,
         trauma_craneal: fichaData.trauma_craneal || null,
