@@ -97,7 +97,15 @@ const exportarPDF = async (alumno, ficha, ev) => {
             }
             @media print { 
                 body { padding: 0; } 
-                @page { margin: 15mm; } 
+                @page { size: letter; margin: 15mm; }
+                .section-title,
+                .card,
+                .info-table,
+                .grid-cols-2,
+                .grid-cols-4 {
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
             }
             .section-title {
                 background: #F0F6FF; 
@@ -221,16 +229,6 @@ const exportarPDF = async (alumno, ficha, ev) => {
             </table>
         </div>
 
-        <!-- Contacto de Emergencia -->
-        <div style="font-size:11px;color:#4B5563;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;padding:8px 12px;margin-bottom:15px;display:flex;justify-content:space-between;gap:20px;">
-            <div>
-                <strong>Contacto Padre:</strong> ${alumno.nombre_padre || '—'} ${alumno.telefono_padre ? `(${alumno.telefono_padre})` : ''}
-            </div>
-            <div>
-                <strong>Contacto Madre:</strong> ${alumno.nombre_madre || '—'} ${alumno.telefono_madre ? `(${alumno.telefono_madre})` : ''}
-            </div>
-        </div>
-
         <!-- 2. Antecedentes Médicos (Anamnesis Dirigida) -->
         <div class="section-title">2. Antecedentes Médicos (Anamnesis)</div>
         <table class="info-table" style="margin-bottom:15px;">
@@ -334,7 +332,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
         </div>
 
         <!-- 5. Evaluación Funcional -->
-        <div class="section-title" style="page-break-before: always;">5. Evaluación Funcional (Consultorio)</div>
+        <div class="section-title">5. Evaluación Funcional (Consultorio)</div>
         <div class="grid-cols-4" style="margin-bottom:15px;font-size:11px;">
             <div class="card" style="text-align:center;">
                 <div class="card-label">Marcha</div>
