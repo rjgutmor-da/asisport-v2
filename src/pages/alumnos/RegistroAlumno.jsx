@@ -254,18 +254,7 @@ const RegistroAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 1. Entrenador (Profesor Asignado) */}
-                            <Select
-                                label="Profesor Asignado"
-                                name="profesor_asignado_id"
-                                value={formData.profesor_asignado_id}
-                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
-                                onChange={handleChange}
-                                error={errors.profesor_asignado_id}
-                                disabled={isCoach}
-                            />
-
-                            {/* 2. Sucursal */}
+                            {/* 1. Sucursal */}
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
@@ -283,6 +272,18 @@ const RegistroAlumno = () => {
                             ) : (
                                 <div></div>
                             )}
+
+                            {/* 2. Entrenador (Profesor Asignado), filtrado por sucursal */}
+                            <Select
+                                label="Profesor Asignado"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                onChange={handleChange}
+                                error={errors.profesor_asignado_id}
+                                disabled={isCoach || !formData.sucursal_id}
+                                placeholder={formData.sucursal_id ? 'Selecciona una opción' : 'Selecciona una sucursal primero'}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
