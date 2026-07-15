@@ -9,8 +9,13 @@ const AsistenciaListItem = ({
     alumno,
     localEstado,
     onAsistenciaNormal,
-    onEliminarNormal
+    onEliminarNormal,
+    bloquearAsistenciaRegistrada = false
 }) => {
+    const asistenciaRegistrada = Boolean(alumno.asistenciaNormal);
+    const bloqueada = asistenciaRegistrada && bloquearAsistenciaRegistrada;
+    const autor = alumno.asistenciaNormal?.entrenador;
+    const nombreAutor = autor ? `${autor.nombres || ''} ${autor.apellidos || ''}`.trim() : '';
     // Generar iniciales para fallback de foto
     const getInitials = () => {
         const firstInitial = alumno.nombres?.[0] || '';
@@ -23,6 +28,7 @@ const AsistenciaListItem = ({
 
     // Handler para toggle de estado
     const handleClick = (nuevoEstado) => {
+        if (bloqueada) return;
         if (localEstado === nuevoEstado) {
             // Si ya está marcado con ese estado, lo desmarcamos
             onEliminarNormal(alumno.id);
@@ -74,6 +80,17 @@ const AsistenciaListItem = ({
                 <p className="text-xs text-text-secondary truncate">
                     Sub {alumno.fecha_nacimiento ? (new Date().getFullYear() - parseInt(alumno.fecha_nacimiento.split('-')[0])) : '??'} • {alumno.horario?.hora || ''}
                 </p>
+                {asistenciaRegistrada && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-bold">
+                        <span className={alumno.asistenciaNormal.estado === 'Licencia' ? 'text-warning' : alumno.asistenciaNormal.estado === 'Ausente' ? 'text-text-secondary' : 'text-success'}>
+                            {alumno.asistenciaNormal.estado}
+                        </span>
+                        {nombreAutor && <span className="text-text-secondary">por {nombreAutor}</span>}
+                        {autor?.rol === 'Entrenarqueros' && (
+                            <span className="rounded bg-arquero/20 px-1.5 py-0.5 text-arquero">Entrenador de arqueros</span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Botones de estado: Solo Presente y Licencia */}
@@ -81,9 +98,10 @@ const AsistenciaListItem = ({
                 {/* Presente */}
                 <button
                     onClick={() => handleClick('Presente')}
+                    disabled={bloqueada}
                     className={`
                         w-12 h-12 rounded-md flex items-center justify-center transition-all
-                        ${localEstado === 'Presente'
+                        ${bloqueada ? 'cursor-not-allowed opacity-45' : localEstado === 'Presente'
                             ? 'bg-success text-white scale-105'
                             : 'bg-success/10 text-success border border-success/30 hover:bg-success/20'
                         }
@@ -96,9 +114,10 @@ const AsistenciaListItem = ({
                 {/* Licencia */}
                 <button
                     onClick={() => handleClick('Licencia')}
+                    disabled={bloqueada}
                     className={`
                         w-12 h-12 rounded-md flex items-center justify-center transition-all font-bold text-lg
-                        ${localEstado === 'Licencia'
+                        ${bloqueada ? 'cursor-not-allowed opacity-45' : localEstado === 'Licencia'
                             ? 'bg-warning text-white scale-105'
                             : 'bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20'
                         }

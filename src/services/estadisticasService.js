@@ -28,7 +28,7 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
         while (!finished) {
             const { data, error } = await supabase
                 .from(table)
-                .select('alumno_id, fecha, estado, entrenador_id, alumnos!inner(escuela_id)')
+                .select('alumno_id, fecha, estado, entrenador_id, entrenador:usuarios!asistencias_normales_entrenador_id_fkey(nombres, apellidos, rol), alumnos!inner(escuela_id)')
                 .eq('alumnos.escuela_id', escuelaId)
                 .gte('fecha', fechaInicio)
                 .lte('fecha', fechaFin)
@@ -53,10 +53,5 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
         return allData;
     };
 
-    const [normalesData, arquerosData] = await Promise.all([
-        fetchAll('asistencias_normales'),
-        fetchAll('asistencias_arqueros')
-    ]);
-
-    return [...normalesData, ...arquerosData];
+    return fetchAll('asistencias_normales');
 };

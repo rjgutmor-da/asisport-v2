@@ -33,6 +33,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
         if (userError) throw userError;
 
         const esAdmin = can(usuarioDB.rol, 'asisport.manageAttendanceForOthers');
+        const dataScope = getDataScope(usuarioDB.rol);
         let targetEntrenadorId = user.id;
 
         if (esAdmin && entrenadorId) {
@@ -48,15 +49,23 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
                 id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
                 cancha:canchas(id, nombre),
                 horario:horarios(id, hora),
-                asistenciaNormal:asistencias_normales(id, estado, fecha)
+                asistenciaNormal:asistencias_normales(
+                    id, estado, fecha, entrenador_id,
+                    entrenador:usuarios!asistencias_normales_entrenador_id_fkey(id, nombres, apellidos, rol)
+                )
             `)
             .eq('escuela_id', escuelaId)
             .eq('archivado', false)
             .neq('estado', 'ELIMINADO SISTEMA')
-            .eq('profesor_asignado_id', targetEntrenadorId)
             .eq('asistencias_normales.fecha', fecha); // Filtro en la relación (join filter)
 
-        if (getDataScope(usuarioDB.rol) !== 'school') {
+        if (dataScope === 'goalkeepers') {
+            query = query.eq('es_arquero', true);
+        } else {
+            query = query.eq('profesor_asignado_id', targetEntrenadorId);
+        }
+
+        if (dataScope !== 'school') {
             if (usuarioDB.sucursal_id) {
                 query = query.eq('sucursal_id', usuarioDB.sucursal_id);
             }
@@ -97,11 +106,18 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
         if (!user) throw new Error('Sesión expirada.');
         userIdForLog = user.id;
 
+        const { data: usuarioDB, error: usuarioError } = await supabase
+            .from('usuarios')
+            .select('rol')
+            .eq('id', user.id)
+            .single();
+        if (usuarioError) throw usuarioError;
+
+        const bloqueaEdiciones = usuarioDB.rol === 'Entrenarqueros';
         let entrenadorId = user.id;
 
         if (targetEntrenadorId && targetEntrenadorId !== user.id) {
-            const { data: usuarioDB } = await supabase.from('usuarios').select('rol').eq('id', user.id).single();
-            if (usuarioDB && can(usuarioDB.rol, 'asisport.manageAttendanceForOthers')) {
+            if (can(usuarioDB.rol, 'asisport.manageAttendanceForOthers')) {
                 entrenadorId = targetEntrenadorId;
             }
         }
@@ -122,10 +138,9 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
         const inserts = [];
 
         asistencias.forEach(({ alumnoId, estado }) => {
-            if (existentesMap.has(alumnoId)) {
-                // Editamos estado pero mantenemos el entrenador_id original para no quitarle la autoría a quien lo creó
+            if (existentesMap.has(alumnoId) && !bloqueaEdiciones) {
                 updates.push({ id: existentesMap.get(alumnoId), alumno_id: alumnoId, estado });
-            } else {
+            } else if (!existentesMap.has(alumnoId)) {
                 inserts.push({ alumno_id: alumnoId, fecha, estado, entrenador_id: entrenadorId });
             }
         });
@@ -141,7 +156,6 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
                 if (r.status === 'fulfilled' && !r.value.error) resultados.exitosos++;
                 else {
                     resultados.fallidos++;
-                    // Error Log con metadata B2B
                     console.error(`[Data Integrity Error] Fallo al actualizar asistencia ID: ${updates[i].id} generada por User: ${userIdForLog}.`, r.value?.error || r.reason);
                     resultados.errores.push({ alumnoId: updates[i].alumno_id, error: r.value?.error?.message || 'Error' });
                 }
@@ -269,14 +283,45 @@ export const getAsistenciasEstaSemana = async (alumnoIds) => {
  */
 export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
     const escuelaId = await obtenerEscuelaId();
+    let from = 0;
+    const pageSize = 1000;
+    const registros = [];
+    let finished = false;
 
-    const { data, error } = await supabase
-        .from('v_estadisticas_asistencia_diaria')
-        .select('fecha, presentes, licencias, profesor_asignado_id, cancha_id, horario_id, escuela_id')
-        .eq('escuela_id', escuelaId)
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin);
+    while (!finished) {
+        const { data, error } = await supabase
+            .from('asistencias_normales')
+            .select('fecha, estado, alumnos!inner(escuela_id, profesor_asignado_id, cancha_id, horario_id)')
+            .eq('alumnos.escuela_id', escuelaId)
+            .gte('fecha', fechaInicio)
+            .lte('fecha', fechaFin)
+            .range(from, from + pageSize - 1);
 
-    if (error) throw error;
-    return data;
+        if (error) throw error;
+        registros.push(...(data || []));
+        finished = !data || data.length < pageSize;
+        from += pageSize;
+    }
+
+    const agregados = new Map();
+    registros.forEach(registro => {
+        const alumno = registro.alumnos;
+        const key = [registro.fecha, alumno.profesor_asignado_id, alumno.cancha_id, alumno.horario_id].join('|');
+        if (!agregados.has(key)) {
+            agregados.set(key, {
+                fecha: registro.fecha,
+                presentes: 0,
+                licencias: 0,
+                profesor_asignado_id: alumno.profesor_asignado_id,
+                cancha_id: alumno.cancha_id,
+                horario_id: alumno.horario_id,
+                escuela_id: alumno.escuela_id
+            });
+        }
+        const agregado = agregados.get(key);
+        if (registro.estado === 'Presente') agregado.presentes++;
+        if (registro.estado === 'Licencia') agregado.licencias++;
+    });
+
+    return Array.from(agregados.values());
 };

@@ -400,6 +400,10 @@ export const getAlumnosPaginados = async (filtros = {}) => {
 export const getAlumnosFacets = async (filtros = {}) => {
     const { userId, userRole } = filtros;
     const escuelaId = await obtenerEscuelaId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: userProfile } = user
+        ? await supabase.from('usuarios').select('sucursal_id').eq('id', user.id).single()
+        : { data: null };
 
     let query = supabase
         .from('v_alumnos')
@@ -411,6 +415,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
     const dataScope = getDataScope(userRole);
     if (dataScope === 'assigned_students' && userId) query = query.eq('profesor_asignado_id', userId);
     if (dataScope === 'goalkeepers') query = query.eq('es_arquero', true);
+    if (dataScope !== 'school' && userProfile?.sucursal_id) query = query.eq('sucursal_id', userProfile.sucursal_id);
 
     const { data, error } = await query;
     if (error) throw error;

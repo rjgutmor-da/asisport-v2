@@ -61,7 +61,9 @@ export const useAsistencias = () => {
             // Si es admin y seleccionó entrenador, traemos de ese entrenador
             // Si no es admin, traemos del usuario actual
             const targetUserId = isAdmin ? (selectedEntrenador || null) : userProfile.id;
-            const roleForFacets = isAdmin && !selectedEntrenador ? 'Administrador' : 'Entrenador';
+            const roleForFacets = isAdmin && !selectedEntrenador
+                ? 'Administrador'
+                : (isAdmin ? 'Entrenador' : userProfile.rol);
             
             try {
                 const data = await getAlumnosFacets({ userId: targetUserId, userRole: roleForFacets });
@@ -177,6 +179,7 @@ export const useAsistencias = () => {
     const handleAsistenciaNormal = (alumnoId, estado) => {
         // Bloquear si ya se reenvió (envio 2)
         if (enviosRealizados >= 2) return;
+        if (userProfile?.rol === 'Entrenarqueros' && alumnos.find(alumno => alumno.id === alumnoId)?.asistenciaNormal) return;
 
         setLocalChanges(prev => {
             const newMap = new Map(prev);
@@ -209,6 +212,7 @@ export const useAsistencias = () => {
     // Helper para eliminar asistencia (usado por el componente listItem)
     const handleEliminarAsistenciaNormal = (alumnoId) => {
         if (enviosRealizados >= 2) return;
+        if (userProfile?.rol === 'Entrenarqueros' && alumnos.find(alumno => alumno.id === alumnoId)?.asistenciaNormal) return;
         setLocalChanges(prev => {
             const newMap = new Map(prev);
             newMap.set(alumnoId, 'Ausente'); // Marcar como Ausente explícitamente para sobreescribir DB
@@ -379,6 +383,7 @@ export const useAsistencias = () => {
         entrenadores,
         selectedEntrenador,
         setSelectedEntrenador,
+        bloquearAsistenciasRegistradas: userProfile?.rol === 'Entrenarqueros',
         // Foto grupal
         fotoGrupal,
         fotoGrupalPreview,

@@ -39,6 +39,7 @@ const Asistencia = () => {
         entrenadores,
         selectedEntrenador,
         setSelectedEntrenador,
+        bloquearAsistenciasRegistradas,
         // Foto grupal
         fotoGrupal,
         fotoGrupalPreview,
@@ -281,6 +282,7 @@ const Asistencia = () => {
                                 localEstado={getEstadoEfectivo(alumno.id)}
                                 onAsistenciaNormal={handleAsistenciaNormal}
                                 onEliminarNormal={handleEliminarAsistenciaNormal}
+                                bloquearAsistenciaRegistrada={bloquearAsistenciasRegistradas}
                             />
                         ))}
                     </div>

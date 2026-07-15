@@ -398,6 +398,23 @@ const Estadisticas = () => {
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
+            const detalleRows = [
+                ['Fecha', 'Alumno', 'Estado', 'Registrado por', 'Rol'],
+                ...filteredDetalle.map(registro => {
+                    const alumno = alumnosMap.get(registro.alumno_id);
+                    const entrenador = registro.entrenador;
+                    return [
+                        registro.fecha,
+                        alumno ? `${alumno.nombres || ''} ${alumno.apellidos || ''}`.trim() : 'Alumno eliminado',
+                        registro.estado,
+                        entrenador ? `${entrenador.nombres || ''} ${entrenador.apellidos || ''}`.trim() : '-',
+                        entrenador?.rol === 'Entrenarqueros' ? 'Entrenador de arqueros' : (entrenador?.rol || '-')
+                    ];
+                })
+            ];
+            const detalleWs = XLSX.utils.aoa_to_sheet(detalleRows);
+            detalleWs['!cols'] = [{ wch: 14 }, { wch: 35 }, { wch: 14 }, { wch: 30 }, { wch: 26 }];
+            XLSX.utils.book_append_sheet(wb, detalleWs, "Detalle");
             XLSX.writeFile(wb, `Reporte_Asistencias_${new Date().toISOString().split('T')[0]}.xlsx`);
         } catch (error) {
             console.error("Error crítico durante la exportación:", error);
@@ -757,6 +774,14 @@ const Estadisticas = () => {
                                             }`}>
                                                 {registro.estado === 'Licencia' ? 'Lic.' : 'Pres.'}
                                             </span>
+                                            <div className="text-right text-[10px] font-bold text-text-secondary">
+                                                {registro.entrenador && (
+                                                    <div>{`${registro.entrenador.nombres || ''} ${registro.entrenador.apellidos || ''}`.trim()}</div>
+                                                )}
+                                                {registro.entrenador?.rol === 'Entrenarqueros' && (
+                                                    <span className="text-arquero">Entrenador de arqueros</span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
