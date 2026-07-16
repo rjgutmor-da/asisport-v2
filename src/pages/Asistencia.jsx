@@ -40,6 +40,7 @@ const Asistencia = () => {
         selectedEntrenador,
         setSelectedEntrenador,
         bloquearAsistenciasRegistradas,
+        isGoalkeeperCoach,
         // Foto grupal
         fotoGrupal,
         fotoGrupalPreview,
@@ -165,7 +166,7 @@ const Asistencia = () => {
 
     // Determinar si los filtros obligatorios están seleccionados
     // Para entrenadores (no admin) la cancha y horario son obligatorios
-    const filtrosCompletos = isAdmin || (selectedCancha && selectedHorario);
+    const filtrosCompletos = isAdmin || isGoalkeeperCoach || (selectedCancha && selectedHorario);
 
     return (
         <div className="min-h-screen bg-background pb-32 md:pb-10 relative">

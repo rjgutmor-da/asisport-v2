@@ -141,7 +141,7 @@ export const useAsistencias = () => {
     // Efecto para verificar estado de envío cuando cambian filtros
     useEffect(() => {
         const checkEnvio = async () => {
-            if (!isAdmin && (!selectedCancha || !selectedHorario)) return;
+            if (!isAdmin && userProfile?.rol !== 'Entrenarqueros' && (!selectedCancha || !selectedHorario)) return;
             try {
                 const estadoEnvio = await verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null);
                 const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
@@ -384,6 +384,7 @@ export const useAsistencias = () => {
         selectedEntrenador,
         setSelectedEntrenador,
         bloquearAsistenciasRegistradas: userProfile?.rol === 'Entrenarqueros',
+        isGoalkeeperCoach: userProfile?.rol === 'Entrenarqueros',
         // Foto grupal
         fotoGrupal,
         fotoGrupalPreview,
