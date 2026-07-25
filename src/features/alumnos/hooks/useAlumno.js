@@ -5,6 +5,7 @@ import imageCompression from 'browser-image-compression';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getSucursales } from '../../../services/sucursales';
 import { getCamposFaltantes } from '../utils/alumnoCompletitud';
+import { verificarDeudaAlumno } from '../utils/alumnoDeuda';
 
 /**
  * Hook para manejar la lógica de detalle y edición de un alumno.
@@ -69,21 +70,23 @@ export const useAlumno = (id) => {
                     a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
                 ).length;
 
+                // Cargar datos maestros y verificar deuda en paralelo
+                const [canchasData, horariosData, entrenadoresData, sucursalesData, tieneDeuda] = await Promise.all([
+                    getCanchas(),
+                    getHorarios(),
+                    getEntrenadores(),
+                    getSucursales(),
+                    verificarDeudaAlumno(id)
+                ]);
+
                 const alumnoConTotales = {
                     ...alumnoData,
-                    asistencias_count: asisN + asisA
+                    asistencias_count: asisN + asisA,
+                    tiene_deuda: tieneDeuda
                 };
 
                 setAlumno(alumnoConTotales);
                 setFormData(alumnoConTotales);
-
-                // Cargar datos maestros en paralelo
-                const [canchasData, horariosData, entrenadoresData, sucursalesData] = await Promise.all([
-                    getCanchas(),
-                    getHorarios(),
-                    getEntrenadores(),
-                    getSucursales()
-                ]);
                 setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 // Solo entrenadores (ya filtrados en el servicio), no administradores
@@ -197,9 +200,11 @@ export const useAlumno = (id) => {
                 a.fecha?.startsWith(mesActualStr) && (a.estado === 'Presente' || a.estado === 'Licencia')
             ).length;
 
+            const tieneDeuda = await verificarDeudaAlumno(alumnoId);
             const actualizado = {
                 ...alumnoActualizado,
-                asistencias_count: asisN + asisA
+                asistencias_count: asisN + asisA,
+                tiene_deuda: tieneDeuda
             };
             setAlumno(actualizado);
             setFormData(actualizado);

@@ -208,6 +208,11 @@ const DetalleAlumno = () => {
                                     Arquero
                                 </span>
                             )}
+                            {alumno.tiene_deuda && (
+                                <span className="px-3 py-1 bg-error/20 text-error text-sm font-bold rounded">
+                                    Con Deuda
+                                </span>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -376,7 +381,7 @@ const DetalleAlumno = () => {
 
                         <div className="mt-4 pt-2 border-t border-border/50">
                             <p className="text-sm font-medium text-text-secondary mb-3">
-                                ¿Qué número se usará para contacto por WhatsApp?
+                                ¿Cuál es el primer contacto?
                             </p>
                             <div className="flex items-center gap-6">
                                 <label className="flex items-center gap-2 cursor-pointer">
