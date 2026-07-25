@@ -194,15 +194,6 @@ const DetalleAlumno = () => {
                         </h2>
 
                         <div className="flex flex-wrap gap-2 mb-4">
-                            {camposFaltantes.length > 0 ? (
-                                <span className="px-3 py-1 bg-warning/20 text-warning text-sm font-bold rounded">
-                                    Info. Incompleta ({camposFaltantes.length})
-                                </span>
-                            ) : (
-                                <span className="px-3 py-1 bg-success/20 text-success text-sm font-bold rounded">
-                                    Completo
-                                </span>
-                            )}
                             {alumno.es_arquero && (
                                 <span className="px-3 py-1 bg-arquero/20 text-arquero text-sm font-bold rounded">
                                     Arquero
@@ -230,10 +221,10 @@ const DetalleAlumno = () => {
 
                 {/* Banner de información incompleta */}
                 {camposFaltantes.length > 0 && (
-                    <div className="bg-warning/10 border border-warning/30 rounded-md p-4">
-                        <p className="text-warning font-bold text-sm mb-2">
-                            ⚠ Información incompleta — Faltan {camposFaltantes.length} campo{camposFaltantes.length > 1 ? 's' : ''}:
-                        </p>
+                    <div className="bg-warning/10 border border-warning/30 rounded-md px-4 py-2 flex items-center gap-3 flex-wrap">
+                        <span className="text-warning font-bold text-sm whitespace-nowrap">
+                            ⚠ Faltan {camposFaltantes.length} campo{camposFaltantes.length > 1 ? 's' : ''}:
+                        </span>
                         <div className="flex flex-wrap gap-2">
                             {camposFaltantes.map((campo, i) => (
                                 <span key={i} className="px-2 py-0.5 bg-warning/10 text-warning/80 text-xs font-medium rounded border border-warning/20">
@@ -241,11 +232,6 @@ const DetalleAlumno = () => {
                                 </span>
                             ))}
                         </div>
-                        {!editing && (
-                            <p className="text-text-secondary text-xs mt-2">
-                                Haz clic en "Editar" para completar la información faltante.
-                            </p>
-                        )}
                     </div>
                 )}
 
