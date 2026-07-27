@@ -269,6 +269,7 @@ export const useAlumno = (id) => {
                     es_arquero: formData.es_arquero,
                     tipo: formData.tipo || 'Formativo',
                     mensualidad: formData.mensualidad === '' || formData.mensualidad === undefined ? null : Number(formData.mensualidad),
+                    observaciones: formData.observaciones?.trim() || null,
                     foto_url: fotoUrl
                 })
                 .eq('id', id)

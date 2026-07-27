@@ -47,7 +47,8 @@ export const useRegistroAlumno = (onSuccess) => {
         sucursal_id: '',
         es_arquero: false,
         tipo: 'Formativo',
-        mensualidad: ''
+        mensualidad: '',
+        observaciones: ''
     });
 
     const [photoFile, setPhotoFile] = useState(null);
@@ -198,7 +199,8 @@ export const useRegistroAlumno = (onSuccess) => {
                 ...formData,
                 nombres: formData.nombres.trim().replace(/\s+/g, ' '),
                 apellidos: formData.apellidos.trim().replace(/\s+/g, ' '),
-                mensualidad: formData.mensualidad === '' ? null : Number(formData.mensualidad)
+                mensualidad: formData.mensualidad === '' ? null : Number(formData.mensualidad),
+                observaciones: formData.observaciones?.trim() || null
             };
 
             const newAlumno = await createAlumno(cleanFormData, photoFile);

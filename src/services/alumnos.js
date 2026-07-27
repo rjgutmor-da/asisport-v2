@@ -117,14 +117,15 @@ export const createAlumno = async (alumnoData, photoFile) => {
         sucursal_id: alumnoData.sucursal_id || userProfile?.sucursal_id || null,
         cancha_id: alumnoData.cancha_id,
         horario_id: alumnoData.horario_id,
-        profesor_asignado_id: alumnoData.profesor_asignado_id || null, // ✅ Guardar profesor asignado
+        profesor_asignado_id: alumnoData.profesor_asignado_id || null,
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
         estado: 'Pendiente',
         escuela_id: escuelaId,
         created_by: user.id,
         tipo: alumnoData.tipo || 'Formativo',
-        mensualidad: alumnoData.mensualidad !== undefined ? alumnoData.mensualidad : null
+        mensualidad: alumnoData.mensualidad !== undefined ? alumnoData.mensualidad : null,
+        observaciones: alumnoData.observaciones || null
     };
 
     const { data: alumno, error: insertError } = await supabase
@@ -141,7 +142,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
             .from('alumnos_entrenadores')
             .insert([{
                 alumno_id: alumno.id,
-                entrenador_id: alumnoData.profesor_asignado_id // ✅ Usar el profesor asignado, no el creador
+                entrenador_id: alumnoData.profesor_asignado_id
             }]);
 
         if (assignError) {
@@ -171,8 +172,6 @@ export const createAlumno = async (alumnoData, photoFile) => {
 export const getAlumnos = async (filtros = {}) => {
     const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
     const dataScope = getDataScope(userRole);
-
-    // Regla #1: Autenticación obligatoria
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 

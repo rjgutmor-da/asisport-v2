@@ -500,6 +500,25 @@ const DetalleAlumno = () => {
                                 error={errors?.horario_id}
                             />
                         </div>
+
+                        <div className="flex flex-col mt-2">
+                            <Input
+                                label="Observaciones para Ficha Financiera (escueta)"
+                                name="observaciones"
+                                value={formData.observaciones || ''}
+                                onChange={handleChange}
+                                disabled={!editing}
+                                maxLength={30}
+                                placeholder="Ej: Becado por directorio, Desc. 3 hermanos"
+                            />
+                            {editing && (
+                                <div className="flex justify-end mt-1">
+                                    <span className={`text-xs ${(formData.observaciones?.length || 0) >= 28 ? 'text-warning font-semibold' : 'text-text-secondary'}`}>
+                                        {formData.observaciones?.length || 0}/30 caracteres
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </section>
                 </div>
 
