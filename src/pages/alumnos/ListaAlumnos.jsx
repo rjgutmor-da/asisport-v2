@@ -96,7 +96,7 @@ const ListaAlumnos = () => {
     ];
     const fechaHoy = new Date();
     const mesActualStr = nombresMeses[fechaHoy.getMonth()];
-    const fechaHoyAnt = new Date(); fechaHoyAnt.setMonth(fechaHoyAnt.getMonth() - 1);
+    const fechaHoyAnt = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth() - 1, 1);
     const mesAnteriorStr = nombresMeses[fechaHoyAnt.getMonth()];
 
     // Navegación a detalle del alumno
