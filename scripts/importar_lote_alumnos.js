@@ -1,13 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+import { obtenerClienteSupabaseAdmin } from './config/cliente_supabase_admin.js';
 
-const supabaseUrl = 'https://uqrmmotcbnyazmadzfvd.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxcm1tb3RjYm55YXptYWR6ZnZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDEyODI2NCwiZXhwIjoyMDg1NzA0MjY0fQ.rcdIczkJN0dnfIL9XoCDgDq4V3Pczl8zrOPPWBC1BRE';
 const ESCUELA_ID = '218ea007-49c4-4fa2-9e81-3b6663496f26';
 const PROFESOR_ID = '1259d0e6-8fa4-48ba-b262-4427c7b971c4';
 const CANCHA_ID = '0336a91f-a3c7-4ca2-b01c-043f21bf8f03';
 const HORARIO_ID = '832bf94e-fe52-449b-b5bd-271aa50e1b29';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = obtenerClienteSupabaseAdmin();
 
 const alumnosData = [
     { nombres: 'Aaron', apellidos: 'Lopez Villarroel', fecha_nacimiento: '2013-06-17', telefono_padre: '72182305', telefono_madre: '' },

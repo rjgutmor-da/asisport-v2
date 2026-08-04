@@ -1,13 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { obtenerClienteSupabaseAdmin } from './config/cliente_supabase_admin.js';
 import fs from 'fs';
 import path from 'path';
 import XLSX from 'xlsx';
 
-// ==========================================
-// CONFIGURACIÓN
-// ==========================================
-const supabaseUrl = 'https://uqrmmotcbnyazmadzfvd.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxcm1tb3RjYm55YXptYWR6ZnZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDEyODI2NCwiZXhwIjoyMDg1NzA0MjY0fQ.rcdIczkJN0dnfIL9XoCDgDq4V3Pczl8zrOPPWBC1BRE';
+const supabase = obtenerClienteSupabaseAdmin();
 const ESCUELA_ID_POR_DEFECTO = '218ea007-49c4-4fa2-9e81-3b6663496f26'; // PLANETA FC
 const EXCEL_FILE = 'C:\\Users\\rjgut\\Documents\\Trabajadrs\\AlumnosCilindro262302.xlsx';
 

@@ -37,12 +37,9 @@ const ADMIN_ESCUELA = {
 // NO EDITAR DEBAJO DE ESTA LÍNEA
 // ══════════════════════════════════════════════════
 
-const supabaseUrl = 'https://uqrmmotcbnyazmadzfvd.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxcm1tb3RjYm55YXptYWR6ZnZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDEyODI2NCwiZXhwIjoyMDg1NzA0MjY0fQ.rcdIczkJN0dnfIL9XoCDgDq4V3Pczl8zrOPPWBC1BRE';
+import { obtenerClienteSupabaseAdmin } from './config/cliente_supabase_admin.js';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = obtenerClienteSupabaseAdmin();
 
 async function onboarding() {
     console.log('🚀 Iniciando onboarding de nueva escuela...');

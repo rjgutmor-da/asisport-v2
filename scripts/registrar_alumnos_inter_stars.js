@@ -1,17 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-
-// ==========================================
-// CONFIGURACIÓN DE CONEXIÓN A SUPABASE
-// ==========================================
-const supabaseUrl = 'https://uqrmmotcbnyazmadzfvd.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxcm1tb3RjYm55YXptYWR6ZnZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDEyODI2NCwiZXhwIjoyMDg1NzA0MjY0fQ.rcdIczkJN0dnfIL9XoCDgDq4V3Pczl8zrOPPWBC1BRE';
+import { obtenerClienteSupabaseAdmin } from './config/cliente_supabase_admin.js';
 
 const ESCUELA_ID = '01934d0c-b334-4e6c-8a90-3c1e400c7118'; // Fundación Inter Stars
 const SUPER_ADMIN_ID = 'b610f38e-f81c-4b7f-a342-7342a813b11c'; // Frederick Hurtado Rojas
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = obtenerClienteSupabaseAdmin();
 
 // ==========================================
 // DATOS RAW (TSV) PROVISTOS POR EL USUARIO
