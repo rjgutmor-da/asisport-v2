@@ -11,7 +11,8 @@ import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const RegistroAlumno = () => {
     const navigate = useNavigate();
-    const { isCoach } = useAuth();
+    const { role } = useAuth();
+    const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
 
     const {
         loadingMaestros,
@@ -242,6 +243,7 @@ const RegistroAlumno = () => {
                                     { value: 'Otros', label: 'Otros' }
                                 ]}
                                 onChange={handleChange}
+                                disabled={isAnyCoach}
                             />
                             <Input
                                 label="Mensualidad"
@@ -249,6 +251,7 @@ const RegistroAlumno = () => {
                                 type="number"
                                 value={formData.mensualidad}
                                 onChange={handleChange}
+                                disabled={isAnyCoach}
                                 placeholder="0 o en blanco para becado"
                             />
                         </div>
@@ -264,6 +267,7 @@ const RegistroAlumno = () => {
                                         options={sucursales}
                                         onChange={handleChange}
                                         error={errors.sucursal_id}
+                                        disabled={isAnyCoach}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
                                         Selecciona una sucursal para filtrar los grupos y horarios disponibles
@@ -281,7 +285,7 @@ const RegistroAlumno = () => {
                                 options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
                                 error={errors.profesor_asignado_id}
-                                disabled={isCoach || !formData.sucursal_id}
+                                disabled={isAnyCoach || !formData.sucursal_id}
                                 placeholder={formData.sucursal_id ? 'Selecciona una opción' : 'Selecciona una sucursal primero'}
                             />
                         </div>
@@ -309,12 +313,13 @@ const RegistroAlumno = () => {
                         </div>
 
                         <div className="flex flex-col mt-2">
-                            <Input
+                             <Input
                                 label="Observaciones para Ficha Financiera (opcional, escueta)"
                                 name="observaciones"
                                 value={formData.observaciones || ''}
                                 onChange={handleChange}
                                 maxLength={30}
+                                disabled={isAnyCoach}
                                 placeholder="Ej: Becado por directorio, Desc. 3 hermanos"
                             />
                             <div className="flex justify-end mt-1">

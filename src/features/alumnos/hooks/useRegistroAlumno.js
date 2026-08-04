@@ -12,7 +12,7 @@ import { queryKeys } from '../../../hooks/useMasterData';
  */
 export const useRegistroAlumno = (onSuccess) => {
     const { addToast } = useToast();
-    const { user, userProfile, isCoach } = useAuth();
+    const { user, userProfile, isCoach, role } = useAuth();
     const queryClient = useQueryClient();
     const location = useLocation();
 
@@ -76,9 +76,14 @@ export const useRegistroAlumno = (onSuccess) => {
                 })));
                 setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
 
-                // Si el usuario es Entrenador, auto-asignar como profesor
-                if (isCoach && userProfile?.id) {
-                    setFormData(prev => ({ ...prev, profesor_asignado_id: userProfile.id }));
+                // Si el usuario es entrenador, auto-asignar profesor y sucursal
+                const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
+                if (isAnyCoach && userProfile) {
+                    setFormData(prev => ({
+                        ...prev,
+                        profesor_asignado_id: userProfile.id || '',
+                        sucursal_id: userProfile.sucursal_id || ''
+                    }));
                 }
             } catch (error) {
                 console.error(error);
@@ -88,7 +93,7 @@ export const useRegistroAlumno = (onSuccess) => {
             }
         };
         loadMaestros();
-    }, [addToast, isCoach, userProfile]);
+    }, [addToast, isCoach, role, userProfile]);
 
     /**
      * Canchas filtradas según sucursal seleccionada.
@@ -126,8 +131,8 @@ export const useRegistroAlumno = (onSuccess) => {
                 ...prev,
                 sucursal_id: value,
                 cancha_id: '',
-                // Solo limpiar el profesor si el usuario actual no es Coach (en ese caso ya está auto-asignado)
-                ...(!isCoach && { profesor_asignado_id: '' })
+                // Solo limpiar el profesor si el usuario actual no es entrenador (en ese caso ya está auto-asignado)
+                ...(!(role === 'Entrenador' || role === 'Entrenarqueros') && { profesor_asignado_id: '' })
             }));
         } else {
             setFormData(prev => ({

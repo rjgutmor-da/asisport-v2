@@ -26,6 +26,7 @@ const DetalleAlumno = () => {
     const { addToast } = useToast();
     const { user, role } = useAuth();
     const canEditStudents = can(role, 'asisport.editStudents');
+    const isCoachOrGoalkeeperCoach = role === 'Entrenador' || role === 'Entrenarqueros';
 
 
 
@@ -432,7 +433,7 @@ const DetalleAlumno = () => {
                                     { value: 'Otros', label: 'Otros' }
                                 ]}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                             />
                             <Input
                                 label="Mensualidad"
@@ -440,7 +441,7 @@ const DetalleAlumno = () => {
                                 type="number"
                                 value={formData.mensualidad ?? ''}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 placeholder="0 o en blanco para becado"
                             />
                         </div>
@@ -453,7 +454,7 @@ const DetalleAlumno = () => {
                                 value={formData.profesor_asignado_id || ''}
                                 options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 placeholder="Seleccionar entrenador..."
                             />
 
@@ -466,7 +467,7 @@ const DetalleAlumno = () => {
                                         value={formData.sucursal_id || ''}
                                         options={sucursales}
                                         onChange={handleChange}
-                                        disabled={!editing}
+                                        disabled={!editing || isCoachOrGoalkeeperCoach}
                                         error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
@@ -486,7 +487,7 @@ const DetalleAlumno = () => {
                                 value={formData.cancha_id || ''}
                                 options={canchas}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 error={errors?.cancha_id}
                             />
                             {/* 4. Horario de Entrenamiento */}
@@ -496,7 +497,7 @@ const DetalleAlumno = () => {
                                 value={formData.horario_id || ''}
                                 options={horarios}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 error={errors?.horario_id}
                             />
                         </div>
@@ -507,7 +508,7 @@ const DetalleAlumno = () => {
                                 name="observaciones"
                                 value={formData.observaciones || ''}
                                 onChange={handleChange}
-                                disabled={!editing}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 maxLength={30}
                                 placeholder="Ej: Becado por directorio, Desc. 3 hermanos"
                             />
