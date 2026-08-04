@@ -84,7 +84,7 @@ export const useAlumnos = () => {
 
     const [viewMode, setViewMode] = useState(filtrosGuardados?.viewMode ?? 'list');
     const [selectedAlumnos, setSelectedAlumnos] = useState([]);
-    const [introMessage, setIntroMessage] = useState('¡Hola! Compartimos la lista de convocados para el partido del fin de semana:');
+    const [introMessage, setIntroMessage] = useState('Esta es la lista de Convocados:');
 
     const esEntrenador = role === 'Entrenador' || role === 'Entrenarqueros';
 
