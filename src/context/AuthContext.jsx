@@ -169,6 +169,14 @@ export const AuthProvider = ({ children }) => {
             } catch (error) {
                 console.error('❌ [Auth] Error en flujo de autenticación:', error);
                 if (isMounted) setLoading(false);
+                await supabase.auth.signOut({ scope: 'local' });
+                if (isMounted) {
+                    setUser(null);
+                    setUserProfile(null);
+                    setRole(null);
+                    setEscuelaId(null);
+                    currentUserIdRef.current = null;
+                }
             } finally {
                 isFetchingRef.current = null;
             }
@@ -194,9 +202,27 @@ export const AuthProvider = ({ children }) => {
             }
         });
 
+        const validarSesionActual = async () => {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) return;
+            try {
+                await registerCurrentAsiSportSession(data.session);
+            } catch (error) {
+                console.warn('[Auth] Sesión AsiSport revocada:', error);
+                await supabase.auth.signOut({ scope: 'local' });
+            }
+        };
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') void validarSesionActual();
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        const heartbeat = window.setInterval(validarSesionActual, 60_000);
+
         return () => {
             isMounted = false;
             subscription.unsubscribe();
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.clearInterval(heartbeat);
         };
     }, []);
 
