@@ -6,13 +6,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const allowedApplications = new Set(['asisport', 'saasport'])
+
+const getSessionId = (accessToken: string): string | null => {
+  try {
+    const payload = accessToken.split('.')[1]
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof decoded.session_id === 'string' ? decoded.session_id : null
+  } catch {
+    return null
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { email, password } = await req.json()
+    const { email, password, application, deviceId, deviceLabel } = await req.json()
+    if (!email || !password || !allowedApplications.has(application)) {
+      return new Response(
+        JSON.stringify({ error: 'Solicitud de inicio de sesión inválida.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -74,8 +92,36 @@ serve(async (req) => {
       updated_at: now.toISOString(),
     })
 
+    const sessionId = authData.session?.access_token
+      ? getSessionId(authData.session.access_token)
+      : null
+    if (!authData.session?.user?.id || !sessionId) {
+      return new Response(
+        JSON.stringify({ error: 'No se pudo identificar la sesión creada.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: registration, error: registrationError } = await supabaseAdmin.rpc(
+      'rpc_register_login_session',
+      {
+        p_user_id: authData.session.user.id,
+        p_session_id: sessionId,
+        p_application: application,
+        p_device_id: deviceId ?? 'unknown-device',
+        p_device_label: deviceLabel ?? null,
+      }
+    )
+
+    if (registrationError || !registration?.ok) {
+      return new Response(
+        JSON.stringify({ error: registration?.reason || registrationError?.message || 'No se pudo habilitar esta sesión.' }),
+        { status: registration?.reason === 'application_not_allowed' ? 403 : 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     return new Response(
-      JSON.stringify({ session: authData.session }),
+      JSON.stringify({ session: authData.session, application, replacedSessionId: registration.revoked_session_id ?? null }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

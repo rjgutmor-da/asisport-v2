@@ -9,6 +9,7 @@ import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
 import { getSucursales } from '../services/sucursales';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { can, getDataScope } from '../config/roles';
+import { registerCurrentAsiSportSession } from '../lib/sessionLimit';
 
 const AuthContext = createContext({});
 
@@ -139,6 +140,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
+                await registerCurrentAsiSportSession(session);
                 // Intentar cargar perfil y escuela en paralelo
                 const [profile, rpcEscuelaId] = await Promise.all([
                     fetchUserProfile(userId),

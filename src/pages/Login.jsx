@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import { getAsiSportLoginPayload } from '../lib/sessionLimit';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -41,7 +42,11 @@ const Login = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
-                body: JSON.stringify({ email: emailClean, password: passwordClean })
+                body: JSON.stringify({
+                    email: emailClean,
+                    password: passwordClean,
+                    ...getAsiSportLoginPayload(),
+                })
             });
 
             const resData = await response.json();

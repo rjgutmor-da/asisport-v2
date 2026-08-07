@@ -4,23 +4,30 @@ import { cacheService } from '../lib/cacheService';
 import { getDataScope } from '../config/roles';
 
 export const getCanchas = async () => {
-    // Verificar caché antes de consultar Supabase (usamos canchas_v2 para forzar recarga con sucursal_id)
-    const cached = cacheService.get('canchas_v2');
+    // Verificar caché antes de consultar Supabase
+    const cached = cacheService.get('canchas_v3');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
         .from('canchas')
-        .select('id, nombre, sucursal_id')
+        .select('id, nombre, sucursal_id, canchas_horarios(horario_id)')
         .eq('escuela_id', escuelaId)
         .eq('activo', true);
 
     if (error) throw error;
 
+    const formatted = (data || []).map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        sucursal_id: c.sucursal_id,
+        horario_ids: (c.canchas_horarios || []).map(ch => ch.horario_id)
+    }));
+
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('canchas_v2', data);
-    return data;
+    cacheService.set('canchas_v3', formatted);
+    return formatted;
 };
 
 export const getHorarios = async () => {
@@ -61,7 +68,6 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Obtener cancha_id únicos de los alumnos del entrenador
     let query = supabase
         .from('alumnos')
         .select('cancha_id, cancha:canchas(id, nombre)')

@@ -117,6 +117,19 @@ export const useRegistroAlumno = (onSuccess) => {
         );
     }, [formData.sucursal_id, entrenadores]);
 
+    /**
+     * Horarios filtrados según el grupo (cancha) seleccionado.
+     * Si la cancha tiene horarios asociados en canchas_horarios, se muestran solo esos.
+     */
+    const horariosFiltrados = useMemo(() => {
+        if (!formData.cancha_id) return horarios;
+        const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(formData.cancha_id));
+        if (!canchaSeleccionada || !canchaSeleccionada.horario_ids || canchaSeleccionada.horario_ids.length === 0) {
+            return horarios;
+        }
+        return horarios.filter(h => canchaSeleccionada.horario_ids.includes(h.value));
+    }, [formData.cancha_id, canchasRaw, horarios]);
+
     // Manejo de cambios en inputs
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -131,8 +144,22 @@ export const useRegistroAlumno = (onSuccess) => {
                 ...prev,
                 sucursal_id: value,
                 cancha_id: '',
+                horario_id: '',
                 // Solo limpiar el profesor si el usuario actual no es entrenador (en ese caso ya está auto-asignado)
                 ...(!(role === 'Entrenador' || role === 'Entrenarqueros') && { profesor_asignado_id: '' })
+            }));
+        } else if (name === 'cancha_id') {
+            const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(value));
+            let newHorarioId = formData.horario_id;
+            if (canchaSeleccionada && canchaSeleccionada.horario_ids && canchaSeleccionada.horario_ids.length > 0) {
+                if (!canchaSeleccionada.horario_ids.includes(formData.horario_id)) {
+                    newHorarioId = '';
+                }
+            }
+            setFormData(prev => ({
+                ...prev,
+                cancha_id: value,
+                horario_id: newHorarioId
             }));
         } else {
             setFormData(prev => ({
@@ -225,7 +252,7 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
-        maestros: { canchas: canchasFiltradas, horarios, entrenadores: entrenadorFiltrados, sucursales },
+        maestros: { canchas: canchasFiltradas, horarios: horariosFiltrados, entrenadores: entrenadorFiltrados, sucursales },
 
         handleChange,
         setPhotoFile,
