@@ -17,7 +17,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     if (!user) {
         // Redirigir al portal SSO centralizado
-        window.location.href = `${import.meta.env.VITE_URL_LOGIN}?redirect=asisport`;
+        const isLocal = window.location.hostname === 'localhost'
+            || window.location.hostname === '127.0.0.1'
+            || /^\d{1,3}(\.\d{1,3}){3}$/.test(window.location.hostname);
+        const configuredLoginUrl = import.meta.env.VITE_URL_LOGIN
+            || (isLocal ? `https://${window.location.hostname}:5174` : 'https://login.saasport.pro');
+        const loginUrl = isLocal
+            ? configuredLoginUrl.replace(/(https?:\/\/)([^:/]+)(:\d+)?/, `$1${window.location.hostname}$3`)
+            : configuredLoginUrl;
+        const params = new URLSearchParams({ redirect: 'asisport' });
+        if (isLocal) params.set('returnTo', window.location.origin);
+        window.location.href = `${loginUrl}?${params.toString()}`;
         return null;
     }
 

@@ -3,12 +3,12 @@
  */
 
 export const SAASPORT_PROD_URL = 'https://finanzas.saasport.pro'; // URL de producción de SaaSport
-export const SAASPORT_DEV_URL = 'http://localhost:5174'; // SaaSport suele correr en el siguiente puerto
+export const SAASPORT_DEV_URL = 'https://localhost:5173';
 
 /** Retorna la URL base de SaaSport según el entorno */
 export const getSaasportUrl = () => {
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  return isLocal ? SAASPORT_DEV_URL : SAASPORT_PROD_URL;
+  return isLocal ? SAASPORT_DEV_URL.replace('localhost', window.location.hostname) : SAASPORT_PROD_URL;
 };
 
 export const volverOIrAPanel = (navigate, rutaFallback = '/admin/escuela') => {
