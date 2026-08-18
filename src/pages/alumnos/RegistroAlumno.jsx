@@ -11,8 +11,9 @@ import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const RegistroAlumno = () => {
     const navigate = useNavigate();
-    const { role } = useAuth();
+    const { role, userProfile } = useAuth();
     const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
+    const isCoachWithFixedBranch = isAnyCoach && Boolean(userProfile?.sucursal_id);
 
     const {
         loadingMaestros,
@@ -267,10 +268,12 @@ const RegistroAlumno = () => {
                                         options={sucursales}
                                         onChange={handleChange}
                                         error={errors.sucursal_id}
-                                        disabled={isAnyCoach}
+                                        disabled={isCoachWithFixedBranch}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
-                                        Selecciona una sucursal para filtrar los grupos y horarios disponibles
+                                        {isCoachWithFixedBranch
+                                            ? 'Sucursal asignada a tu perfil'
+                                            : 'Selecciona una sucursal para filtrar los grupos y horarios disponibles'}
                                     </p>
                                 </div>
                             ) : (
