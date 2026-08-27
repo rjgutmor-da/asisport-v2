@@ -21,13 +21,13 @@ const Estadisticas = () => {
         asistenciasDetalle,
         exportData,
         dateRangeText,
-        canchas,
+        grupos,
         horarios,
         entrenadores,
         availableCategorias,
         dateRangeOption, setDateRangeOption,
         selectedEntrenadores, setSelectedEntrenadores,
-        selectedCanchas, setSelectedCanchas,
+        selectedGrupos, setSelectedGrupos,
         selectedHorarios, setSelectedHorarios,
         selectedCategorias, setSelectedCategorias,
         selectedDias, setSelectedDias,
@@ -53,7 +53,7 @@ const Estadisticas = () => {
         { id: 'direccion', label: 'Dirección' },
         { id: 'estado', label: 'Estado' },
         { id: 'es_arquero', label: 'Es Arquero' },
-        { id: 'cancha', label: 'Grupo' },
+        { id: 'grupo', label: 'Grupo' },
         { id: 'horario', label: 'Horario' },
         { id: 'entrenador', label: 'Entrenador Asignado' },
         { id: 'nombre_padre', label: 'Nombre del Padre' },
@@ -101,11 +101,11 @@ const Estadisticas = () => {
     const alumnoMatchesFilters = React.useCallback((alumno) => {
         if (!alumno) return false;
         if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) return false;
-        if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
+        if (selectedGrupos.length > 0 && !selectedGrupos.includes(alumno.grupo_id)) return false;
         if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
         if (selectedCategorias.length > 0 && !selectedCategorias.includes(`Sub-${alumno.sub}`)) return false;
         return true;
-    }, [selectedEntrenadores, selectedCanchas, selectedHorarios, selectedCategorias]);
+    }, [selectedEntrenadores, selectedGrupos, selectedHorarios, selectedCategorias]);
 
     const alumnosParaBuscador = React.useMemo(() => {
         const term = normalizeText(alumnoSearchTerm);
@@ -151,7 +151,7 @@ const Estadisticas = () => {
                     if (!matchRegistro && !matchAlumno) return false;
                 }
 
-                if (selectedCanchas.length > 0 && !selectedCanchas.includes(selectedAlumno.cancha_id)) return false;
+                if (selectedGrupos.length > 0 && !selectedGrupos.includes(selectedAlumno.grupo_id)) return false;
                 if (selectedHorarios.length > 0 && !selectedHorarios.includes(selectedAlumno.horario_id)) return false;
                 if (selectedCategorias.length > 0 && !selectedCategorias.includes(`Sub-${selectedAlumno.sub}`)) return false;
 
@@ -180,7 +180,7 @@ const Estadisticas = () => {
         selectedAlumno,
         asistenciasDetalle,
         selectedEntrenadores,
-        selectedCanchas,
+        selectedGrupos,
         selectedHorarios,
         selectedCategorias,
         selectedDias
@@ -210,7 +210,7 @@ const Estadisticas = () => {
             const escuelaId = await obtenerEscuelaId();
             const { data: allAlumnos, error: alumnosError } = await supabase
                 .from('v_alumnos')
-                .select('id, nombres, apellidos, profesor_asignado_id, cancha_id, horario_id, sub, archivado, estado')
+                .select('id, nombres, apellidos, profesor_asignado_id, grupo_id, horario_id, sub, archivado, estado')
                 .eq('escuela_id', escuelaId);
 
             if (alumnosError) console.error("Error cargando alumnos para exportación:", alumnosError);
@@ -231,8 +231,8 @@ const Estadisticas = () => {
                 if (selectedEntrenadores.length > 0 && !selectedEntrenadores.includes(alumno.profesor_asignado_id)) {
                     return false;
                 }
-                // Filtro por Cancha/Grupo
-                if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) {
+                // Filtro por Grupo/Grupo
+                if (selectedGrupos.length > 0 && !selectedGrupos.includes(alumno.grupo_id)) {
                     return false;
                 }
                 // Filtro por Horario
@@ -261,7 +261,7 @@ const Estadisticas = () => {
                     if (!matchRegistro && !matchAlumno) return false;
                 }
 
-                if (selectedCanchas.length > 0 && !selectedCanchas.includes(alumno.cancha_id)) return false;
+                if (selectedGrupos.length > 0 && !selectedGrupos.includes(alumno.grupo_id)) return false;
                 if (selectedHorarios.length > 0 && !selectedHorarios.includes(alumno.horario_id)) return false;
                 
                 if (selectedCategorias.length > 0) {
@@ -342,10 +342,10 @@ const Estadisticas = () => {
                     .map(id => entrenadores.find(e => e.value === id)?.label ?? id)
                     .join(', ');
 
-            const nombresCanchas = selectedCanchas.length === 0
+            const nombresGrupos = selectedGrupos.length === 0
                 ? 'Todas'
-                : selectedCanchas
-                    .map(id => canchas.find(c => c.value === id)?.label ?? id)
+                : selectedGrupos
+                    .map(id => grupos.find(c => c.value === id)?.label ?? id)
                     .join(', ');
 
             const nombresHorarios = selectedHorarios.length === 0
@@ -366,7 +366,7 @@ const Estadisticas = () => {
                 ['Filtros Aplicados'],
                 ['Período:', dateRangeText],
                 ['Entrenadores:', nombresEntrenadores],
-                ['Grupos:', nombresCanchas],
+                ['Grupos:', nombresGrupos],
                 ['Horarios:', nombresHorarios],
                 ['Categorías:', nombresCategorias],
                 [], // Fila vacía separador
@@ -435,7 +435,7 @@ const Estadisticas = () => {
             filtrados = filtrados.filter(a => selectedCategorias.includes(`Sub-${a.sub}`));
         }
         if (selectedHorarios.length > 0) filtrados = filtrados.filter(a => selectedHorarios.includes(a.horario_id));
-        if (selectedCanchas.length > 0) filtrados = filtrados.filter(a => selectedCanchas.includes(a.cancha_id));
+        if (selectedGrupos.length > 0) filtrados = filtrados.filter(a => selectedGrupos.includes(a.grupo_id));
 
         if (filtrados.length === 0) {
             alert("No hay alumnos que coincidan con los filtros seleccionados.");
@@ -453,7 +453,7 @@ const Estadisticas = () => {
                             ? (a.telefono_madre || a.telefono_padre || a.telefono_deportista || '-')
                             : (a.telefono_padre || a.telefono_madre || a.telefono_deportista || '-');
                     case 'fecha_nacimiento': return a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString('es-ES') : '-';
-                    case 'cancha': return canchas.find(c => c.value === a.cancha_id)?.label || '-';
+                    case 'grupo': return grupos.find(c => c.value === a.grupo_id)?.label || '-';
                     case 'horario': return horarios.find(h => h.value === a.horario_id)?.label || '-';
                     case 'entrenador': return entrenadores.find(e => e.value === a.profesor_asignado_id)?.label || '-';
                     case 'es_arquero': return a.es_arquero ? 'Sí' : 'No';
@@ -645,12 +645,12 @@ const Estadisticas = () => {
                             placeholder="Todos"
                         />
 
-                        {/* 3. Grupo (Multi-select, anteriormente Cancha) */}
+                        {/* 3. Grupo (Multi-select, anteriormente Grupo) */}
                         <MultiSelectFilter
                             label="Grupo"
-                            options={canchas}
-                            selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
+                            options={grupos}
+                            selectedValues={selectedGrupos}
+                            onChange={setSelectedGrupos}
                             placeholder="Todos"
                         />
 

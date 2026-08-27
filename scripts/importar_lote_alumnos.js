@@ -2,7 +2,7 @@ import { obtenerClienteSupabaseAdmin } from './config/cliente_supabase_admin.js'
 
 const ESCUELA_ID = '218ea007-49c4-4fa2-9e81-3b6663496f26';
 const PROFESOR_ID = '1259d0e6-8fa4-48ba-b262-4427c7b971c4';
-const CANCHA_ID = '0336a91f-a3c7-4ca2-b01c-043f21bf8f03';
+const GRUPO_ID = '0336a91f-a3c7-4ca2-b01c-043f21bf8f03';
 const HORARIO_ID = '832bf94e-fe52-449b-b5bd-271aa50e1b29';
 
 const supabase = obtenerClienteSupabaseAdmin();
@@ -45,7 +45,7 @@ async function importarAlumnos() {
         nombre_madre: a.telefono_madre ? 'Mama' : null,
         escuela_id: ESCUELA_ID,
         profesor_asignado_id: PROFESOR_ID,
-        cancha_id: CANCHA_ID,
+        grupo_id: GRUPO_ID,
         horario_id: HORARIO_ID,
         estado: 'Aprobado',
         archivado: false

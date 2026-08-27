@@ -10,7 +10,7 @@ Bienvenido a **AsiSport**, la solución definitiva para la gestión de asistenci
 
 ### 📋 Gestión de Asistencia
 - **Registro Rápido**: Marca asistencias (Presente, Licencia, Ausente) de forma ágil desde el móvil.
-- **Filtros Inteligentes**: Filtra por cancha y horario para encontrar rápidamente a tus alumnos.
+- **Filtros Inteligentes**: Filtra por grupo y horario para encontrar rápidamente a tus alumnos.
 - **Historial de 7 Días**: Consulta la consistencia de cada alumno en la última semana.
 - **Validaciones**: Protección contra registros duplicados o fechas futuras.
 - **Acceso Administrativo**: Los Administradores pueden tomar asistencia en nombre de cualquier entrenador, seleccionándolo desde un menú desplegable.
@@ -26,7 +26,7 @@ Bienvenido a **AsiSport**, la solución definitiva para la gestión de asistenci
 
 ### 📊 Estadísticas y Reportes
 - **Dashboard de Métricas**: Visualiza rápidamente el total de presentes y licencias.
-- **Filtros Avanzados**: Filtrado multi-selección por Entrenador, Cancha, Horario y Categoría (Sub-X).
+- **Filtros Avanzados**: Filtrado multi-selección por Entrenador, Grupo, Horario y Categoría (Sub-X).
 - **Tabla de Resumen**: Desglose diario de actividad.
 - **Exportación a Excel**: Genera reportes detallados por alumno con un solo clic, incluyendo encabezados de los filtros aplicados.
 
@@ -110,7 +110,7 @@ Para información más detallada, consulta:
 - **Panel de Escuela Premium**: Rediseño completo con tarjetas minimalistas, estadísticas de alto impacto y accesos directos de gran formato para:
     - **Sucursales**: Gestión de sedes.
     - **Usuarios**: Control de roles.
-    - **Canchas y Horarios**: Configuración de maestros (anteriormente en el dashboard).
+    - **Grupos y Horarios**: Configuración de maestros (anteriormente en el dashboard).
 
 ---
 

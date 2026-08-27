@@ -34,14 +34,14 @@ async function setupDemo() {
         }
         console.log(`✅ Sucursal: ${sucursal.nombre} (ID: ${sucursal.id})`);
 
-        // 3. Cancha
-        let { data: cancha } = await supabase.from('canchas').select('*').eq('nombre', 'Estadio Continental').eq('escuela_id', escuela.id).maybeSingle();
-        if (!cancha) {
-            const { data: cNew, error: cErr } = await supabase.from('canchas').insert({ nombre: 'Estadio Continental', escuela_id: escuela.id, sucursal_id: sucursal.id }).select().single();
+        // 3. Grupo
+        let { data: grupo } = await supabase.from('grupos').select('*').eq('nombre', 'Estadio Continental').eq('escuela_id', escuela.id).maybeSingle();
+        if (!grupo) {
+            const { data: cNew, error: cErr } = await supabase.from('grupos').insert({ nombre: 'Estadio Continental', escuela_id: escuela.id, sucursal_id: sucursal.id }).select().single();
             if (cErr) throw cErr;
-            cancha = cNew;
+            grupo = cNew;
         }
-        console.log(`✅ Cancha: ${cancha.nombre} (ID: ${cancha.id})`);
+        console.log(`✅ Grupo: ${grupo.nombre} (ID: ${grupo.id})`);
 
         // 4. Horario
         let { data: horario } = await supabase.from('horarios').select('*').eq('hora', '10:00').eq('escuela_id', escuela.id).maybeSingle();
@@ -93,7 +93,7 @@ async function setupDemo() {
         process.stdout.write(`RESULT_ID_START\n`);
         process.stdout.write(`ESCUELA_ID=${escuela.id}\n`);
         process.stdout.write(`SUCURSAL_ID=${sucursal.id}\n`);
-        process.stdout.write(`CANCHA_ID=${cancha.id}\n`);
+        process.stdout.write(`GRUPO_ID=${grupo.id}\n`);
         process.stdout.write(`HORARIO_ID=${horario.id}\n`);
         process.stdout.write(`USER_ID=${userId}\n`);
         process.stdout.write(`RESULT_ID_END\n`);

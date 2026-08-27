@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabaseClient';
  * @param {string} origenId - ID del alumno que se fusionará y eliminará/archivará
  * @returns {Object} Alumno destino actualizado
  */
-export const combinarAlumnos = async (destinoId, origenId) => {
+export const combinarAlumnosLegacy = async (destinoId, origenId) => {
     if (!destinoId || !origenId) {
         throw new Error('Debes seleccionar ambos alumnos para combinar.');
     }
@@ -30,7 +30,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     // 2. Obtener datos completos de ambos alumnos
     const { data: destino, error: errDestino } = await supabase
         .from('alumnos')
-        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
+        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, grupo_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', destinoId)
         .single();
 
@@ -38,7 +38,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
 
     const { data: origen, error: errOrigen } = await supabase
         .from('alumnos')
-        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
+        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, grupo_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', origenId)
         .single();
 
@@ -59,10 +59,10 @@ export const combinarAlumnos = async (destinoId, origenId) => {
         }
     }
 
-    // Campos especiales: cancha_id, horario_id, profesor_asignado_id
+    // Campos especiales: grupo_id, horario_id, profesor_asignado_id
     // Solo rellenar si el destino no los tiene
-    if (!destino.cancha_id && origen.cancha_id) {
-        datosActualizados.cancha_id = origen.cancha_id;
+    if (!destino.grupo_id && origen.grupo_id) {
+        datosActualizados.grupo_id = origen.grupo_id;
     }
     if (!destino.horario_id && origen.horario_id) {
         datosActualizados.horario_id = origen.horario_id;
@@ -192,4 +192,17 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     }
 
     return resultado;
+};
+
+/** Fusiona duplicados dentro de una transacción del servidor. */
+export const combinarAlumnos = async (destinoId, origenId) => {
+    if (!destinoId || !origenId || destinoId === origenId) {
+        throw new Error('Selecciona dos alumnos diferentes para combinar.');
+    }
+    const { data, error } = await supabase.rpc('rpc_combinar_alumnos', {
+        p_alumno_destino_id: destinoId,
+        p_alumno_origen_id: origenId,
+    });
+    if (error) throw new Error(error.message || 'No se pudieron combinar los alumnos.');
+    return data;
 };

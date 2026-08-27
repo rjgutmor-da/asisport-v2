@@ -59,18 +59,18 @@ export const comprimirFotoGrupal = async (file) => {
  * @param {File} file - Archivo de imagen (será comprimido automáticamente)
  * @param {Object} metadata - Datos asociados a la foto
  * @param {string} metadata.fecha - Fecha de la asistencia (YYYY-MM-DD)
- * @param {string|null} metadata.canchaId - ID de la cancha/grupo
+ * @param {string|null} metadata.grupoId - ID de la grupo/grupo
  * @param {string|null} metadata.horarioId - ID del horario
  * @returns {Promise<string>} URL pública de la foto subida
  */
-export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horarioId }) => {
+export const subirFotoAsistenciaGrupal = async (file, { fecha, grupoId, horarioId, grupoGestionId }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada.');
 
     const escuelaId = await obtenerEscuelaId();
 
     // 0. Consultar si ya existe una foto para este grupo, horario y fecha
-    const fotoExistente = await obtenerFotoAsistenciaGrupal(fecha, canchaId, horarioId);
+    const fotoExistente = await obtenerFotoAsistenciaGrupal(fecha, grupoId, horarioId, grupoGestionId);
 
     // 1. Comprimir la foto
     const fotoComprimida = await comprimirFotoGrupal(file);
@@ -134,8 +134,9 @@ export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horario
             .insert({
                 escuela_id: escuelaId,
                 fecha,
-                cancha_id: canchaId || null,
+                grupo_id: grupoId || null,
                 horario_id: horarioId || null,
+                grupo_gestion_id: grupoGestionId || null,
                 entrenador_id: user.id,
                 foto_url: publicUrl,
             });
@@ -152,14 +153,14 @@ export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horario
 };
 
 /**
- * Consulta si ya existe una foto grupal para una fecha/cancha/horario específicos.
+ * Consulta si ya existe una foto grupal para una fecha/grupo/horario específicos.
  * Útil para mostrar la foto existente si el entrenador vuelve a la página.
  * @param {string} fecha - Fecha (YYYY-MM-DD)
- * @param {string|null} canchaId - ID de la cancha
+ * @param {string|null} grupoId - ID de la grupo
  * @param {string|null} horarioId - ID del horario
  * @returns {Promise<Object|null>} Registro de foto o null
  */
-export const obtenerFotoAsistenciaGrupal = async (fecha, canchaId, horarioId) => {
+export const obtenerFotoAsistenciaGrupal = async (fecha, grupoId, horarioId, grupoGestionId = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -172,8 +173,9 @@ export const obtenerFotoAsistenciaGrupal = async (fecha, canchaId, horarioId) =>
         .eq('fecha', fecha)
         .eq('entrenador_id', user.id);
 
-    if (canchaId) query = query.eq('cancha_id', canchaId);
+    if (grupoId) query = query.eq('grupo_id', grupoId);
     if (horarioId) query = query.eq('horario_id', horarioId);
+    if (grupoGestionId) query = query.eq('grupo_gestion_id', grupoGestionId);
 
     const { data, error } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
 

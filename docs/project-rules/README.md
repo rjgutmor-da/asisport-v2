@@ -63,7 +63,7 @@ Contiene:
 - Al diseñar pantallas nuevas
 - Al probar usabilidad en móvil
 
-**💡 Principio:** "Si no funciona en la cancha bajo el sol, no está bien diseñado"
+**💡 Principio:** "Si no funciona en la grupo bajo el sol, no está bien diseñado"
 
 ---
 
@@ -153,7 +153,7 @@ Configuración de Tailwind para usar las variables CSS.
 ## 🎯 Principios Fundamentales
 
 ### 1. Mobile-First
-AsiSport se usa principalmente en móvil, en la cancha, bajo el sol. **Siempre diseña y prueba primero para móvil.**
+AsiSport se usa principalmente en móvil, en la grupo, bajo el sol. **Siempre diseña y prueba primero para móvil.**
 
 ### 2. Contexto Real
 No optimizar para "condiciones ideales". El entrenador tiene prisa, manos sudadas, está parado, hay luz solar. **Si no funciona en esas condiciones, no funciona.**
@@ -246,7 +246,7 @@ Si tienes dudas sobre alguna regla o necesitas clarificación:
 
 **AsiSport no es una app perfecta. Es una app que funciona cuando más se necesita.**
 
-Bajo el sol, con prisa, en la cancha, con manos sudadas. Ahí es donde importa. Ahí es donde estos documentos te ayudarán a construir algo que realmente sirva.
+Bajo el sol, con prisa, en la grupo, con manos sudadas. Ahí es donde importa. Ahí es donde estos documentos te ayudarán a construir algo que realmente sirva.
 
 ---
 

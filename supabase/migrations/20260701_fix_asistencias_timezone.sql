@@ -34,7 +34,7 @@ CREATE OR REPLACE VIEW v_alumnos AS
     a.telefono_deportista,
     a.colegio,
     a.direccion,
-    a.cancha_id,
+    a.grupo_id,
     a.horario_id,
     a.es_arquero,
     a.foto_url,
@@ -103,7 +103,7 @@ CREATE OR REPLACE VIEW v_alumnos_deuda AS
     a.apellidos,
     a.fecha_nacimiento,
     a.sucursal_id,
-    a.cancha_id,
+    a.grupo_id,
     a.horario_id,
     a.profesor_asignado_id AS entrenador_id,
     a.nombre_padre,
@@ -114,7 +114,7 @@ CREATE OR REPLACE VIEW v_alumnos_deuda AS
     a.meses_permanencia_inicial,
     a.ingresos_iniciales,
     s.nombre AS sucursal_nombre,
-    c.nombre AS cancha_nombre,
+    c.nombre AS grupo_nombre,
     h.hora AS horario_hora,
     (((u.nombres)::text || ' '::text) || (u.apellidos)::text) AS entrenador_nombre,
     COALESCE(sum(cc.monto_total) FILTER (WHERE (cc.anulada = false)), (0)::numeric) AS total_deuda,
@@ -140,7 +140,7 @@ CREATE OR REPLACE VIEW v_alumnos_deuda AS
     a.archivado
    FROM (((((((((alumnos a
      LEFT JOIN sucursales s ON ((a.sucursal_id = s.id)))
-     LEFT JOIN canchas c ON ((a.cancha_id = c.id)))
+     LEFT JOIN grupos c ON ((a.grupo_id = c.id)))
      LEFT JOIN horarios h ON ((a.horario_id = h.id)))
      LEFT JOIN usuarios u ON ((a.profesor_assigned_id = u.id))) -- wait, profesor_asignado_id, wait, in sql below we wrote a.profesor_asignado_id AS entrenador_id, wait let's use the exact alias we had in the view definition:
      -- LEFT JOIN usuarios u ON ((a.profesor_asignado_id = u.id)))
@@ -154,4 +154,4 @@ CREATE OR REPLACE VIEW v_alumnos_deuda AS
   WHERE ((a.archivado = false) OR (a.id IN ( SELECT cc_filter.alumno_id
            FROM v_cuentas_cobrar cc_filter
           WHERE (cc_filter.saldo_pendiente <> (0)::numeric))))
-  GROUP BY a.id, a.escuela_id, a.nombres, a.apellidos, a.fecha_nacimiento, a.sucursal_id, a.cancha_id, a.horario_id, a.profesor_asignado_id, a.nombre_padre, a.telefono_padre, a.nombre_madre, a.telefono_madre, a.whatsapp_preferido, a.meses_permanencia_inicial, a.ingresos_iniciales, s.nombre, c.nombre, h.hora, u.nombres, u.apellidos, am.asistencias_actual, am.asistencias_anterior, ms.meses_saasport, ms.primera_fecha_saasport, a.fecha_inicio, a.created_at, a.terminos_busqueda, ums.ultima_mensualidad, a.archivado, esc.zona_horaria;
+  GROUP BY a.id, a.escuela_id, a.nombres, a.apellidos, a.fecha_nacimiento, a.sucursal_id, a.grupo_id, a.horario_id, a.profesor_asignado_id, a.nombre_padre, a.telefono_padre, a.nombre_madre, a.telefono_madre, a.whatsapp_preferido, a.meses_permanencia_inicial, a.ingresos_iniciales, s.nombre, c.nombre, h.hora, u.nombres, u.apellidos, am.asistencias_actual, am.asistencias_anterior, ms.meses_saasport, ms.primera_fecha_saasport, a.fecha_inicio, a.created_at, a.terminos_busqueda, ums.ultima_mensualidad, a.archivado, esc.zona_horaria;

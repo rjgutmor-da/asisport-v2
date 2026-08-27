@@ -7,7 +7,7 @@ const supabase = obtenerClienteSupabaseAdmin();
 
 const ESCUELA_ID = '07d945a7-99ba-4e7d-ba9c-258e7ee27659';
 const SUCURSAL_ID = '99f11454-8d15-4888-8a18-0e7fa0436892';
-const CANCHA_ID = 'cccf5cc7-e113-4fc5-a937-cfe7f8bb4e76';
+const GRUPO_ID = 'cccf5cc7-e113-4fc5-a937-cfe7f8bb4e76';
 const HORARIO_ID = '10768921-cab5-4cd5-88f0-6e968d084969';
 const JSON_PATH = 'C:/Users/Public/Documents/AsiSportMarketing/EstrellasAmerica/jugadores.json';
 const PHOTOS_DIR = 'C:/Users/Public/Documents/AsiSportMarketing/EstrellasAmerica/';
@@ -116,7 +116,7 @@ async function enrollStars() {
 
             const { data: ins, error: iErr } = await supabase.from('alumnos').insert({
                 nombres, apellidos, fecha_nacimiento: alumno.fecha_nacimiento,
-                escuela_id: ESCUELA_ID, sucursal_id: SUCURSAL_ID, cancha_id: CANCHA_ID, horario_id: HORARIO_ID,
+                escuela_id: ESCUELA_ID, sucursal_id: SUCURSAL_ID, grupo_id: GRUPO_ID, horario_id: HORARIO_ID,
                 foto_url: fotoUrl, nombre_padre: 'Representante', telefono_padre: '59174631123', whatsapp_preferido: 'padre',
                 estado: 'Aprobado', created_by: userId, archivado: false
             }).select().single();

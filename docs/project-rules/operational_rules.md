@@ -70,13 +70,13 @@ Los siguientes campos son obligatorios al crear un alumno:
 - Nombres
 - Apellidos
 - Fecha de Nacimiento
-- Cancha de entrenamiento (selección de lista predefinida)
+- Grupo de entrenamiento (selección de lista predefinida)
 - Hora de entrenamiento (selección de lista predefinida)
 - Entrenadores asignados (mínimo 1, máximo 3)
 
 **Validación:**
 - El sistema debe validar que estos campos no estén vacíos antes de guardar
-- Las listas de Cancha y Horario son específicas de cada escuela (Regla #18)
+- Las listas de Grupo y Horario son específicas de cada escuela (Regla #18)
 
 **Mensaje de error:**
 > "Faltan campos obligatorios: [lista de campos faltantes]"
@@ -185,7 +185,7 @@ Un alumno solo puede pasar de "Pendiente" a "Aprobado" si tiene TODOS los campos
 - Nombres, Apellidos, Fecha de Nacimiento
 - Carnet de Identidad
 - Al menos un representante legal completo (Padre o Madre con nombre + teléfono)
-- Cancha de entrenamiento, Hora de entrenamiento
+- Grupo de entrenamiento, Hora de entrenamiento
 - Al menos un Entrenador asignado
 - Foto en formato cuadrado (400x400)
 
@@ -197,7 +197,7 @@ function puedeAprobar(alumno) {
          alumno.fecha_nacimiento &&
          alumno.carnet_identidad &&
          tieneRepresentanteLegal(alumno) &&
-         alumno.cancha_id &&
+         alumno.grupo_id &&
          alumno.horario_id &&
          alumno.entrenadores.length >= 1 &&
          alumno.foto_url;
@@ -244,15 +244,15 @@ if (alumno.entrenadores.length === 1) {
 
 #### Regla #21: Grupos de Entrenamiento
 **Descripción:**  
-Un grupo se define por la combinación de: Horario + Cancha + Entrenadores asignados.
+Un grupo se define por la combinación de: Horario + Grupo + Entrenadores asignados.
 
 **Comportamiento:**
-- Un entrenador puede estar asignado a múltiples grupos (diferentes horarios/canchas)
+- Un entrenador puede estar asignado a múltiples grupos (diferentes horarios/grupos)
 - Un grupo puede tener múltiples entrenadores (entre 1 y 3)
-- Los alumnos pertenecen a un grupo según su Cancha y Horario de entrenamiento asignados
+- Los alumnos pertenecen a un grupo según su Grupo y Horario de entrenamiento asignados
 
 **Implicación técnica:**
-- El "grupo" es implícito, determinado por `cancha_id + horario_id`
+- El "grupo" es implícito, determinado por `grupo_id + horario_id`
 - No existe una tabla separada de "grupos" en esta fase del MVP
 
 ---
@@ -527,37 +527,37 @@ Cuando se elimina un alumno, sus datos se mueven a una tabla de archivo (no se b
 
 ### 7. Datos Maestros
 
-#### Regla #18: Canchas y Horarios por Escuela
+#### Regla #18: Grupos y Horarios por Escuela
 **Descripción:**  
-Las canchas y horarios son específicos de cada escuela.
+Las grupos y horarios son específicos de cada escuela.
 
 **Gestión:**
 - Cada escuela gestiona su propio catálogo de:
-  - Canchas de entrenamiento
+  - Grupos de entrenamiento
   - Horarios disponibles
 
 **Permisos:**
 - Solo usuarios con rol de **Administrador** o **Super Administrador** pueden:
-  - Crear canchas/horarios
-  - Editar canchas/horarios
-  - Eliminar canchas/horarios
+  - Crear grupos/horarios
+  - Editar grupos/horarios
+  - Eliminar grupos/horarios
 
 **Validación:**
 ```javascript
-// Al crear/editar cancha u horario
+// Al crear/editar grupo u horario
 if (user.rol !== 'Administrador' && user.rol !== 'SuperAdministrador') {
-  error('Solo los administradores pueden gestionar canchas y horarios.');
+  error('Solo los administradores pueden gestionar grupos y horarios.');
 }
 
 // Siempre vincular a la escuela del usuario
 .insert({
-  nombre: nombreCancha,
+  nombre: nombreGrupo,
   escuela_id: user.escuela_id // OBLIGATORIO
 })
 ```
 
 **Mensaje de error:**
-> "Solo los administradores pueden gestionar canchas y horarios."
+> "Solo los administradores pueden gestionar grupos y horarios."
 
 ---
 
@@ -683,7 +683,7 @@ async function validarAprobacion(alumno, usuario) {
   if (!alumno.apellidos) camposFaltantes.push('Apellidos');
   if (!alumno.fecha_nacimiento) camposFaltantes.push('Fecha de Nacimiento');
   if (!alumno.carnet_identidad) camposFaltantes.push('Carnet de Identidad');
-  if (!alumno.cancha_id) camposFaltantes.push('Cancha');
+  if (!alumno.grupo_id) camposFaltantes.push('Grupo');
   if (!alumno.horario_id) camposFaltantes.push('Horario');
   if (!alumno.foto_url) camposFaltantes.push('Foto');
   if (!alumno.entrenadores || alumno.entrenadores.length === 0) {
@@ -737,7 +737,7 @@ Para mantener consistencia en toda la aplicación, usar estos mensajes exactos:
 ### Permisos
 - `"No tienes permiso para registrar asistencia de este alumno."`
 - `"No puedes editar/eliminar este alumno. Solo los administradores pueden modificar alumnos Aprobados o con 5+ asistencias."`
-- `"Solo los administradores pueden gestionar canchas y horarios."`
+- `"Solo los administradores pueden gestionar grupos y horarios."`
 
 ### Entrenadores
 - `"Máximo 3 entrenadores permitidos."`

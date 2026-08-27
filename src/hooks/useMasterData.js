@@ -1,12 +1,12 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { getAlumnos } from '../services/alumnos';
-import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
+import { getGrupos, getHorarios, getEntrenadores } from '../services/maestros';
 
 // --- Query Keys (centralizados para invalidación precisa) ---
 export const queryKeys = {
   alumnos: ['alumnos'],
   entrenadores: ['entrenadores'],
-  canchas: ['canchas'],
+  grupos: ['grupos'],
   horarios: ['horarios'],
   sucursales: ['sucursales'],
   estadisticas: (filtros) => ['estadisticas', filtros],
@@ -19,8 +19,8 @@ export const useAlumnos = () =>
 export const useEntrenadores = () =>
   useQuery({ queryKey: queryKeys.entrenadores, queryFn: getEntrenadores });
 
-export const useCanchas = () =>
-  useQuery({ queryKey: queryKeys.canchas, queryFn: getCanchas });
+export const useGrupos = () =>
+  useQuery({ queryKey: queryKeys.grupos, queryFn: getGrupos });
 
 export const useHorarios = () =>
   useQuery({ queryKey: queryKeys.horarios, queryFn: getHorarios });
@@ -41,9 +41,9 @@ export const useMasterData = () => {
         staleTime: 10 * 60 * 1000 // Entrenadores: 10 minutos
       },
       { 
-        queryKey: queryKeys.canchas, 
-        queryFn: getCanchas, 
-        staleTime: 30 * 60 * 1000 // Canchas: 30 minutos
+        queryKey: queryKeys.grupos, 
+        queryFn: getGrupos, 
+        staleTime: 30 * 60 * 1000 // Grupos: 30 minutos
       },
       { 
         queryKey: queryKeys.horarios, 
@@ -53,12 +53,12 @@ export const useMasterData = () => {
     ],
   });
 
-  const [alumnos, entrenadores, canchas, horarios] = results;
+  const [alumnos, entrenadores, grupos, horarios] = results;
 
   return {
     alumnos: alumnos.data || [],
     entrenadores: entrenadores.data || [],
-    canchas: canchas.data || [],
+    grupos: grupos.data || [],
     horarios: horarios.data || [],
     isLoading: results.some(r => r.isLoading),
     isError: results.some(r => r.isError),

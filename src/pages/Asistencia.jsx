@@ -23,11 +23,11 @@ const Asistencia = () => {
         selectedDate,
         resumen, // { total, presentes, licencias, ausentes, cambiosPendientes }
         enviosRealizados, // 0, 1, 2
-        canchas,
+        grupos,
         horarios,
-        selectedCancha,
+        selectedGrupo,
         selectedHorario,
-        setSelectedCancha,
+        setSelectedGrupo,
         setSelectedHorario,
         handleDateChange,
         handleAsistenciaNormal,
@@ -165,8 +165,8 @@ const Asistencia = () => {
     const isButtonDisabled = loading || submitting || subiendoFoto || enviosRealizados >= 2;
 
     // Determinar si los filtros obligatorios están seleccionados
-    // Para entrenadores (no admin) la cancha y horario son obligatorios
-    const filtrosCompletos = isAdmin || isGoalkeeperCoach || (selectedCancha && selectedHorario);
+    // Para entrenadores (no admin) la grupo y horario son obligatorios
+    const filtrosCompletos = Boolean(selectedGrupo && selectedHorario);
 
     return (
         <div className="min-h-screen bg-background pb-32 md:pb-10 relative">
@@ -225,9 +225,9 @@ const Asistencia = () => {
                     )}
                     <Select
                         placeholder="Todos los Grupos"
-                        options={canchas}
-                        value={selectedCancha}
-                        onChange={(e) => setSelectedCancha(e.target.value)}
+                        options={grupos}
+                        value={selectedGrupo}
+                        onChange={(e) => setSelectedGrupo(e.target.value)}
                     />
                     <Select
                         placeholder="Todos los Horarios"
@@ -242,7 +242,7 @@ const Asistencia = () => {
                     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
                         <div className="bg-surface border border-border rounded-xl p-8 max-w-md w-full space-y-4">
                             <div className="flex justify-center gap-3">
-                                <div className={`p-3 rounded-full ${selectedCancha ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
+                                <div className={`p-3 rounded-full ${selectedGrupo ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
                                     <MapPin size={28} />
                                 </div>
                                 <div className={`p-3 rounded-full ${selectedHorario ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
@@ -254,9 +254,9 @@ const Asistencia = () => {
                             </h3>
                             <p className="text-text-secondary text-sm">
                                 Para tomar lista debes elegir un grupo
-                                {!selectedCancha && !selectedHorario
+                                {!selectedGrupo && !selectedHorario
                                     ? ' y un horario.'
-                                    : !selectedCancha
+                                    : !selectedGrupo
                                         ? '.'
                                         : !selectedHorario
                                             ? '. Falta seleccionar el horario.'

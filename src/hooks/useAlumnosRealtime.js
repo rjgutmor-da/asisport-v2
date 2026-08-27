@@ -22,6 +22,18 @@ export const useAlumnosRealtime = () => {
                     queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
                 }
             )
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'alumnos_grupos' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'entrenadores_grupos' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'grupos_gestion' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'gestiones_deportivas' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
+            })
             .subscribe();
 
         return () => {

@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { supabase } from '../../../lib/supabaseClient';
 import imageCompression from 'browser-image-compression';
-import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
+import { getGrupos, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getSucursales } from '../../../services/sucursales';
 import { getCamposFaltantes } from '../utils/alumnoCompletitud';
 import { verificarDeudaAlumno } from '../utils/alumnoDeuda';
+import { getGruposGestionActivos, trasladarAlumnoAGrupo } from '../../../services/gruposGestion';
 
 /**
  * Hook para manejar la lógica de detalle y edición de un alumno.
@@ -24,10 +25,11 @@ export const useAlumno = (id) => {
     const [saving, setSaving] = useState(false);
 
     // Datos maestros
-    const [canchas, setCanchas] = useState([]);
+    const [grupos, setGrupos] = useState([]);
     const [horarios, setHorarios] = useState([]);
     const [entrenadores, setEntrenadores] = useState([]);
     const [sucursales, setSucursales] = useState([]);
+    const [gruposGestion, setGruposGestion] = useState([]);
 
     // Estado del formulario de edición
     const [formData, setFormData] = useState({});
@@ -48,7 +50,7 @@ export const useAlumno = (id) => {
                     .from('alumnos')
                     .select(`
                         *,
-                        cancha:canchas(id, nombre),
+                        grupo:grupos(id, nombre),
                         horario:horarios(id, hora),
                         asistencias_normales(id, fecha, estado),
                         asistencias_arqueros(id, fecha, estado),
@@ -71,13 +73,15 @@ export const useAlumno = (id) => {
                 ).length;
 
                 // Cargar datos maestros y verificar deuda en paralelo
-                const [canchasData, horariosData, entrenadoresData, sucursalesData, tieneDeuda] = await Promise.all([
-                    getCanchas(),
+                const [gruposData, horariosData, entrenadoresData, sucursalesData, tieneDeuda, gruposData] = await Promise.all([
+                    getGrupos(),
                     getHorarios(),
                     getEntrenadores(),
                     getSucursales(),
-                    verificarDeudaAlumno(id)
+                    verificarDeudaAlumno(id),
+                    getGruposGestionActivos()
                 ]);
+                setGruposGestion(gruposData || []);
 
                 const alumnoConTotales = {
                     ...alumnoData,
@@ -87,7 +91,7 @@ export const useAlumno = (id) => {
 
                 setAlumno(alumnoConTotales);
                 setFormData(alumnoConTotales);
-                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
+                setGrupos(gruposData.map(c => ({ value: c.id, label: c.nombre })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 // Solo entrenadores (ya filtrados en el servicio), no administradores
                 setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
@@ -180,7 +184,7 @@ export const useAlumno = (id) => {
             .from('alumnos')
             .select(`
                 *,
-                cancha:canchas(id, nombre),
+                grupo:grupos(id, nombre),
                 horario:horarios(id, hora),
                 asistencias_normales(id, fecha, estado),
                 asistencias_arqueros(id, fecha, estado),
@@ -217,9 +221,6 @@ export const useAlumno = (id) => {
         if (!formData.nombres?.trim()) newErrors.nombres = 'El nombre es requerido';
         if (!formData.apellidos?.trim()) newErrors.apellidos = 'El apellido es requerido';
         if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
-        if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona un grupo';
-        if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
-        if (!formData.sucursal_id) newErrors.sucursal_id = 'Selecciona una sucursal';
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -262,10 +263,6 @@ export const useAlumno = (id) => {
                     whatsapp_preferido: formData.whatsapp_preferido,
                     colegio: formData.colegio,
                     direccion: formData.direccion,
-                    cancha_id: formData.cancha_id === "" ? null : formData.cancha_id,
-                    horario_id: formData.horario_id === "" ? null : formData.horario_id,
-                    profesor_asignado_id: formData.profesor_asignado_id === "" ? null : formData.profesor_asignado_id,
-                    sucursal_id: formData.sucursal_id === "" ? null : formData.sucursal_id,
                     es_arquero: formData.es_arquero,
                     tipo: formData.tipo || 'Formativo',
                     mensualidad: formData.mensualidad === '' || formData.mensualidad === undefined ? null : Number(formData.mensualidad),
@@ -300,6 +297,12 @@ export const useAlumno = (id) => {
         }
     };
 
+    const transferirGrupo = async (grupoGestionId, motivo = 'traslado') => {
+        if (!grupoGestionId) throw new Error('Selecciona un grupo destino.');
+        await trasladarAlumnoAGrupo(id, grupoGestionId, motivo);
+        await recargarAlumno(id);
+    };
+
     // Cancelar edición y restaurar datos originales
     const cancelEditing = () => {
         setFormData(alumno);
@@ -319,12 +322,13 @@ export const useAlumno = (id) => {
         formData,
         photoFile,
         errors,
-        maestros: { canchas, horarios, entrenadores, sucursales },
+        maestros: { grupos, horarios, entrenadores, sucursales, gruposGestion },
 
         setEditing,
         handleChange,
         setPhotoFile,
         saveChanges,
+        transferirGrupo,
         cancelEditing,
         camposFaltantes
     };

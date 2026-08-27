@@ -24,7 +24,7 @@ Desde aquí puedes acceder a todas las funciones de la app:
 ## 3. Cómo Tomar Asistencia
 1. Haz clic en **Asistencia**.
 2. Por defecto verás el día de **HOY**. Puedes cambiar la fecha si necesitas registrar una anterior (no se permiten fechas futuras).
-3. Usa los filtros de **Cancha** o **Horario** para encontrar a tu grupo.
+3. Usa los filtros de **Grupo** o **Horario** para encontrar a tu grupo.
 4. Para cada alumno tienes tres opciones:
    - **Presente**: (Verde) El alumno asistió a clase.
    - **Licencia**: (Amarillo) El alumno justificó su falta.

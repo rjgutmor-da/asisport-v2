@@ -41,7 +41,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 - ✅ Foto en formato cuadrado (Regla #10)
 - ✅ Estados: Pendiente / Aprobado (Regla #11)
 - ✅ Asignación de 1-3 entrenadores (Regla #15)
-- ✅ Selección de cancha y horario
+- ✅ Selección de grupo y horario
 
 #### Lista de Alumnos
 - ✅ Vista de tarjetas con foto
@@ -49,7 +49,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 - ✅ Mostrar nombre de padre/madre
 - ✅ Mostrar teléfono de representante
 - ✅ Botón de WhatsApp directo a padres
-- ✅ Filtros por cancha, horario, categoría
+- ✅ Filtros por grupo, horario, categoría
 - ✅ Indicador visual de estado (Pendiente/Aprobado)
 
 #### Detalle de Alumno
@@ -69,7 +69,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 **Estado:** ✅ **COMPLETO**
 
 - ✅ Registro rápido de asistencias (Presente, Licencia, Ausente)
-- ✅ Filtros por cancha y horario
+- ✅ Filtros por grupo y horario
 - ✅ Validación: no fechas futuras (Regla #3)
 - ✅ Validación: máximo 1 asistencia por día (Regla #5)
 - ✅ Restricción por entrenador asignado (Regla #2)
@@ -113,7 +113,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 - ✅ Contadores: Total Presentes, Licencias
 - ✅ Filtros multi-selección:
   - ✅ Entrenador
-  - ✅ Cancha
+  - ✅ Grupo
   - ✅ Horario
   - ✅ Categoría (Sub-X)
 - ✅ Tabla de resumen diario
@@ -155,7 +155,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
    - Advertencias para alumnos pendientes
    - Generación de listas de convocados
    
-2. **Gestión de Canchas y Horarios**
+2. **Gestión de Grupos y Horarios**
    - CRUD completo desde la UI
    - Actualmente se manejan directamente en base de datos
    - Solo para Administradores (Regla #18)
@@ -180,7 +180,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 6. **Reportes Avanzados**
    - Gráficos de tendencias
    - Comparativas entre periodos
-   - Estadísticas por categoría/cancha
+   - Estadísticas por categoría/grupo
 
 ### Baja Prioridad (Futuro)
 7. **Multi-tenant Completo**
@@ -212,8 +212,8 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
   - Nombre del partido
   - Fecha y hora
   - Rival
-  - Cancha
-- [ ] Selección de grupo objetivo (cancha + horario)
+  - Grupo
+- [ ] Selección de grupo objetivo (grupo + horario)
 - [ ] Lista de alumnos convocables
 
 #### 2. Implementar lógica de convocabilidad
@@ -231,7 +231,7 @@ El MVP de AsiSport está operativo con todas las funcionalidades críticas imple
 #### 4. Base de datos
 - [ ] Crear tabla `convocatorias`:
   - id, escuela_id, entrenador_id
-  - nombre_partido, fecha, rival, cancha
+  - nombre_partido, fecha, rival, grupo
   - created_at, updated_at
   
 - [ ] Crear tabla `convocatorias_alumnos`:
@@ -362,7 +362,7 @@ src/
 2. ⚠️ Implementar manejo centralizado de errores
 3. ⚠️ Agregar logs para debugging
 4. ⚠️ Optimizar queries (algunos N+1)
-5. ⚠️ Agregar caché para datos maestros (canchas, horarios)
+5. ⚠️ Agregar caché para datos maestros (grupos, horarios)
 
 ---
 
@@ -387,9 +387,9 @@ src/
 | #15 | 1-3 entrenadores | ✅ | Validado |
 | #16 | Archivo de alumnos | ⏳ | Pendiente (Fase 2) |
 | #17 | Aislamiento por escuela | ✅ | RLS + filtros |
-| #18 | Canchas/Horarios por escuela | ✅ | CRUD manual en BD |
+| #18 | Grupos/Horarios por escuela | ✅ | CRUD manual en BD |
 | #19 | Notificaciones cumpleaños | ⏳ | Manual por ahora, auto en Fase 2 |
-| #21 | Grupos de entrenamiento | ✅ | Implícito (cancha+horario) |
+| #21 | Grupos de entrenamiento | ✅ | Implícito (grupo+horario) |
 | #22 | Condiciones físicas NO | ✅ | No implementado (correcto) |
 
 **Totales:** 18 implementadas, 4 pendientes (82% completitud)

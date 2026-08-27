@@ -9,8 +9,8 @@ import {
     registrarAsistenciasPorLote,
     verificarEstadoEnvio
 } from '../../../services/asistencias';
-import { getAlumnosFacets } from '../../../services/alumnos';
 import { subirFotoAsistenciaGrupal } from '../../../services/fotoAsistenciaGrupal';
+import { getGruposGestionActivos } from '../../../services/gruposGestion';
 
 export const useAsistencias = () => {
     const { addToast } = useToast();
@@ -29,9 +29,10 @@ export const useAsistencias = () => {
     const [submitting, setSubmitting] = useState(false);
 
     // Filtros
-    const [selectedCancha, setSelectedCancha] = useState('');
+    const [selectedGrupo, setSelectedGrupo] = useState('');
     const [selectedHorario, setSelectedHorario] = useState('');
     const [selectedEntrenador, setSelectedEntrenador] = useState('');
+    const [gruposGestion, setGruposGestion] = useState([]);
 
     // Estado local de cambios pendientes (Map: alumnoId -> estado)
     const [localChanges, setLocalChanges] = useState(new Map());
@@ -42,76 +43,27 @@ export const useAsistencias = () => {
     const [subiendoFoto, setSubiendoFoto] = useState(false);
 
     // --- DATOS MAESTROS (Caché centralizada) ---
-    const { 
-        canchas: rawCanchas, 
-        horarios: rawHorarios, 
-        entrenadores: rawEntrenadores,
-        isLoading: loadingMaestros 
-    } = useMasterData();
+    const { entrenadores: rawEntrenadores, isLoading: loadingMaestros } = useMasterData();
 
-    // Estado para facetas (alumnos simplificados) para filtrado inteligente
-    const [facetsData, setFacetsData] = useState([]);
-
-    // Cargar facetas (alumnos) para filtrado inteligente de canchas y horarios
     useEffect(() => {
-        const fetchFacets = async () => {
-            if (!userProfile) return;
-            
-            // Si es admin y no seleccionó entrenador, traemos todo (userId = null)
-            // Si es admin y seleccionó entrenador, traemos de ese entrenador
-            // Si no es admin, traemos del usuario actual
-            const targetUserId = isAdmin ? (selectedEntrenador || null) : userProfile.id;
-            const roleForFacets = isAdmin && !selectedEntrenador
-                ? 'Administrador'
-                : (isAdmin ? 'Entrenador' : userProfile.rol);
-            
-            try {
-                const data = await getAlumnosFacets({ userId: targetUserId, userRole: roleForFacets });
-                setFacetsData(data);
-            } catch (err) {
-                console.error("Error fetching facets", err);
-            }
-        };
-        fetchFacets();
-    }, [userProfile, isAdmin, selectedEntrenador]);
-
-    const canchas = useMemo(() => {
-        if (isAdmin && !selectedEntrenador) {
-            return rawCanchas.map(c => ({ value: c.id, label: c.nombre }));
-        }
-
-        const canchasMap = new Map();
-        facetsData.forEach(a => {
-            if (a.cancha_id) {
-                const cInfo = rawCanchas.find(rc => rc.id === a.cancha_id);
-                if (cInfo) canchasMap.set(cInfo.id, { value: cInfo.id, label: cInfo.nombre });
-            }
+        getGruposGestionActivos().then(setGruposGestion).catch((error) => {
+            console.error('Error cargando grupos de gestión:', error);
+            addToast(error.message || 'No se pudieron cargar los grupos activos.', 'error');
         });
-        
-        return Array.from(canchasMap.values()).sort((a,b) => a.label.localeCompare(b.label));
-    }, [facetsData, rawCanchas, isAdmin, selectedEntrenador]);
-
-    const horarios = useMemo(() => {
-        // Si no hay cancha seleccionada y es admin viendo todos, mostrar todos los horarios
-        if (isAdmin && !selectedEntrenador && !selectedCancha) {
-            return rawHorarios.map(h => ({ value: h.id, label: h.hora }));
-        }
-
-        const horariosMap = new Map();
-        facetsData.forEach(a => {
-            // Filtrar por cancha si hay una seleccionada
-            if (selectedCancha && a.cancha_id !== selectedCancha) return;
-            
-            if (a.horario_id) {
-                const hInfo = rawHorarios.find(rh => rh.id === a.horario_id);
-                if (hInfo) horariosMap.set(hInfo.id, { value: hInfo.id, label: hInfo.hora });
-            }
-        });
-
-        return Array.from(horariosMap.values()).sort((a,b) => a.label.localeCompare(b.label));
-    }, [facetsData, rawHorarios, selectedCancha, isAdmin, selectedEntrenador]);
+    }, [addToast]);
 
     const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
+    const gruposVisibles = useMemo(() => gruposGestion.filter((g) =>
+        !selectedEntrenador || g.entrenador_id === selectedEntrenador), [gruposGestion, selectedEntrenador]);
+    const grupos = useMemo(() => Array.from(new Map(gruposVisibles.map((g) => [g.grupo_id, {
+        value: g.grupo_id, label: g.nombre_snapshot,
+    }])).values()), [gruposVisibles]);
+    const horarios = useMemo(() => gruposVisibles
+        .filter((g) => !selectedGrupo || g.grupo_id === selectedGrupo)
+        .map((g) => ({ value: g.horario_id, label: g.hora_snapshot || 'Sin horario' })), [gruposVisibles, selectedGrupo]);
+    const grupoGestionSeleccionado = useMemo(() => gruposVisibles.find((g) =>
+        g.grupo_id === selectedGrupo && g.horario_id === selectedHorario),
+    [gruposVisibles, selectedGrupo, selectedHorario]);
 
     // Limpiar horario si el nuevo grupo seleccionado no contiene el horario actual
     useEffect(() => {
@@ -121,7 +73,7 @@ export const useAsistencias = () => {
                 setSelectedHorario('');
             }
         }
-    }, [horarios, selectedHorario, selectedCancha]);
+    }, [horarios, selectedHorario, selectedGrupo]);
 
     // --- DATOS DE ASISTENCIA (TanStack Query) ---
     const { 
@@ -129,10 +81,8 @@ export const useAsistencias = () => {
         isLoading: loadingAsistencias,
         refetch: refresh 
     } = useAsistenciasQuery(
-        selectedDate, 
-        selectedCancha || null, 
-        selectedHorario || null, 
-        selectedEntrenador || null
+        selectedDate,
+        grupoGestionSeleccionado?.id || null
     );
 
     // Estado para verificar si ya se envió (Esto podría ser otra query, pero lo mantenemos simple por ahora)
@@ -141,10 +91,10 @@ export const useAsistencias = () => {
     // Efecto para verificar estado de envío cuando cambian filtros
     useEffect(() => {
         const checkEnvio = async () => {
-            if (!isAdmin && userProfile?.rol !== 'Entrenarqueros' && (!selectedCancha || !selectedHorario)) return;
+            if (!grupoGestionSeleccionado?.id) return;
             try {
-                const estadoEnvio = await verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null);
-                const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
+                const estadoEnvio = await verificarEstadoEnvio(selectedDate, null, null, grupoGestionSeleccionado.id);
+                const reenvioKey = `asistencia_reenvio_${selectedDate}_${grupoGestionSeleccionado.id}`;
                 const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
 
                 if (estadoEnvio.existe) {
@@ -157,7 +107,7 @@ export const useAsistencias = () => {
             }
         };
         checkEnvio();
-    }, [selectedDate, selectedCancha, selectedHorario, isAdmin]);
+    }, [selectedDate, selectedGrupo, selectedHorario, grupoGestionSeleccionado, isAdmin]);
 
     const loading = loadingMaestros || loadingAsistencias;
 
@@ -265,7 +215,7 @@ export const useAsistencias = () => {
                 // O si es reenvío y borró todo...
             }
 
-            const resultados = await registrarAsistenciasPorLote(asistencias, selectedDate, selectedEntrenador);
+            const resultados = await registrarAsistenciasPorLote(asistencias, selectedDate, grupoGestionSeleccionado?.id);
 
             // Subir foto grupal si existe (después de registrar asistencias exitosamente)
             if (fotoGrupal && resultados.exitosos > 0) {
@@ -273,8 +223,9 @@ export const useAsistencias = () => {
                     setSubiendoFoto(true);
                     await subirFotoAsistenciaGrupal(fotoGrupal, {
                         fecha: selectedDate,
-                        canchaId: selectedCancha || null,
+                        grupoId: selectedGrupo || null,
                         horarioId: selectedHorario || null,
+                        grupoGestionId: grupoGestionSeleccionado?.id || null,
                     });
                     console.log('📸 Foto grupal subida exitosamente');
                     clearFotoGrupal();
@@ -292,8 +243,8 @@ export const useAsistencias = () => {
             } else {
                 // Éxito
                 if (enviosRealizados === 1) {
-                    // Marcar en localStorage que ya se hizo el reenvío (por cancha/horario)
-                    const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
+                    // Marcar en localStorage que ya se hizo el reenvío (por grupo/horario)
+                    const reenvioKey = `asistencia_reenvio_${selectedDate}_${grupoGestionSeleccionado.id}`;
                     localStorage.setItem(reenvioKey, 'true');
                     setEnviosRealizados(2);
                 } else {
@@ -367,11 +318,12 @@ export const useAsistencias = () => {
         selectedDate,
         resumen,
         enviosRealizados,
-        canchas,
+        grupos,
         horarios,
-        selectedCancha,
+        selectedGrupo,
         selectedHorario,
-        setSelectedCancha,
+        grupoGestionSeleccionado,
+        setSelectedGrupo,
         setSelectedHorario,
         handleDateChange,
         handleAsistenciaNormal,

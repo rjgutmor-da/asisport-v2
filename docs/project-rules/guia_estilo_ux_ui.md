@@ -2,7 +2,7 @@
 
 Este apartado define **la personalidad visual y comunicacional de AsiSport**.
 
-No se trata solo de "cómo se ve", sino de **cómo se siente** usar la aplicación en contexto real: en la cancha, bajo el sol, con prisa, con las manos ocupadas.
+No se trata solo de "cómo se ve", sino de **cómo se siente** usar la aplicación en contexto real: en la grupo, bajo el sol, con prisa, con las manos ocupadas.
 
 Toda decisión de diseño debe priorizar:
 1. **Legibilidad en condiciones adversas** (luz solar, movimiento, prisa)
@@ -15,7 +15,7 @@ Toda decisión de diseño debe priorizar:
 
 > **"Funciona cuando más lo necesitas"**
 
-AsiSport no compite en estética sofisticada. Compite en **ser usable cuando otras apps fallan**: bajo el sol, con prisa, en la cancha, con manos sudadas.
+AsiSport no compite en estética sofisticada. Compite en **ser usable cuando otras apps fallan**: bajo el sol, con prisa, en la grupo, con manos sudadas.
 
 El diseño es el **medio**, no el fin. La meta es que el entrenador pueda tomar asistencia en 10 segundos sin pensar.
 
@@ -461,7 +461,7 @@ Ser explícito sobre la acción:
 - "Registro de Alumnos"
 - "Asistencias del Día"
 - "Convocatoria de Partido"
-- "Configuración de Canchas"
+- "Configuración de Grupos"
 
 ❌ **Mal:**
 - "Registrar Alumnos" (título de página, no de botón)
@@ -969,7 +969,7 @@ function TabBar() {
 ```
 ┌─────────────────────────────────────────┐
 │ [Foto] │ Juan Pérez Gómez         🟡 P  │
-│  80x80 │ Cancha Norte - 17:00           │
+│  80x80 │ Grupo Norte - 17:00           │
 │        │ 8 asistencias | 2 entrenadores │
 └─────────────────────────────────────────┘
 ```
@@ -997,7 +997,7 @@ function TabBar() {
 4. **Información secundaria:**
    - Tamaño: `var(--font-size-sm)` (14px)
    - Color: `var(--color-text-secondary)` (gris medio)
-   - Línea 1: Cancha + Horario
+   - Línea 1: Grupo + Horario
    - Línea 2: Estadísticas (asistencias, entrenadores, etc.)
 
 **Tarjeta completa:**
@@ -1084,7 +1084,7 @@ function AlumnoCard({ alumno }) {
         
         {/* Info secundaria */}
         <p className="text-sm text-secondary mt-xs">
-          {alumno.cancha?.nombre} - {alumno.horario?.hora}
+          {alumno.grupo?.nombre} - {alumno.horario?.hora}
         </p>
         <p className="text-sm text-secondary">
           {alumno.asistencias_count} asistencias | {alumno.entrenadores?.length} entrenadores

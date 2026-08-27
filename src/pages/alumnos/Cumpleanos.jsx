@@ -11,7 +11,7 @@ const Cumpleanos = () => {
     const { loading, today, yesterday, tomorrow, upcoming } = useCumpleanos();
 
     // Mensaje personalizado para WhatsApp
-    const birthdayMessage = "🎉⚽ ¡Feliz cumpleaños, #nombre!\nLe mandamos un gran abrazo de gol y nuestros mejores deseos. Que sigás creciendo y siendo un crack dentro y fuera de la cancha. 🎂🥳.";
+    const birthdayMessage = "🎉⚽ ¡Feliz cumpleaños, #nombre!\nLe mandamos un gran abrazo de gol y nuestros mejores deseos. Que sigás creciendo y siendo un crack dentro y fuera de la grupo. 🎂🥳.";
 
     if (loading) {
         return (

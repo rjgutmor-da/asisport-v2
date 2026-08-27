@@ -3,16 +3,16 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { cacheService } from '../lib/cacheService';
 import { getDataScope } from '../config/roles';
 
-export const getCanchas = async () => {
+export const getGrupos = async () => {
     // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('canchas_v3');
+    const cached = cacheService.get('grupos_v3');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
-        .from('canchas')
-        .select('id, nombre, sucursal_id, canchas_horarios(horario_id)')
+        .from('grupos')
+        .select('id, nombre, sucursal_id, grupos_horarios(horario_id)')
         .eq('escuela_id', escuelaId)
         .eq('activo', true);
 
@@ -22,11 +22,11 @@ export const getCanchas = async () => {
         id: c.id,
         nombre: c.nombre,
         sucursal_id: c.sucursal_id,
-        horario_ids: (c.canchas_horarios || []).map(ch => ch.horario_id)
+        horario_ids: (c.grupos_horarios || []).map(ch => ch.horario_id)
     }));
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('canchas_v3', formatted);
+    cacheService.set('grupos_v3', formatted);
     return formatted;
 };
 
@@ -52,25 +52,25 @@ export const getHorarios = async () => {
 };
 
 /**
- * Obtiene las canchas únicas de los alumnos asignados a un entrenador.
- * Si userId no se provee (admin), devuelve todas las canchas activas.
+ * Obtiene las grupos únicas de los alumnos asignados a un entrenador.
+ * Si userId no se provee (admin), devuelve todas las grupos activas.
  * @param {string|null} userId - ID del entrenador (null para admins)
  * @param {string|null} userRole - Rol del usuario
  */
-export const getCanchasParaEntrenador = async (userId = null, userRole = null) => {
+export const getGruposParaEntrenador = async (userId = null, userRole = null) => {
     const dataScope = getDataScope(userRole);
     const esEntrenador = dataScope === 'assigned_students' || dataScope === 'goalkeepers';
 
     if (!esEntrenador) {
-        // Para admins devolver todas las canchas activas
-        return getCanchas();
+        // Para admins devolver todas las grupos activas
+        return getGrupos();
     }
 
     const escuelaId = await obtenerEscuelaId();
 
     let query = supabase
         .from('alumnos')
-        .select('cancha_id, cancha:canchas(id, nombre)')
+        .select('grupo_id, grupo:grupos(id, nombre)')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -84,15 +84,15 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
     const { data, error } = await query;
     if (error) throw error;
 
-    // Extraer canchas únicas
-    const canchasMap = new Map();
+    // Extraer grupos únicas
+    const gruposMap = new Map();
     data.forEach(a => {
-        if (a.cancha_id && a.cancha) {
-            canchasMap.set(a.cancha_id, { id: a.cancha_id, nombre: a.cancha.nombre });
+        if (a.grupo_id && a.grupo) {
+            gruposMap.set(a.grupo_id, { id: a.grupo_id, nombre: a.grupo.nombre });
         }
     });
 
-    return Array.from(canchasMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return Array.from(gruposMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 };
 
 /**
@@ -163,18 +163,18 @@ export const getEntrenadores = async () => {
 };
 
 // ============================================================================
-// CRUD de Canchas
+// CRUD de Grupos
 // ============================================================================
 
 /**
- * Obtener todas las canchas (activas e inactivas)
- * Regla #18: Canchas son específicas de cada escuela
+ * Obtener todas las grupos (activas e inactivas)
+ * Regla #18: Grupos son específicas de cada escuela
  */
-export const getAllCanchas = async () => {
+export const getAllGrupos = async () => {
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
-        .from('canchas')
+        .from('grupos')
         // Se incluye la sucursal relacionada para mostrarla en la UI
         .select('id, nombre, activo, sucursal_id, sucursal:sucursales(id, nombre)')
         .eq('escuela_id', escuelaId)
@@ -185,22 +185,22 @@ export const getAllCanchas = async () => {
 };
 
 /**
- * Crear nueva cancha
- * Regla #18: Solo Admin/SuperAdmin pueden gestionar canchas
+ * Crear nueva grupo
+ * Regla #18: Solo Admin/SuperAdmin pueden gestionar grupos
  */
-export const createCancha = async (nombre, sucursalId = null) => {
+export const createGrupo = async (nombre, sucursalId = null) => {
     if (!nombre || nombre.trim() === '') {
-        throw new Error('El nombre de la cancha es obligatorio.');
+        throw new Error('El nombre de la grupo es obligatorio.');
     }
     if (!sucursalId) {
-        throw new Error('Debes seleccionar una sucursal para la cancha.');
+        throw new Error('Debes seleccionar una sucursal para la grupo.');
     }
 
     const escuelaId = await obtenerEscuelaId();
 
     // Validar duplicados dentro de la misma sucursal
     const { data: existing } = await supabase
-        .from('canchas')
+        .from('grupos')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
@@ -208,11 +208,11 @@ export const createCancha = async (nombre, sucursalId = null) => {
         .maybeSingle();
 
     if (existing) {
-        throw new Error('Ya existe una cancha con este nombre en esa sucursal.');
+        throw new Error('Ya existe una grupo con este nombre en esa sucursal.');
     }
 
     const { data, error } = await supabase
-        .from('canchas')
+        .from('grupos')
         .insert([{
             nombre: nombre.trim(),
             escuela_id: escuelaId,
@@ -222,26 +222,26 @@ export const createCancha = async (nombre, sucursalId = null) => {
         .select()
         .single();
 
-    if (error) throw new Error('Error al crear cancha: ' + error.message);
+    if (error) throw new Error('Error al crear grupo: ' + error.message);
     return data;
 };
 
 /**
- * Actualizar nombre de cancha
+ * Actualizar nombre de grupo
  */
-export const updateCancha = async (id, nombre, sucursalId = null) => {
+export const updateGrupo = async (id, nombre, sucursalId = null) => {
     if (!nombre || nombre.trim() === '') {
-        throw new Error('El nombre de la cancha es obligatorio.');
+        throw new Error('El nombre de la grupo es obligatorio.');
     }
     if (!sucursalId) {
-        throw new Error('Debes seleccionar una sucursal para la cancha.');
+        throw new Error('Debes seleccionar una sucursal para la grupo.');
     }
 
     const escuelaId = await obtenerEscuelaId();
 
-    // Validar duplicados (excepto la misma cancha, dentro de la misma sucursal)
+    // Validar duplicados (excepto la misma grupo, dentro de la misma sucursal)
     const { data: existing } = await supabase
-        .from('canchas')
+        .from('grupos')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
@@ -250,39 +250,39 @@ export const updateCancha = async (id, nombre, sucursalId = null) => {
         .maybeSingle();
 
     if (existing) {
-        throw new Error('Ya existe una cancha con este nombre en esa sucursal.');
+        throw new Error('Ya existe una grupo con este nombre en esa sucursal.');
     }
 
     const { data, error } = await supabase
-        .from('canchas')
+        .from('grupos')
         .update({ nombre: nombre.trim(), sucursal_id: sucursalId })
         .eq('id', id)
         .eq('escuela_id', escuelaId)
         .select()
         .single();
 
-    if (error) throw new Error('Error al actualizar cancha: ' + error.message);
+    if (error) throw new Error('Error al actualizar grupo: ' + error.message);
     return data;
 };
 
 /**
- * Activar/Desactivar cancha (soft delete)
+ * Activar/Desactivar grupo (soft delete)
  * Validar que no tenga alumnos activos asignados antes de desactivar
  */
-export const toggleCanchaStatus = async (id, currentStatus) => {
+export const toggleGrupoStatus = async (id, currentStatus) => {
     const escuelaId = await obtenerEscuelaId();
 
     // Si está activando, permitir directamente
     if (!currentStatus) {
         const { data, error } = await supabase
-            .from('canchas')
+            .from('grupos')
             .update({ activo: true })
             .eq('id', id)
             .eq('escuela_id', escuelaId)
             .select()
             .single();
 
-        if (error) throw new Error('Error al activar cancha: ' + error.message);
+        if (error) throw new Error('Error al activar grupo: ' + error.message);
         return data;
     }
 
@@ -290,24 +290,24 @@ export const toggleCanchaStatus = async (id, currentStatus) => {
     const { count, error: countError } = await supabase
         .from('alumnos')
         .select('id', { count: 'exact', head: true })
-        .eq('cancha_id', id)
+        .eq('grupo_id', id)
         .eq('archivado', false);
 
     if (countError) throw new Error('Error al verificar alumnos: ' + countError.message);
 
     if (count > 0) {
-        throw new Error(`No se puede desactivar. Hay ${count} alumno(s) activo(s) asignado(s) a esta cancha.`);
+        throw new Error(`No se puede desactivar. Hay ${count} alumno(s) activo(s) asignado(s) a esta grupo.`);
     }
 
     const { data, error } = await supabase
-        .from('canchas')
+        .from('grupos')
         .update({ activo: false })
         .eq('id', id)
         .eq('escuela_id', escuelaId)
         .select()
         .single();
 
-    if (error) throw new Error('Error al desactivar cancha: ' + error.message);
+    if (error) throw new Error('Error al desactivar grupo: ' + error.message);
     return data;
 };
 
