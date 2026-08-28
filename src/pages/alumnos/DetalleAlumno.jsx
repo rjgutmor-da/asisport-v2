@@ -38,17 +38,14 @@ const DetalleAlumno = () => {
         formData,
         photoFile,
         errors,
-        maestros: { grupos, horarios, entrenadores, sucursales, gruposGestion },
+        maestros: { canchas, horarios, entrenadores, sucursales },
         setEditing,
         handleChange,
         setPhotoFile,
         saveChanges,
-        transferirGrupo,
         cancelEditing,
         camposFaltantes
     } = useAlumno(id);
-    const [grupoDestino, setGrupoDestino] = useState('');
-    const [transfiriendo, setTransfiriendo] = useState(false);
 
     if (loading) {
         return (
@@ -436,7 +433,7 @@ const DetalleAlumno = () => {
                                     { value: 'Otros', label: 'Otros' }
                                 ]}
                                 onChange={handleChange}
-                                disabled
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                             />
                             <Input
                                 label="Mensualidad"
@@ -444,7 +441,7 @@ const DetalleAlumno = () => {
                                 type="number"
                                 value={formData.mensualidad ?? ''}
                                 onChange={handleChange}
-                                disabled
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 placeholder="0 o en blanco para becado"
                             />
                         </div>
@@ -457,7 +454,7 @@ const DetalleAlumno = () => {
                                 value={formData.profesor_asignado_id || ''}
                                 options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
                                 onChange={handleChange}
-                                disabled
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 placeholder="Seleccionar entrenador..."
                             />
 
@@ -470,7 +467,7 @@ const DetalleAlumno = () => {
                                         value={formData.sucursal_id || ''}
                                         options={sucursales}
                                         onChange={handleChange}
-                                        disabled
+                                        disabled={!editing || isCoachOrGoalkeeperCoach}
                                         error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
@@ -486,12 +483,12 @@ const DetalleAlumno = () => {
                             {/* 3. Grupo */}
                             <Select
                                 label="Grupo *"
-                                name="grupo_id"
-                                value={formData.grupo_id || ''}
-                                options={grupos}
+                                name="cancha_id"
+                                value={formData.cancha_id || ''}
+                                options={canchas}
                                 onChange={handleChange}
-                                disabled
-                                error={errors?.grupo_id}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
+                                error={errors?.cancha_id}
                             />
                             {/* 4. Horario de Entrenamiento */}
                             <Select
@@ -500,44 +497,10 @@ const DetalleAlumno = () => {
                                 value={formData.horario_id || ''}
                                 options={horarios}
                                 onChange={handleChange}
-                                disabled
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
                                 error={errors?.horario_id}
                             />
                         </div>
-
-                        {canEditStudents && (role === 'Administrador' || role === 'SuperAdministrador') && (
-                            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-                                <p className="text-sm font-semibold text-primary">Trasladar alumno</p>
-                                <div className="flex flex-col md:flex-row gap-3">
-                                    <Select
-                                        label="Grupo destino (gestión activa)"
-                                        value={grupoDestino}
-                                        options={[{ value: '', label: 'Selecciona un grupo y horario' }, ...(gruposGestion || []).filter(g => g.id !== alumno.grupo_gestion_id).map(g => ({ value: g.id, label: `${g.nombre_snapshot} · ${g.hora_snapshot || 'Sin horario'}` }))]}
-                                        onChange={(e) => setGrupoDestino(e.target.value)}
-                                        disabled={transfiriendo}
-                                    />
-                                    <button
-                                        type="button"
-                                        disabled={!grupoDestino || transfiriendo}
-                                        onClick={async () => {
-                                            try {
-                                                setTransfiriendo(true);
-                                                await transferirGrupo(grupoDestino);
-                                                setGrupoDestino('');
-                                                addToast('Alumno trasladado correctamente.', 'success');
-                                            } catch (error) {
-                                                addToast(error.message || 'No se pudo trasladar el alumno.', 'error');
-                                            } finally {
-                                                setTransfiriendo(false);
-                                            }
-                                        }}
-                                        className="self-end px-4 py-2 rounded-md bg-primary text-white disabled:opacity-50"
-                                    >
-                                        {transfiriendo ? 'Trasladando...' : 'Trasladar'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
 
                         <div className="flex flex-col mt-2">
                             <Input

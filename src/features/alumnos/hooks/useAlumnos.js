@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
 import { getAlumnos, getAlumnosPaginados, getAlumnosFacets, archivarAlumno } from '../../../services/alumnos';
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
-import { getGruposParaEntrenador, getHorariosParaEntrenador, getEntrenadores } from '../../../services/maestros';
+import { getCanchasParaEntrenador, getHorariosParaEntrenador, getEntrenadores } from '../../../services/maestros';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { esAlumnoIncompleto } from '../utils/alumnoCompletitud';
@@ -57,17 +57,17 @@ export const useAlumnos = () => {
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
     // Opciones maestros
-    const [maestros, setMaestros] = useState({ grupos: [], horarios: [], entrenadores: [], subs: [], tipos: [] });
+    const [maestros, setMaestros] = useState({ canchas: [], horarios: [], entrenadores: [], subs: [], tipos: [] });
 
     // Filtros seleccionados — restaurados desde sessionStorage si existen
-    const [selectedGrupos, setSelectedGrupos] = useState(filtrosGuardados?.selectedGrupos ?? []);
+    const [selectedCanchas, setSelectedCanchas] = useState(filtrosGuardados?.selectedCanchas ?? []);
     const [selectedHorarios, setSelectedHorarios] = useState(filtrosGuardados?.selectedHorarios ?? []);
     const [selectedEntrenadores, setSelectedEntrenadores] = useState(filtrosGuardados?.selectedEntrenadores ?? []);
     const [selectedSubs, setSelectedSubs] = useState(filtrosGuardados?.selectedSubs ?? []);
     const [selectedTipos, setSelectedTipos] = useState(filtrosGuardados?.selectedTipos ?? []);
 
     // --- DEBOUNCE DE FILTROS (600ms) ---
-    const debouncedGrupos = useDebounce(selectedGrupos, 600);
+    const debouncedCanchas = useDebounce(selectedCanchas, 600);
     const debouncedHorarios = useDebounce(selectedHorarios, 600);
     const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
     const debouncedSubs = useDebounce(selectedSubs, 600);
@@ -92,7 +92,7 @@ export const useAlumnos = () => {
     useEffect(() => {
         guardarFiltros({
             activeFilter,
-            selectedGrupos,
+            selectedCanchas,
             selectedHorarios,
             selectedEntrenadores,
             selectedSubs,
@@ -101,13 +101,13 @@ export const useAlumnos = () => {
             currentPage,
             viewMode,
         });
-    }, [activeFilter, selectedGrupos, selectedHorarios, selectedEntrenadores, selectedSubs, selectedTipos, searchTerm, currentPage, viewMode]);
+    }, [activeFilter, selectedCanchas, selectedHorarios, selectedEntrenadores, selectedSubs, selectedTipos, searchTerm, currentPage, viewMode]);
 
     // 1. Cargar maestros y data de facets una sola vez al inicio
     const loadInitialMetadata = useCallback(async () => {
         try {
-            const [gruposData, horariosData, entrenadoresData, facets] = await Promise.all([
-                getGruposParaEntrenador(user?.id, role),
+            const [canchasData, horariosData, entrenadoresData, facets] = await Promise.all([
+                getCanchasParaEntrenador(user?.id, role),
                 getHorariosParaEntrenador(user?.id, role),
                 isAdmin ? getEntrenadores() : Promise.resolve([]),
                 getAlumnosFacets({ userId: user?.id, userRole: role })
@@ -118,7 +118,7 @@ export const useAlumnos = () => {
             const subsUnicas = [...new Set(facets.map(a => a.sub))].sort((a, b) => a - b);
             const tiposUnicos = [...new Set(facets.map(a => a.tipo).filter(Boolean))].sort();
             setMaestros({
-                grupos: gruposData.map(c => ({ value: c.id, label: c.nombre })),
+                canchas: canchasData.map(c => ({ value: c.id, label: c.nombre })),
                 horarios: horariosData.map(h => ({ value: h.id, label: h.hora })),
                 entrenadores: entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })),
                 subs: subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` })),
@@ -153,7 +153,7 @@ export const useAlumnos = () => {
             const { alumnos: data, totalCount: count } = await getAlumnosPaginados({
                 userId: user?.id,
                 userRole: role,
-                grupoIds: debouncedGrupos,
+                canchaIds: debouncedCanchas,
                 horarioIds: debouncedHorarios,
                 subAnios: debouncedSubs,
                 entrenadorIds: debouncedEntrenadores,
@@ -180,7 +180,7 @@ export const useAlumnos = () => {
             setLoading(false);
             setIsFetching(false);
         }
-    }, [user, role, debouncedGrupos, debouncedHorarios, debouncedSubs, debouncedEntrenadores, debouncedTipos, debouncedSearchTerm, activeFilter, currentPage, addToast]);
+    }, [user, role, debouncedCanchas, debouncedHorarios, debouncedSubs, debouncedEntrenadores, debouncedTipos, debouncedSearchTerm, activeFilter, currentPage, addToast]);
 
     useEffect(() => {
         if (user) fetchPage();
@@ -205,8 +205,8 @@ export const useAlumnos = () => {
                 temp = temp.filter(a => debouncedSubs.includes(a.sub));
             if (excludeFilter !== 'horario' && debouncedHorarios.length > 0)
                 temp = temp.filter(a => debouncedHorarios.includes(a.horario_id));
-            if (excludeFilter !== 'grupo' && debouncedGrupos.length > 0)
-                temp = temp.filter(a => debouncedGrupos.includes(a.grupo_id));
+            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0)
+                temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
             if (excludeFilter !== 'tipo' && debouncedTipos.length > 0)
                 temp = temp.filter(a => debouncedTipos.includes(a.tipo));
             return temp;
@@ -215,7 +215,7 @@ export const useAlumnos = () => {
         const validEntrenadoresIds = new Set(getFilteredFacets('entrenador').map(a => a.profesor_asignado_id));
         const validSubsValues     = new Set(getFilteredFacets('sub').map(a => a.sub));
         const validHorariosIds    = new Set(getFilteredFacets('horario').map(a => a.horario_id));
-        const validGruposIds     = new Set(getFilteredFacets('grupo').map(a => a.grupo_id));
+        const validCanchasIds     = new Set(getFilteredFacets('cancha').map(a => a.cancha_id));
         const validTiposValues    = new Set(getFilteredFacets('tipo').map(a => a.tipo).filter(Boolean));
 
         // Solo retorna las opciones que tienen resultados — sin mostrar opciones tachadas
@@ -223,20 +223,20 @@ export const useAlumnos = () => {
             entrenadores: maestros.entrenadores.filter(opt => validEntrenadoresIds.has(opt.value)),
             subs:         maestros.subs.filter(opt => validSubsValues.has(opt.value)),
             horarios:     maestros.horarios.filter(opt => validHorariosIds.has(opt.value)),
-            grupos:      maestros.grupos.filter(opt => validGruposIds.has(opt.value)),
+            canchas:      maestros.canchas.filter(opt => validCanchasIds.has(opt.value)),
             tipos:        maestros.tipos.filter(opt => validTiposValues.has(opt.value)),
         };
-    }, [facetData, maestros, activeFilter, debouncedEntrenadores, debouncedSubs, debouncedHorarios, debouncedGrupos, debouncedTipos]);
+    }, [facetData, maestros, activeFilter, debouncedEntrenadores, debouncedSubs, debouncedHorarios, debouncedCanchas, debouncedTipos]);
 
     // 4. Auto-deselección: si un valor seleccionado ya no aparece en las opciones
     //    válidas (por un filtro cruzado), se limpia automáticamente.
     //    Se usa un ref de IDs anteriores para evitar bucles de actualización.
-    const prevValidIdsRef = useRef({ grupos: '', horarios: '', entrenadores: '', subs: '', tipos: '' });
+    const prevValidIdsRef = useRef({ canchas: '', horarios: '', entrenadores: '', subs: '', tipos: '' });
 
     useEffect(() => {
         const toKey = (arr) => arr.map(o => String(o.value)).sort().join(',');
         const newKeys = {
-            grupos:      toKey(dynamicOptions.grupos),
+            canchas:      toKey(dynamicOptions.canchas),
             horarios:     toKey(dynamicOptions.horarios),
             entrenadores: toKey(dynamicOptions.entrenadores),
             subs:         toKey(dynamicOptions.subs),
@@ -244,9 +244,9 @@ export const useAlumnos = () => {
         };
         const prev = prevValidIdsRef.current;
 
-        if (newKeys.grupos !== prev.grupos) {
-            const validSet = new Set(dynamicOptions.grupos.map(o => o.value));
-            setSelectedGrupos(p => p.filter(id => validSet.has(id)));
+        if (newKeys.canchas !== prev.canchas) {
+            const validSet = new Set(dynamicOptions.canchas.map(o => o.value));
+            setSelectedCanchas(p => p.filter(id => validSet.has(id)));
         }
         if (newKeys.horarios !== prev.horarios) {
             const validSet = new Set(dynamicOptions.horarios.map(o => o.value));
@@ -284,7 +284,7 @@ export const useAlumnos = () => {
 
     const handleClearFilters = () => {
         setActiveFilter('todos');
-        setSelectedGrupos([]);
+        setSelectedCanchas([]);
         setSelectedHorarios([]);
         setSelectedEntrenadores([]);
         setSelectedSubs([]);
@@ -377,7 +377,7 @@ export const useAlumnos = () => {
         }
     };
 
-    const hayFiltrosActivos = activeFilter !== 'todos' || selectedGrupos.length > 0 || selectedHorarios.length > 0 || selectedEntrenadores.length > 0 || selectedSubs.length > 0 || selectedTipos.length > 0 || searchTerm;
+    const hayFiltrosActivos = activeFilter !== 'todos' || selectedCanchas.length > 0 || selectedHorarios.length > 0 || selectedEntrenadores.length > 0 || selectedSubs.length > 0 || selectedTipos.length > 0 || searchTerm;
 
     return {
         loading,
@@ -397,7 +397,7 @@ export const useAlumnos = () => {
         hayFiltrosActivos,
         filtrosMaestros: {
             ...dynamicOptions,
-            selectedGrupos,
+            selectedCanchas,
             selectedHorarios,
             selectedEntrenadores,
             selectedSubs,
@@ -405,7 +405,7 @@ export const useAlumnos = () => {
         },
         setViewMode,
         setCurrentPage,
-        setSelectedGrupos: (val) => { setSelectedGrupos(val); setCurrentPage(1); },
+        setSelectedCanchas: (val) => { setSelectedCanchas(val); setCurrentPage(1); },
         setSelectedHorarios: (val) => { setSelectedHorarios(val); setCurrentPage(1); },
         setSelectedEntrenadores: (val) => { setSelectedEntrenadores(val); setCurrentPage(1); },
         setSelectedSubs: (val) => { setSelectedSubs(val); setCurrentPage(1); },

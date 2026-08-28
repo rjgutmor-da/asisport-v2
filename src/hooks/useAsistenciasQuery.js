@@ -3,18 +3,18 @@ import { getAlumnosParaAsistencia } from '../services/asistencias';
 
 export const asistenciasKeys = {
     all: ['asistencias'],
-    lista: (fecha, grupoGestionId) => [...asistenciasKeys.all, { fecha, grupoGestionId }],
+    lista: (fecha, canchaId, horarioId, entrenadorId) => [...asistenciasKeys.all, { fecha, canchaId, horarioId, entrenadorId }],
 };
 
 /**
  * Hook para obtener la lista de asistencia usando TanStack Query.
  * Implementa staleTime: 0 para asegurar datos frescos y reactividad con Realtime.
  */
-export const useAsistenciasQuery = (fecha, grupoGestionId) => {
+export const useAsistenciasQuery = (fecha, canchaId, horarioId, entrenadorId) => {
     return useQuery({
-        queryKey: asistenciasKeys.lista(fecha, grupoGestionId),
-        queryFn: () => getAlumnosParaAsistencia(fecha, grupoGestionId),
+        queryKey: asistenciasKeys.lista(fecha, canchaId, horarioId, entrenadorId),
+        queryFn: () => getAlumnosParaAsistencia(fecha, canchaId, horarioId, entrenadorId),
         staleTime: 0, // Regla de performance: Asistencias no se cachean
-        enabled: !!fecha && !!grupoGestionId, // Solo ejecutar con grupo de gestión
+        enabled: !!fecha, // Solo ejecutar si hay fecha
     });
 };

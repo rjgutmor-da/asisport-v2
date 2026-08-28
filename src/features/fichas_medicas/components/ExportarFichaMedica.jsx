@@ -220,7 +220,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
                 </tr>
                 <tr>
                     <td class="label">Grupo / Categoría:</td>
-                    <td class="value">${alumno.grupo?.nombre || '—'}</td>
+                    <td class="value">${alumno.cancha?.nombre || '—'}</td>
                 </tr>
                 <tr>
                     <td class="label">Fecha Revisión:</td>

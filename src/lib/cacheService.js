@@ -1,15 +1,15 @@
 /**
  * Servicio de caché en memoria para datos maestros.
  * 
- * Almacena resultados de consultas frecuentes (grupos, horarios, entrenadores)
+ * Almacena resultados de consultas frecuentes (canchas, horarios, entrenadores)
  * con un TTL configurable para evitar llamadas repetitivas a Supabase.
  * 
  * Uso:
  *   import { cacheService } from './cacheService';
- *   const data = cacheService.get('grupos');
+ *   const data = cacheService.get('canchas');
  *   if (!data) {
  *       const fresh = await fetchFromSupabase();
- *       cacheService.set('grupos', fresh);
+ *       cacheService.set('canchas', fresh);
  *   }
  */
 

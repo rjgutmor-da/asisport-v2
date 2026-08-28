@@ -40,15 +40,19 @@ export const createAlumno = async (alumnoData, photoFile) => {
     // Validar representante legal
     const repError = validateRepresentante(alumnoData);
     if (repError) throw new Error(repError);
-    if (!alumnoData.grupo_gestion_id) {
-        throw new Error('Selecciona un grupo y horario activos.');
-    }
 
     // Obtener usuario actual (Entrenador o Admin)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Inicia sesión nuevamente.');
 
     const escuelaId = await obtenerEscuelaId();
+
+    // Obtener sucursal_id del usuario actual
+    const { data: userProfile } = await supabase
+        .from('usuarios')
+        .select('sucursal_id')
+        .eq('id', user.id)
+        .single();
 
     // 2. Validación de duplicados (Carnet de Identidad)
     if (alumnoData.carnet_identidad) {
@@ -67,7 +71,6 @@ export const createAlumno = async (alumnoData, photoFile) => {
     }
 
     let fotoUrl = null;
-    let fotoPath = null;
 
     // 3. Subir foto si existe
     if (photoFile) {
@@ -89,7 +92,6 @@ export const createAlumno = async (alumnoData, photoFile) => {
             .getPublicUrl(filePath);
 
         fotoUrl = publicUrl;
-        fotoPath = filePath;
     }
 
     // 4. Formatear teléfonos (Regla de oro: asegurar internacional para WhatsApp)
@@ -112,27 +114,43 @@ export const createAlumno = async (alumnoData, photoFile) => {
         telefono_deportista: formatPhone(alumnoData.telefono_deportista),
         colegio: alumnoData.colegio || null,
         direccion: alumnoData.direccion || null,
+        sucursal_id: alumnoData.sucursal_id || userProfile?.sucursal_id || null,
+        cancha_id: alumnoData.cancha_id,
+        horario_id: alumnoData.horario_id,
+        profesor_asignado_id: alumnoData.profesor_asignado_id || null,
         es_arquero: alumnoData.es_arquero || false,
         foto_url: fotoUrl,
         estado: 'Pendiente',
+        escuela_id: escuelaId,
+        created_by: user.id,
         tipo: alumnoData.tipo || 'Formativo',
         mensualidad: alumnoData.mensualidad !== undefined ? alumnoData.mensualidad : null,
         observaciones: alumnoData.observaciones || null
     };
 
-    try {
-        const { data: resultado, error: rpcError } = await supabase.rpc('rpc_registrar_alumno_en_grupo', {
-            p_alumno: newAlumno,
-            p_grupo_gestion_id: alumnoData.grupo_gestion_id,
-        });
-        if (rpcError) throw rpcError;
-        return resultado;
-    } catch (error) {
-        if (fotoPath) {
-            await supabase.storage.from('avatars').remove([fotoPath]);
+    const { data: alumno, error: insertError } = await supabase
+        .from('alumnos')
+        .insert([newAlumno])
+        .select()
+        .single();
+
+    if (insertError) throw new Error('Error al guardar alumno: ' + insertError.message);
+
+    // 5. Asignar Entrenador
+    if (alumno && alumnoData.profesor_asignado_id) {
+        const { error: assignError } = await supabase
+            .from('alumnos_entrenadores')
+            .insert([{
+                alumno_id: alumno.id,
+                entrenador_id: alumnoData.profesor_asignado_id
+            }]);
+
+        if (assignError) {
+            console.error('Error al asignar entrenador:', assignError);
         }
-        throw new Error('Error al guardar alumno: ' + error.message);
     }
+
+    return alumno;
 };
 
 /**
@@ -142,17 +160,17 @@ export const createAlumno = async (alumnoData, photoFile) => {
  * - Entrenarqueros: solo ve alumnos marcados como arqueros
  * - Admin/Dueño/SuperAdmin: ve todos los alumnos de la escuela
  * 
- * Acepta filtros opcionales de grupos, horarios y subs (multi-selección).
+ * Acepta filtros opcionales de canchas, horarios y subs (multi-selección).
  * 
  * @param {Object} filtros - Filtros opcionales
  * @param {string} filtros.userId - ID del usuario actual
  * @param {string} filtros.userRole - Rol del usuario ('Entrenador', 'Administrador', etc.)
- * @param {Array<string>} filtros.grupoIds - Filtrar por una o más grupos
+ * @param {Array<string>} filtros.canchaIds - Filtrar por una o más canchas
  * @param {Array<string>} filtros.horarioIds - Filtrar por uno o más horarios
  * @param {Array<number>} filtros.subAnios - Filtrar por uno o más años (sub = año de nacimiento)
  */
 export const getAlumnos = async (filtros = {}) => {
-    const { userId, userRole, grupoIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
+    const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
     const dataScope = getDataScope(userRole);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
@@ -193,7 +211,7 @@ export const getAlumnos = async (filtros = {}) => {
             asistencias_mes_anterior,
             tipo,
             mensualidad,
-            grupo:canchas(nombre),
+            cancha:canchas(nombre),
             horario:horarios(hora)
         `)
         .eq('escuela_id', escuelaId)
@@ -222,11 +240,11 @@ export const getAlumnos = async (filtros = {}) => {
         query = query.eq('es_arquero', true);
     }
 
-    // Filtros multi-selección de grupo desde el servidor
-    if (grupoIds.length === 1) {
-        query = query.eq('cancha_id', grupoIds[0]);
-    } else if (grupoIds.length > 1) {
-        query = query.in('cancha_id', grupoIds);
+    // Filtros multi-selección de cancha desde el servidor
+    if (canchaIds.length === 1) {
+        query = query.eq('cancha_id', canchaIds[0]);
+    } else if (canchaIds.length > 1) {
+        query = query.in('cancha_id', canchaIds);
     }
 
     // Filtros multi-selección de horario desde el servidor
@@ -256,8 +274,6 @@ export const getAlumnos = async (filtros = {}) => {
     let resultado = data.map(alumno => {
         return {
             ...alumno,
-            // La interfaz usa "grupo", pero la columna física sigue siendo cancha_id.
-            grupo_id: alumno.cancha_id,
             asistencias_count: alumno.asistencias_mes_actual || 0
         };
     });
@@ -272,7 +288,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     const { 
         userId, 
         userRole, 
-        grupoIds = [], 
+        canchaIds = [], 
         horarioIds = [], 
         subAnios = [], 
         entrenadorIds = [],
@@ -298,12 +314,12 @@ export const getAlumnosPaginados = async (filtros = {}) => {
         .from('v_alumnos')
         .select(`
             id, nombres, apellidos, fecha_nacimiento, carnet_identidad, foto_url,
-            estado, es_arquero, profesor_asignado_id, grupo_id, horario_id,
+            estado, es_arquero, profesor_asignado_id, cancha_id, horario_id,
             nombre_padre, telefono_padre, nombre_madre, telefono_madre,
             telefono_deportista, whatsapp_preferido, created_at, sub,
             asistencias_mes_actual, asistencias_mes_anterior, tipo, mensualidad,
             colegio, direccion, sucursal_id,
-            grupo:grupos(nombre),
+            cancha:canchas(nombre),
             horario:horarios(hora)
         `, { count: 'exact' })
         .eq('escuela_id', escuelaId)
@@ -336,7 +352,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
             'foto_url.is.null,foto_url.eq.,' +
             'tipo.is.null,tipo.eq.,' +
             'mensualidad.is.null,' +
-            'grupo_id.is.null,' +
+            'cancha_id.is.null,' +
             'horario_id.is.null,' +
             'profesor_asignado_id.is.null,' +
             'sucursal_id.is.null,' +
@@ -350,7 +366,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     // Filtros de Maestros
     if (entrenadorIds.length > 0) query = query.in('profesor_asignado_id', entrenadorIds);
     if (subAnios.length > 0) query = query.in('sub', subAnios);
-    if (grupoIds.length > 0) query = query.in('grupo_id', grupoIds);
+    if (canchaIds.length > 0) query = query.in('cancha_id', canchaIds);
     if (horarioIds.length > 0) query = query.in('horario_id', horarioIds);
     if (tipos.length > 0) query = query.in('tipo', tipos);
 
@@ -390,7 +406,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, grupo_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id')
+        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -414,7 +430,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
  * Regla #16: Datos históricos se preservan
  * Solo Admin/SuperAdmin pueden archivar
  */
-export const archivarAlumnoLegacy = async (alumnoId) => {
+export const archivarAlumno = async (alumnoId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 
@@ -433,7 +449,7 @@ export const archivarAlumnoLegacy = async (alumnoId) => {
  * Restaurar un alumno archivado
  * Regla #16: Vuelve con el mismo estado que tenía antes
  */
-export const restaurarAlumnoLegacy = async (alumnoId) => {
+export const restaurarAlumno = async (alumnoId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 
@@ -480,7 +496,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             foto_url,
             estado,
             es_arquero,
-            grupo_id,
+            cancha_id,
             horario_id,
             nombre_padre,
             telefono_padre,
@@ -488,7 +504,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             telefono_madre,
             whatsapp_preferido,
             created_at,
-            grupo:grupos(nombre),
+            cancha:canchas(nombre),
             horario:horarios(hora),
             asistencias_normales(count),
             asistencias_arqueros(count)
@@ -576,20 +592,5 @@ export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimient
         console.error("Error al buscar posibles duplicados:", error);
         return []; // En caso de error, permitimos continuar sin bloquear
     }
-};
-
-export const archivarAlumno = async (alumnoId) => {
-    const { data, error } = await supabase.rpc('rpc_archivar_alumno', { p_alumno_id: alumnoId });
-    if (error) throw new Error('Error al archivar alumno: ' + error.message);
-    return data;
-};
-
-export const restaurarAlumno = async (alumnoId, grupoGestionId = null) => {
-    const { data, error } = await supabase.rpc('rpc_restaurar_alumno', {
-        p_alumno_id: alumnoId,
-        p_grupo_gestion_id: grupoGestionId,
-    });
-    if (error) throw new Error('Error al restaurar alumno: ' + error.message);
-    return data;
 };
 

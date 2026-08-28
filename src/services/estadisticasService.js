@@ -19,7 +19,7 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
     const escuelaId = await obtenerEscuelaId();
 
-    const fetchAll = async () => {
+    const fetchAll = async (table) => {
         let allData = [];
         let from = 0;
         let to = 999;
@@ -27,7 +27,7 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
 
         while (!finished) {
             const { data, error } = await supabase
-                .from('asistencias_normales')
+                .from(table)
                 .select('alumno_id, fecha, estado, entrenador_id, entrenador:usuarios!asistencias_normales_entrenador_id_fkey(nombres, apellidos, rol), alumnos!inner(escuela_id)')
                 .eq('alumnos.escuela_id', escuelaId)
                 .gte('fecha', fechaInicio)
@@ -53,5 +53,5 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
         return allData;
     };
 
-    return fetchAll();
+    return fetchAll('asistencias_normales');
 };

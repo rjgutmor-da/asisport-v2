@@ -74,7 +74,7 @@ SELECT
   a.nombres || ' ' || a.apellidos AS alumno,
   a.estado,
   CASE WHEN a.es_arquero THEN '⚽ Arquero' ELSE 'Jugador' END AS tipo,
-  c.nombre AS grupo,
+  c.nombre AS cancha,
   h.hora AS horario,
   a.fecha_nacimiento,
   COALESCE(a.nombre_padre, a.nombre_madre, 'Sin representante') AS representante,
@@ -91,7 +91,7 @@ SELECT
   ) AS total_asistencias,
   a.created_at::DATE AS fecha_registro
 FROM alumnos a
-LEFT JOIN grupos c ON c.id = a.grupo_id
+LEFT JOIN canchas c ON c.id = a.cancha_id
 LEFT JOIN horarios h ON h.id = a.horario_id
 WHERE a.escuela_id = '91b2a748-f956-41e7-8efe-075257a0889a'
   AND a.archivado = FALSE
@@ -176,7 +176,7 @@ SELECT
     THEN 'Próximo'
     ELSE 'Ya pasó'
   END AS estado,
-  c.nombre AS grupo,
+  c.nombre AS cancha,
   (
     SELECT STRING_AGG(u.nombres || ' ' || u.apellidos, ', ')
     FROM alumnos_entrenadores ae
@@ -184,7 +184,7 @@ SELECT
     WHERE ae.alumno_id = a.id
   ) AS entrenadores
 FROM alumnos a
-LEFT JOIN grupos c ON c.id = a.grupo_id
+LEFT JOIN canchas c ON c.id = a.cancha_id
 WHERE a.escuela_id = '91b2a748-f956-41e7-8efe-075257a0889a'
   AND a.archivado = FALSE
   AND EXTRACT(MONTH FROM a.fecha_nacimiento) = EXTRACT(MONTH FROM CURRENT_DATE)
@@ -480,7 +480,7 @@ WHERE escuela_id = '91b2a748-f956-41e7-8efe-075257a0889a';
 
 ```sql
 -- ⚠️⚠️⚠️ EXTREMADAMENTE PELIGROSO ⚠️⚠️⚠️
--- Elimina TODO excepto usuarios, grupos, horarios y escuela
+-- Elimina TODO excepto usuarios, canchas, horarios y escuela
 
 -- 1. Asistencias
 DELETE FROM asistencias_arqueros WHERE alumno_id IN (SELECT id FROM alumnos WHERE escuela_id = '91b2a748-f956-41e7-8efe-075257a0889a');
@@ -536,10 +536,10 @@ Escuela ID: 91b2a748-f956-41e7-8efe-075257a0889a
 Nombre: Escuela Tahuichi
 Zona Horaria: America/La_Paz
 
-Grupos creadas:
-- Grupo Norte
-- Grupo Sur
-- Grupo Central
+Canchas creadas:
+- Cancha Norte
+- Cancha Sur
+- Cancha Central
 
 Horarios creados:
 - 15:00

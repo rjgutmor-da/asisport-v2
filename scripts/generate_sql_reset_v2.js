@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const ESCUELA_ID = '07d945a7-99ba-4e7d-ba9c-258e7ee27659';
 const SUCURSAL_ID = '99f11454-8d15-4888-8a18-0e7fa0436892';
-const GRUPO_ID = 'cccf5cc7-e113-4fc5-a937-cfe7f8bb4e76';
+const CANCHA_ID = 'cccf5cc7-e113-4fc5-a937-cfe7f8bb4e76';
 const HORARIO_ID = '10768921-cab5-4cd5-88f0-6e968d084969';
 const ENTRENADOR_ID = '5bc0896a-9a9d-4135-b835-f552fa92abfa';
 
@@ -40,8 +40,8 @@ BEGIN
 
 backup.forEach(a => {
     sql += `
-    INSERT INTO alumnos (nombres, apellidos, fecha_nacimiento, escuela_id, sucursal_id, grupo_id, horario_id, foto_url, nombre_padre, telefono_padre, whatsapp_preferido, estado, created_by, archivado, profesor_asignado_id)
-    VALUES ('${a.nombres}', '${a.apellidos}', '${a.fecha_nacimiento}', '${ESCUELA_ID}', '${SUCURSAL_ID}', '${GRUPO_ID}', '${HORARIO_ID}', ${a.foto_url ? `'${a.foto_url}'` : 'NULL'}, 'Representante', '59174631123', 'padre', 'Aprobado', '${ENTRENADOR_ID}', false, '${ENTRENADOR_ID}')
+    INSERT INTO alumnos (nombres, apellidos, fecha_nacimiento, escuela_id, sucursal_id, cancha_id, horario_id, foto_url, nombre_padre, telefono_padre, whatsapp_preferido, estado, created_by, archivado, profesor_asignado_id)
+    VALUES ('${a.nombres}', '${a.apellidos}', '${a.fecha_nacimiento}', '${ESCUELA_ID}', '${SUCURSAL_ID}', '${CANCHA_ID}', '${HORARIO_ID}', ${a.foto_url ? `'${a.foto_url}'` : 'NULL'}, 'Representante', '59174631123', 'padre', 'Aprobado', '${ENTRENADOR_ID}', false, '${ENTRENADOR_ID}')
     RETURNING id INTO temp_alumno_id;
 
     INSERT INTO alumnos_entrenadores (alumno_id, entrenador_id) VALUES (temp_alumno_id, '${ENTRENADOR_ID}');

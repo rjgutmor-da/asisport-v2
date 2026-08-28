@@ -20,8 +20,8 @@ import {
  * Página principal de la lista de alumnos.
  * Funcionalidades:
  *  - Vista cuadrícula y tabla con navegación al detalle
- *  - Búsqueda y filtros multi-selección: grupo, horario, sub
- *  - Filtro inteligente para entrenadores (solo sus grupos/horarios)
+ *  - Búsqueda y filtros multi-selección: cancha, horario, sub
+ *  - Filtro inteligente para entrenadores (solo sus canchas/horarios)
  *  - Archivar alumno individual con confirmación
  *  - Combinar alumnos duplicados mediante modal
  *  - Selección múltiple para envío de WhatsApp
@@ -53,12 +53,12 @@ const ListaAlumnos = () => {
         esEntrenador,
         hayFiltrosActivos,
         filtrosMaestros: {
-            grupos,
+            canchas,
             horarios,
             entrenadores,
             subs,
             tipos,
-            selectedGrupos,
+            selectedCanchas,
             selectedHorarios,
             selectedEntrenadores,
             selectedSubs,
@@ -67,7 +67,7 @@ const ListaAlumnos = () => {
         getAsistenciaResumen,
         setViewMode,
         setCurrentPage,
-        setSelectedGrupos,
+        setSelectedCanchas,
         setSelectedHorarios,
         setSelectedEntrenadores,
         setSelectedSubs,
@@ -351,9 +351,9 @@ const ListaAlumnos = () => {
                     <MultiSelectFilter
                         label="Grupo"
                         placeholder="Todos los Grupos"
-                        options={grupos}
-                        selectedValues={selectedGrupos}
-                        onChange={setSelectedGrupos}
+                        options={canchas}
+                        selectedValues={selectedCanchas}
+                        onChange={setSelectedCanchas}
                     />
 
                     {/* 3. Filtro Sub */}

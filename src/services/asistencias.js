@@ -5,7 +5,7 @@ import { can, getDataScope } from '../config/roles';
 
 export const ESTADOS_ASISTENCIA = ['Presente', 'Licencia', 'Ausente'];
 
-export const getAlumnosParaAsistenciaLegacy = async (fecha, grupoId = null, horarioId = null, entrenadorId = null) => {
+export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId = null, entrenadorId = null) => {
     let userIdForLog = 'unknown';
     try {
         const hoy = new Date();
@@ -46,8 +46,8 @@ export const getAlumnosParaAsistenciaLegacy = async (fecha, grupoId = null, hora
         let query = supabase
             .from('alumnos')
             .select(`
-                id, nombres, apellidos, foto_url, es_arquero, estado, grupo_id, horario_id, fecha_nacimiento,
-                grupo:grupos(id, nombre),
+                id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
+                cancha:canchas(id, nombre),
                 horario:horarios(id, hora),
                 asistenciaNormal:asistencias_normales(
                     id, estado, fecha, entrenador_id,
@@ -73,7 +73,7 @@ export const getAlumnosParaAsistenciaLegacy = async (fecha, grupoId = null, hora
 
         query = query.order('apellidos', { ascending: true });
 
-        if (grupoId) query = query.eq('grupo_id', grupoId);
+        if (canchaId) query = query.eq('cancha_id', canchaId);
         if (horarioId) query = query.eq('horario_id', horarioId);
 
         const { data: alumnos, error: alumnosError } = await query;
@@ -90,7 +90,7 @@ export const getAlumnosParaAsistenciaLegacy = async (fecha, grupoId = null, hora
     }
 };
 
-export const registrarAsistenciasPorLoteLegacy = async (asistencias, fecha, targetEntrenadorId = null) => {
+export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntrenadorId = null) => {
     let userIdForLog = 'unknown';
     try {
         const hoy = new Date();
@@ -180,62 +180,9 @@ export const registrarAsistenciasPorLoteLegacy = async (asistencias, fecha, targ
     }
 };
 
-// API histórica por grupo de gestión. Las funciones legadas anteriores se
-// conservan únicamente para compatibilidad de módulos no migrados.
-export const getAlumnosParaAsistencia = async (fecha, grupoGestionId = null) => {
-    if (!grupoGestionId) return [];
-    const hoy = new Date();
-    const seleccionada = new Date(`${fecha}T23:59:59`);
-    if (seleccionada > hoy) throw new Error('No se pueden registrar asistencias para fechas futuras.');
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: perfil } = user
-        ? await supabase.from('usuarios').select('rol').eq('id', user.id).maybeSingle()
-        : { data: null };
-    const { data, error } = await supabase
-        .from('alumnos')
-        .select(`id, nombres, apellidos, foto_url, es_arquero, estado, grupo_gestion_id, fecha_nacimiento,
-            asistenciaNormal:asistencias_normales(id, estado, fecha, entrenador_id, grupo_gestion_id,
-                entrenador:usuarios!asistencias_normales_entrenador_id_fkey(id, nombres, apellidos, rol))`)
-        .eq('grupo_gestion_id', grupoGestionId)
-        .eq('archivado', false)
-        .neq('estado', 'ELIMINADO SISTEMA')
-        .eq('asistencias_normales.fecha', fecha)
-        .order('apellidos', { ascending: true });
-    if (perfil?.rol === 'Entrenarqueros') query = query.eq('es_arquero', true);
-    if (error) throw error;
-    return (data || []).map((alumno) => ({ ...alumno, asistenciaNormal: alumno.asistenciaNormal?.[0] || null }));
-};
-
-export const registrarAsistenciasPorLote = async (asistencias, fecha, grupoGestionId) => {
-    if (!grupoGestionId || !asistencias?.length) return { exitosos: 0, fallidos: 0, errores: [] };
-    const { data, error } = await supabase.rpc('rpc_registrar_asistencias_lote', {
-        p_fecha: fecha,
-        p_grupo_gestion_id: grupoGestionId,
-        p_asistencias: asistencias.map(({ alumnoId, estado }) => ({ alumno_id: alumnoId, estado })),
-    });
-    if (error) throw error;
-    return {
-        exitosos: Number(data?.total || 0),
-        fallidos: 0,
-        errores: [],
-        insertadas: Number(data?.insertadas || 0),
-        actualizadas: Number(data?.actualizadas || 0),
-    };
-};
-
-export const verificarEstadoEnvio = async (fecha, grupoId = null, horarioId = null, grupoGestionId = null) => {
+export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = null) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { existe: false, cantidad: 0 };
-
-    if (grupoGestionId) {
-        const { count, error } = await supabase
-            .from('asistencias_normales')
-            .select('id', { count: 'exact', head: true })
-            .eq('fecha', fecha)
-            .eq('grupo_gestion_id', grupoGestionId);
-        if (error) return { existe: false, cantidad: 0 };
-        return { existe: (count || 0) > 0, cantidad: count || 0 };
-    }
 
     const { data: userProfile } = await supabase
         .from('usuarios')
@@ -243,8 +190,8 @@ export const verificarEstadoEnvio = async (fecha, grupoId = null, horarioId = nu
         .eq('id', user.id)
         .single();
 
-    // Si no hay filtros de grupo/horario, verificar globalmente (para admins)
-    if (!grupoId && !horarioId) {
+    // Si no hay filtros de cancha/horario, verificar globalmente (para admins)
+    if (!canchaId && !horarioId) {
         const { count, error } = await supabase
             .from('asistencias_normales')
             .select('id', { count: 'exact', head: true })
@@ -255,7 +202,7 @@ export const verificarEstadoEnvio = async (fecha, grupoId = null, horarioId = nu
         return { existe: (count && count > 0), cantidad: count || 0 };
     }
 
-    // Obtener los IDs de alumnos que pertenecen a esta grupo/horario específico
+    // Obtener los IDs de alumnos que pertenecen a esta cancha/horario específico
     let alumnosQuery = supabase
         .from('alumnos')
         .select('id')
@@ -268,7 +215,7 @@ export const verificarEstadoEnvio = async (fecha, grupoId = null, horarioId = nu
         }
     }
 
-    if (grupoId) alumnosQuery = alumnosQuery.eq('grupo_id', grupoId);
+    if (canchaId) alumnosQuery = alumnosQuery.eq('cancha_id', canchaId);
     if (horarioId) alumnosQuery = alumnosQuery.eq('horario_id', horarioId);
 
     const { data: alumnosData, error: alumnosError } = await alumnosQuery;
@@ -334,7 +281,7 @@ export const getAsistenciasEstaSemana = async (alumnoIds) => {
  * PLATTER PRINCIPLE: Usa la VIEW v_estadisticas_asistencia_diaria para traer agregados.
  * Esto elimina el fetch de miles de filas individuales en el Dashboard/Estadísticas.
  */
-export const getAsistenciasRangoLegacy = async (fechaInicio, fechaFin) => {
+export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
     const escuelaId = await obtenerEscuelaId();
     let from = 0;
     const pageSize = 1000;
@@ -344,7 +291,7 @@ export const getAsistenciasRangoLegacy = async (fechaInicio, fechaFin) => {
     while (!finished) {
         const { data, error } = await supabase
             .from('asistencias_normales')
-            .select('fecha, estado, alumnos!inner(escuela_id, profesor_asignado_id, grupo_id, horario_id)')
+            .select('fecha, estado, alumnos!inner(escuela_id, profesor_asignado_id, cancha_id, horario_id)')
             .eq('alumnos.escuela_id', escuelaId)
             .gte('fecha', fechaInicio)
             .lte('fecha', fechaFin)
@@ -359,14 +306,14 @@ export const getAsistenciasRangoLegacy = async (fechaInicio, fechaFin) => {
     const agregados = new Map();
     registros.forEach(registro => {
         const alumno = registro.alumnos;
-        const key = [registro.fecha, alumno.profesor_asignado_id, alumno.grupo_id, alumno.horario_id].join('|');
+        const key = [registro.fecha, alumno.profesor_asignado_id, alumno.cancha_id, alumno.horario_id].join('|');
         if (!agregados.has(key)) {
             agregados.set(key, {
                 fecha: registro.fecha,
                 presentes: 0,
                 licencias: 0,
                 profesor_asignado_id: alumno.profesor_asignado_id,
-                grupo_id: alumno.grupo_id,
+                cancha_id: alumno.cancha_id,
                 horario_id: alumno.horario_id,
                 escuela_id: alumno.escuela_id
             });
@@ -377,20 +324,4 @@ export const getAsistenciasRangoLegacy = async (fechaInicio, fechaFin) => {
     });
 
     return Array.from(agregados.values());
-};
-
-export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
-    const escuelaId = await obtenerEscuelaId();
-    const { data, error } = await supabase
-        .from('v_estadisticas_asistencia_diaria')
-        .select('fecha, presentes, licencias, escuela_id, profesor_asignado_id, cancha_id, horario_id')
-        .eq('escuela_id', escuelaId)
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin);
-    if (error) throw error;
-    return (data || []).map((registro) => ({
-        ...registro,
-        // Adaptación de presentación: "grupo" en UI, cancha_id en PostgreSQL.
-        grupo_id: registro.cancha_id,
-    }));
 };

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS fotos_asistencia_grupal (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     escuela_id UUID NOT NULL REFERENCES escuelas(id),
     fecha DATE NOT NULL,
-    grupo_id UUID REFERENCES grupos(id),
+    cancha_id UUID REFERENCES canchas(id),
     horario_id UUID REFERENCES horarios(id),
     entrenador_id UUID NOT NULL,
     foto_url TEXT NOT NULL,

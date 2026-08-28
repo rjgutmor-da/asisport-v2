@@ -196,7 +196,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                                             {a.nombres} {a.apellidos}
                                                         </p>
                                                         <p className="text-text-secondary text-[10px] truncate">
-                                                            {a.grupo?.nombre || 'Sin grupo'}
+                                                            {a.cancha?.nombre || 'Sin cancha'}
                                                         </p>
                                                     </div>
                                                 </button>
@@ -237,7 +237,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                                             {a.nombres} {a.apellidos}
                                                         </p>
                                                         <p className="text-text-secondary text-[10px] truncate">
-                                                            {a.grupo?.nombre || 'Sin grupo'}
+                                                            {a.cancha?.nombre || 'Sin cancha'}
                                                         </p>
                                                     </div>
                                                 </button>

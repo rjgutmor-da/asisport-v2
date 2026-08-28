@@ -5,7 +5,7 @@ import { cacheService } from '../lib/cacheService';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../hooks/useMasterData';
 import { getAlumnos } from '../services/alumnos';
-import { getGrupos, getHorarios, getEntrenadores } from '../services/maestros';
+import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
 import { getSucursales } from '../services/sucursales';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { can, getDataScope } from '../config/roles';
@@ -48,8 +48,8 @@ export const AuthProvider = ({ children }) => {
                     queryFn: () => getHorarios(escuelaId) 
                 }),
                 queryClient.prefetchQuery({ 
-                    queryKey: queryKeys.grupos, 
-                    queryFn: () => getGrupos(escuelaId) 
+                    queryKey: queryKeys.canchas, 
+                    queryFn: () => getCanchas(escuelaId) 
                 }),
             ]);
             console.log('✅ Prefetch completado');

@@ -13,8 +13,8 @@ const COACH_MAP = {
     'alexis hipamo': '64607217-75e1-424d-8a88-2eba809022e9'
 };
 
-const GRUPO_MAP = {
-    'grupo principal': 'ae934f1b-2352-46dc-99e0-311eb69c4466',
+const CANCHA_MAP = {
+    'cancha principal': 'ae934f1b-2352-46dc-99e0-311eb69c4466',
     'villa-mercedes-1': '0336a91f-a3c7-4ca2-b01c-043f21bf8f03',
     'villa-mercedes-2': '554a997b-1604-4a34-8ece-9576dceb8ff4',
     'cilindro-1': '0f6f4275-ffe7-4f02-bc58-bdf1b0a92cad',
@@ -116,14 +116,14 @@ async function importarAlumnos() {
         if (telPadre && !nombrePadre) nombrePadre = `Papa de ${nombres}`;
         if (telMadre && !nombreMadre) nombreMadre = `Mama de ${nombres}`;
 
-        // Profesores, Grupos y Horarios
+        // Profesores, Canchas y Horarios
         const rawProfesor = getValue(['profesor', 'entrenador', 'profesor id']);
-        const rawGrupo = getValue(['grupo', 'grupo id']);
+        const rawCancha = getValue(['cancha', 'cancha id']);
         const rawHorario = getValue(['horario', 'horario id']);
 
         // Mapeo de IDs
         const profesorId = COACH_MAP[normalizeHeader(rawProfesor)] || rawProfesor;
-        const grupoId = GRUPO_MAP[normalizeHeader(rawGrupo)] || null;
+        const canchaId = CANCHA_MAP[normalizeHeader(rawCancha)] || null;
 
         // El horario puede venir como número de serie de Excel (0.7083...)
         let horarioString = rawHorario;
@@ -152,7 +152,7 @@ async function importarAlumnos() {
             nombre_madre: nombreMadre ? nombreMadre.toString().trim() : null,
             telefono_madre: telMadre,
             escuela_id: ESCUELA_ID_POR_DEFECTO,
-            grupo_id: grupoId,
+            cancha_id: canchaId,
             horario_id: horarioId,
             profesor_asignado_id: (typeof profesorId === 'string' && profesorId.length > 30) ? profesorId : null,
             estado: 'Pendiente',

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { getAsistenciasRango } from '../../../services/asistencias';
 import { getAsistenciasRangoDetalle } from '../../../services/estadisticasService';
@@ -21,14 +21,14 @@ export const useEstadisticas = () => {
     const { 
         alumnos, 
         entrenadores: rawEntrenadores, 
-        grupos: rawGrupos, 
+        canchas: rawCanchas, 
         horarios: rawHorarios, 
         isLoading: isLoadingMasters, 
         isError 
     } = useMasterData();
 
     // Transformamos los datos para que el componente MultiSelectFilter pueda consumirlos fácilmente
-    const grupos = useMemo(() => rawGrupos.map(c => ({ value: c.id, label: c.nombre })), [rawGrupos]);
+    const canchas = useMemo(() => rawCanchas.map(c => ({ value: c.id, label: c.nombre })), [rawCanchas]);
     const horarios = useMemo(() => rawHorarios.map(h => ({ value: h.id, label: h.hora })), [rawHorarios]);
     const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
 
@@ -48,11 +48,11 @@ export const useEstadisticas = () => {
     const [asistenciasDetalle, setAsistenciasDetalle] = useState(null); // Datos individuales para exportación (carga bajo demanda)
 
     // --- ESTADOS DE FILTROS ---
-    const [dateRangeOption, setDateRangeOption] = useState('este_mes'); // Opción de pre-ajuste de fecha
+    const [dateRangeOption, setDateRangeOption] = useState('mes_anterior'); // Opción de pre-ajuste de fecha
 
     // Filtros de Selección Múltiple (Arrays vacíos significan "Seleccionar Todos")
     const [selectedEntrenadores, setSelectedEntrenadores] = useState([]);
-    const [selectedGrupos, setSelectedGrupos] = useState([]);
+    const [selectedCanchas, setSelectedCanchas] = useState([]);
     const [selectedHorarios, setSelectedHorarios] = useState([]);
     const [selectedCategorias, setSelectedCategorias] = useState([]);
     const [selectedDias, setSelectedDias] = useState([]);
@@ -60,7 +60,7 @@ export const useEstadisticas = () => {
     // --- DEBOUNCE DE FILTROS (600ms) ---
     // Evita que la interfaz se recalcule inmediatamente mientras el usuario selecciona múltiples opciones
     const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
-    const debouncedGrupos = useDebounce(selectedGrupos, 600);
+    const debouncedCanchas = useDebounce(selectedCanchas, 600);
     const debouncedHorarios = useDebounce(selectedHorarios, 600);
     const debouncedCategorias = useDebounce(selectedCategorias, 600);
     const debouncedDias = useDebounce(selectedDias, 600);
@@ -160,7 +160,7 @@ export const useEstadisticas = () => {
 
     /**
      * Filtrado de datos AGREGADOS de la vista.
-     * Filtra por entrenador, grupo, horario usando las columnas de la vista directamente.
+     * Filtra por entrenador, cancha, horario usando las columnas de la vista directamente.
      * Para categoría, filtra por los alumnos que pertenecen a esas categorías.
      */
     const filteredData = useMemo(() => {
@@ -174,8 +174,8 @@ export const useEstadisticas = () => {
                 }
             }
 
-            // Filtrado por Grupo (la vista tiene grupo_id)
-            if (debouncedGrupos.length > 0 && !debouncedGrupos.includes(row.grupo_id)) {
+            // Filtrado por Cancha (la vista tiene cancha_id)
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(row.cancha_id)) {
                 return false;
             }
 
@@ -185,14 +185,14 @@ export const useEstadisticas = () => {
             }
 
             // Filtrado por Categoría — necesitamos verificar si hay alumnos con esa categoría
-            // asignados al entrenador/grupo/horario de esta fila
+            // asignados al entrenador/cancha/horario de esta fila
             if (debouncedCategorias.length > 0) {
                 const hayAlumnoEnCategoria = alumnos.some(alumno => {
                     const subLabel = `Sub-${alumno.sub}`;
                     if (!debouncedCategorias.includes(subLabel)) return false;
                     // Verificar que el alumno coincida con los criterios de esta fila agregada
                     if (row.profesor_asignado_id && alumno.profesor_asignado_id !== row.profesor_asignado_id) return false;
-                    if (row.grupo_id && alumno.grupo_id !== row.grupo_id) return false;
+                    if (row.cancha_id && alumno.cancha_id !== row.cancha_id) return false;
                     if (row.horario_id && alumno.horario_id !== row.horario_id) return false;
                     return true;
                 });
@@ -210,7 +210,7 @@ export const useEstadisticas = () => {
 
             return true;
         });
-    }, [asistenciasAgregadas, alumnos, debouncedEntrenadores, debouncedGrupos, debouncedHorarios, debouncedCategorias, debouncedDias]);
+    }, [asistenciasAgregadas, alumnos, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
 
     /**
      * Calcula las métricas generales (KPIs) sumando los conteos de la vista agregada.
@@ -228,7 +228,7 @@ export const useEstadisticas = () => {
     const tableData = useMemo(() => {
         if (!filteredData.length) return [];
 
-        // Agrupar por fecha (puede haber múltiples filas por fecha por diferentes entrenador/grupo/horario)
+        // Agrupar por fecha (puede haber múltiples filas por fecha por diferentes entrenador/cancha/horario)
         const grouped = filteredData.reduce((acc, curr) => {
             const fecha = curr.fecha;
             if (!acc[fecha]) {
@@ -255,7 +255,7 @@ export const useEstadisticas = () => {
      * Carga asistencias individuales bajo demanda para la exportación a Excel.
      * Solo se ejecuta cuando el usuario solicita exportar.
      */
-    const loadDetalleForExport = useCallback(async () => {
+    const loadDetalleForExport = async () => {
         // Forzamos la recarga siempre para asegurar que tenemos los datos completos (evitar caché de 1000 filas)
         setLoadingDetalle(true);
         try {
@@ -266,13 +266,11 @@ export const useEstadisticas = () => {
             return data;
         } catch (error) {
             console.error("Error al cargar detalle para exportación:", error);
-            setAsistenciasDetalle([]);
-            addToast("Error al cargar asistencias individuales", "error");
             return [];
         } finally {
             setLoadingDetalle(false);
         }
-    }, [dateRange, addToast]);
+    };
 
     /**
      * Prepara los datos consolidados para el archivo Excel.
@@ -305,8 +303,8 @@ export const useEstadisticas = () => {
             if (debouncedEntrenadores.length > 0 && !debouncedEntrenadores.includes(alumno.profesor_asignado_id)) {
                 return false;
             }
-            // Filtro por Grupo/Grupo
-            if (debouncedGrupos.length > 0 && !debouncedGrupos.includes(alumno.grupo_id)) {
+            // Filtro por Cancha/Grupo
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) {
                 return false;
             }
             // Filtro por Horario
@@ -336,7 +334,7 @@ export const useEstadisticas = () => {
                 if (!matchRegistro && !matchAlumno) return false;
             }
 
-            if (debouncedGrupos.length > 0 && !debouncedGrupos.includes(alumno.grupo_id)) return false;
+            if (debouncedCanchas.length > 0 && !debouncedCanchas.includes(alumno.cancha_id)) return false;
             if (debouncedHorarios.length > 0 && !debouncedHorarios.includes(alumno.horario_id)) return false;
             
             if (debouncedCategorias.length > 0) {
@@ -411,7 +409,7 @@ export const useEstadisticas = () => {
             dates: dates,
             hasAggregateData: false
         };
-    }, [asistenciasDetalle, alumnos, filteredData, debouncedEntrenadores, debouncedGrupos, debouncedHorarios, debouncedCategorias, debouncedDias]);
+    }, [asistenciasDetalle, alumnos, filteredData, debouncedEntrenadores, debouncedCanchas, debouncedHorarios, debouncedCategorias, debouncedDias]);
 
     /**
      * Texto con el rango de fechas formateado para encabezados de reportes.
@@ -449,8 +447,8 @@ export const useEstadisticas = () => {
             if (excludeFilter !== 'horario' && debouncedHorarios.length > 0) {
                 temp = temp.filter(a => debouncedHorarios.includes(a.horario_id));
             }
-            if (excludeFilter !== 'grupo' && debouncedGrupos.length > 0) {
-                temp = temp.filter(a => debouncedGrupos.includes(a.grupo_id));
+            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0) {
+                temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
             }
             return temp;
         };
@@ -458,20 +456,20 @@ export const useEstadisticas = () => {
         const filteredForEntrenador = getAlumnosFilteredByOthers('entrenador');
         const filteredForSub = getAlumnosFilteredByOthers('categoria');
         const filteredForHorario = getAlumnosFilteredByOthers('horario');
-        const filteredForGrupo = getAlumnosFilteredByOthers('grupo');
+        const filteredForCancha = getAlumnosFilteredByOthers('cancha');
 
         const validEntrenadoresIds = new Set(filteredForEntrenador.map(a => a.profesor_asignado_id));
         const validSubsValues = new Set(filteredForSub.map(a => `Sub-${a.sub}`));
         const validHorariosIds = new Set(filteredForHorario.map(a => a.horario_id));
-        const validGruposIds = new Set(filteredForGrupo.map(a => a.grupo_id));
+        const validCanchasIds = new Set(filteredForCancha.map(a => a.cancha_id));
 
         return {
             entrenadores: entrenadores.map(opt => ({ ...opt, disabled: !validEntrenadoresIds.has(opt.value) })),
             availableCategorias: masterCategorias.map(opt => ({ ...opt, disabled: !validSubsValues.has(opt.value) })),
             horarios: horarios.map(opt => ({ ...opt, disabled: !validHorariosIds.has(opt.value) })),
-            grupos: grupos.map(opt => ({ ...opt, disabled: !validGruposIds.has(opt.value) }))
+            canchas: canchas.map(opt => ({ ...opt, disabled: !validCanchasIds.has(opt.value) }))
         };
-    }, [alumnos, entrenadores, grupos, horarios, masterCategorias, debouncedEntrenadores, debouncedCategorias, debouncedHorarios, debouncedGrupos]);
+    }, [alumnos, entrenadores, canchas, horarios, masterCategorias, debouncedEntrenadores, debouncedCategorias, debouncedHorarios, debouncedCanchas]);
 
     return {
         // Estado de carga y métricas
@@ -489,7 +487,7 @@ export const useEstadisticas = () => {
         // Controladores de filtros
         dateRangeOption, setDateRangeOption,
         selectedEntrenadores, setSelectedEntrenadores,
-        selectedGrupos, setSelectedGrupos,
+        selectedCanchas, setSelectedCanchas,
         selectedHorarios, setSelectedHorarios,
         selectedCategorias, setSelectedCategorias,
         selectedDias, setSelectedDias,

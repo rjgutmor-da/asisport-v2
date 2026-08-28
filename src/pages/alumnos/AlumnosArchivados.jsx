@@ -113,7 +113,7 @@ const AlumnosArchivados = () => {
                                 <thead>
                                     <tr className="bg-surface border-b border-border">
                                         <th className="text-left text-text-secondary font-semibold px-4 py-3">Nombre</th>
-                                        <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden sm:table-cell">Grupo</th>
+                                        <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden sm:table-cell">Cancha</th>
                                         <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden md:table-cell">Horario</th>
                                         <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden md:table-cell">Asistencias</th>
                                         <th className="text-center text-text-secondary font-semibold px-4 py-3">Acción</th>
@@ -154,13 +154,13 @@ const AlumnosArchivados = () => {
                                                         </p>
                                                         {/* Info adicional visible solo en móvil */}
                                                         <p className="text-text-secondary text-xs sm:hidden">
-                                                            {alumno.grupo?.nombre || 'Sin grupo'}
+                                                            {alumno.cancha?.nombre || 'Sin cancha'}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">
-                                                {alumno.grupo?.nombre || '—'}
+                                                {alumno.cancha?.nombre || '—'}
                                             </td>
                                             <td className="px-4 py-3 text-text-secondary hidden md:table-cell">
                                                 {alumno.horario?.hora || '—'}

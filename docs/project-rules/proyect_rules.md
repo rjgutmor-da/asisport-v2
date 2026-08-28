@@ -103,7 +103,7 @@ El frontend se implementa como un **monolito modular**.
 La interfaz debe ser:
 - Mobile-first
 - Totalmente responsiva
-- Clara y simple, priorizando legibilidad en contexto de uso real (grupo, celular, luz solar)
+- Clara y simple, priorizando legibilidad en contexto de uso real (cancha, celular, luz solar)
 
 ---
 

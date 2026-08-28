@@ -502,7 +502,7 @@ function calcularFechaNacimiento(grupo) {
 
 // Caches de dependencias para evitar escrituras y consultas duplicadas
 const sucursalesCache = {};
-const gruposCache = {};
+const canchasCache = {};
 const horariosCache = {};
 
 async function resolverSucursal(nombre, escuelaId) {
@@ -542,40 +542,40 @@ async function resolverSucursal(nombre, escuelaId) {
     return created.id;
 }
 
-async function resolverGrupo(nombre, escuelaId) {
+async function resolverCancha(nombre, escuelaId) {
     const key = nombre.trim();
-    if (gruposCache[key]) return gruposCache[key];
+    if (canchasCache[key]) return canchasCache[key];
 
     // Buscar en la base de datos
     const { data, error } = await supabase
-        .from('grupos')
+        .from('canchas')
         .select('id')
         .eq('nombre', key)
         .eq('escuela_id', escuelaId)
         .maybeSingle();
 
     if (error) {
-        console.error(`Error al buscar grupo/grupo "${key}":`, error.message);
+        console.error(`Error al buscar cancha/grupo "${key}":`, error.message);
         throw error;
     }
     if (data) {
-        gruposCache[key] = data.id;
+        canchasCache[key] = data.id;
         return data.id;
     }
 
     // Si no existe, crearla
-    console.log(`[Grupos/Grupos] Creando grupo "${key}"...`);
+    console.log(`[Canchas/Grupos] Creando grupo "${key}"...`);
     const { data: created, error: createError } = await supabase
-        .from('grupos')
+        .from('canchas')
         .insert({ nombre: key, escuela_id: escuelaId })
         .select('id')
         .single();
 
     if (createError) {
-        console.error(`Error al crear grupo/grupo "${key}":`, createError.message);
+        console.error(`Error al crear cancha/grupo "${key}":`, createError.message);
         throw createError;
     }
-    gruposCache[key] = created.id;
+    canchasCache[key] = created.id;
     return created.id;
 }
 
@@ -699,7 +699,7 @@ async function registrarAlumnos() {
             tipo: tipoRaw,
             mensualidad: mensualidad,
             sucursalNombre: sucursalRaw,
-            grupoNombre: grupoRaw,
+            canchaNombre: grupoRaw,
             horarioHora: horarioRaw,
             entrenadorId: entrenadorId || SUPER_ADMIN_ID,
             entrenadorNombre: entrenadorRaw
@@ -716,7 +716,7 @@ async function registrarAlumnos() {
         try {
             // Resolver IDs de dependencias
             const sucursalId = await resolverSucursal(item.sucursalNombre, ESCUELA_ID);
-            const grupoId = await resolverGrupo(item.grupoNombre, ESCUELA_ID);
+            const canchaId = await resolverCancha(item.canchaNombre, ESCUELA_ID);
             const horarioId = await resolverHorario(item.horarioHora, ESCUELA_ID);
 
             // Verificar si el alumno ya está registrado para evitar duplicados
@@ -758,7 +758,7 @@ async function registrarAlumnos() {
                 escuela_id: ESCUELA_ID,
                 created_by: SUPER_ADMIN_ID,
                 sucursal_id: sucursalId,
-                grupo_id: grupoId,
+                cancha_id: canchaId,
                 horario_id: horarioId,
                 tipo: item.tipo,
                 mensualidad: item.mensualidad,
@@ -791,7 +791,7 @@ async function registrarAlumnos() {
                 console.error(`⚠️ Fila ${item.originalLine} (${item.nombres} ${item.apellidos}): Alumno registrado, pero falló la relación de entrenador ->`, relError.message);
             }
 
-            console.log(`✅ Fila ${item.originalLine}: ${inserted.nombres} ${inserted.apellidos} registrado exitosamente. (Grupo: ${item.grupoNombre}, Coach: ${item.entrenadorNombre})`);
+            console.log(`✅ Fila ${item.originalLine}: ${inserted.nombres} ${inserted.apellidos} registrado exitosamente. (Grupo: ${item.canchaNombre}, Coach: ${item.entrenadorNombre})`);
             successCount++;
 
         } catch (err) {

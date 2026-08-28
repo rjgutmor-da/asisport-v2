@@ -66,9 +66,19 @@ const CAMPOS_OBLIGATORIOS = [
         validar: (alumno) => !!(alumno.direccion && alumno.direccion.trim())
     },
     {
-        campo: 'grupo_gestion_id',
-        etiqueta: 'Grupo, horario y entrenador',
-        validar: (alumno) => !!alumno.grupo_gestion_id || !!(alumno.grupo_id && alumno.horario_id && alumno.profesor_asignado_id)
+        campo: 'cancha_id',
+        etiqueta: 'Grupo',
+        validar: (alumno) => !!alumno.cancha_id
+    },
+    {
+        campo: 'horario_id',
+        etiqueta: 'Horario',
+        validar: (alumno) => !!alumno.horario_id
+    },
+    {
+        campo: 'profesor_asignado_id',
+        etiqueta: 'Entrenador Asignado',
+        validar: (alumno) => !!alumno.profesor_asignado_id
     },
     {
         campo: 'sucursal_id',

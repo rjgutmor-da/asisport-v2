@@ -20,7 +20,7 @@ const RegistroAlumno = () => {
         submitting,
         formData,
         errors,
-        maestros: { grupos, horarios, sucursales },
+        maestros: { canchas, horarios, entrenadores, sucursales },
         handleChange,
         setPhotoFile,
         handleSubmit
@@ -114,7 +114,6 @@ const RegistroAlumno = () => {
                                     name="es_arquero"
                                     checked={formData.es_arquero}
                                     onChange={handleChange}
-                                    disabled={role === 'Entrenarqueros'}
                                     className="w-5 h-5 rounded border-border bg-surface text-primary focus:ring-primary"
                                 />
                                 <label htmlFor="es_arquero" className="text-sm font-medium text-white cursor-pointer select-none">
@@ -281,24 +280,28 @@ const RegistroAlumno = () => {
                                 <div></div>
                             )}
 
-                            <div className="flex flex-col justify-start">
-                                <label className="text-sm font-medium text-text-secondary mb-2">Profesor principal</label>
-                                <div className="rounded-md border border-border bg-surface/60 px-3 py-2 text-white min-h-[42px]">
-                                    {formData.grupo_gestion_id ? 'Se asigna automáticamente con el grupo' : 'Selecciona grupo y horario'}
-                                </div>
-                                <p className="text-[11px] text-text-secondary mt-1">El profesor no se puede seleccionar manualmente.</p>
-                            </div>
+                            {/* 2. Entrenador (Profesor Asignado), filtrado por sucursal */}
+                            <Select
+                                label="Profesor Asignado"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                onChange={handleChange}
+                                error={errors.profesor_asignado_id}
+                                disabled={isAnyCoach || !formData.sucursal_id}
+                                placeholder={formData.sucursal_id ? 'Selecciona una opción' : 'Selecciona una sucursal primero'}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* 3. Grupo */}
                             <Select
                                 label="Grupo *"
-                                name="grupo_id"
-                                value={formData.grupo_id}
-                                options={grupos}
+                                name="cancha_id"
+                                value={formData.cancha_id}
+                                options={canchas}
                                 onChange={handleChange}
-                                error={errors.grupo_id}
+                                error={errors.cancha_id}
                             />
 
                             {/* 4. Horario de Entrenamiento */}

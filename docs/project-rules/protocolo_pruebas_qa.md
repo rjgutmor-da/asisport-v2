@@ -8,9 +8,9 @@ El objetivo NO es testing exhaustivo (esto es un MVP), sino **asegurar que lo cr
 
 ## Principio Fundamental de QA
 
-> **"Si no funciona en la grupo con sol y prisa, no está terminado."**
+> **"Si no funciona en la cancha con sol y prisa, no está terminado."**
 
-No importa cuán elegante sea el código si falla cuando el entrenador más lo necesita: en la grupo, con prisa, bajo el sol, con manos sudadas.
+No importa cuán elegante sea el código si falla cuando el entrenador más lo necesita: en la cancha, con prisa, bajo el sol, con manos sudadas.
 
 Todo testing debe simular **condiciones de uso real**, no condiciones de laboratorio.
 
@@ -19,7 +19,7 @@ Todo testing debe simular **condiciones de uso real**, no condiciones de laborat
 ## Prioridades de Testing (en orden)
 
 ### 1. 🎯 Usabilidad Básica (CRÍTICO)
-**¿Funciona en la grupo?**
+**¿Funciona en la cancha?**
 - ¿Se ve bien en móvil bajo luz solar directa? (contraste, colores)
 - ¿Los botones son fáciles de tocar? (tamaño, espaciado)
 - ¿Los mensajes son claros? (sin jerga técnica)
@@ -47,7 +47,7 @@ Todo testing debe simular **condiciones de uso real**, no condiciones de laborat
 - Feedback visual mientras carga (spinners, skeletons)
 - Manejo de errores de conexión
 
-**Por qué es #3:** Las grupos no siempre tienen WiFi rápido.
+**Por qué es #3:** Las canchas no siempre tienen WiFi rápido.
 
 ---
 
@@ -297,7 +297,7 @@ describe('Validaciones de Alumno', () => {
    - CI: "12345678"
    - Nombre Padre: "Pedro Pérez"
    - Teléfono Padre: "+591 77123456"
-   - Grupo: "Grupo Norte"
+   - Cancha: "Cancha Norte"
    - Horario: "17:00"
    - Foto: Subir imagen cuadrada 400x400
    - Es Arquero: No marcar
@@ -485,7 +485,7 @@ describe('Aprobación de Alumnos', () => {
       // CI faltante
       nombre_padre: 'Pedro',
       telefono_padre: '+591771234',
-      grupo_id: 1,
+      cancha_id: 1,
       horario_id: 1,
       foto_url: 'http://...',
       entrenadores: [1]
@@ -513,7 +513,7 @@ describe('Aprobación de Alumnos', () => {
       carnet_identidad: '12345678',
       nombre_padre: 'Pedro',
       telefono_padre: '+591771234',
-      grupo_id: 1,
+      cancha_id: 1,
       horario_id: 1,
       foto_url: 'http://...',
       entrenadores: [1]
@@ -759,7 +759,7 @@ npm run test src/features/alumnos/__tests__/
    - Fecha: "15/03/2010"
    - CI: "12345678"
    - Padre: "Pedro Pérez" / "+591 77123456"
-   - Grupo: "Grupo Norte"
+   - Cancha: "Cancha Norte"
    - Horario: "17:00"
    - Foto: subir test-photo-400x400.jpg
 3. Click "Guardar Alumno"
@@ -1047,7 +1047,7 @@ Actualizar README del proyecto:
 
 > **"Si no lo probaste en móvil bajo el sol, no está probado."**
 
-Todos los tests del mundo no sirven si en la grupo, con el sol de frente, el entrenador no puede leer la pantalla o tocar los botones.
+Todos los tests del mundo no sirven si en la cancha, con el sol de frente, el entrenador no puede leer la pantalla o tocar los botones.
 
 El testing de AsiSport debe siempre **priorizar el contexto de uso real** sobre la perfección técnica.
 
