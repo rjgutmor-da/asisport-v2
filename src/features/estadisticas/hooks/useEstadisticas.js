@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '../../../components/ui/Toast';
 import { getAsistenciasRango } from '../../../services/asistencias';
 import { getAsistenciasRangoDetalle } from '../../../services/estadisticasService';
@@ -255,7 +255,7 @@ export const useEstadisticas = () => {
      * Carga asistencias individuales bajo demanda para la exportación a Excel.
      * Solo se ejecuta cuando el usuario solicita exportar.
      */
-    const loadDetalleForExport = async () => {
+    const loadDetalleForExport = useCallback(async () => {
         // Forzamos la recarga siempre para asegurar que tenemos los datos completos (evitar caché de 1000 filas)
         setLoadingDetalle(true);
         try {
@@ -266,11 +266,13 @@ export const useEstadisticas = () => {
             return data;
         } catch (error) {
             console.error("Error al cargar detalle para exportación:", error);
+            setAsistenciasDetalle([]);
+            addToast("Error al cargar asistencias individuales", "error");
             return [];
         } finally {
             setLoadingDetalle(false);
         }
-    };
+    }, [dateRange, addToast]);
 
     /**
      * Prepara los datos consolidados para el archivo Excel.

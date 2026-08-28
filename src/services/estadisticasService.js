@@ -5,6 +5,7 @@
  * Provee la consulta de detalle individual (para exportación a Excel).
  */
 import { supabase } from '../lib/supabaseClient';
+import { obtenerEscuelaId } from '../lib/rpcHelper';
 
 /**
  * Obtiene las asistencias individuales en un rango de fechas.
@@ -16,20 +17,9 @@ import { supabase } from '../lib/supabaseClient';
  * @returns {Promise<Array>} Lista de asistencias individuales con alumno_id, fecha y estado
  */
 export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
-    const { data, error } = await supabase
-        .from('v_asistencias_contexto')
-        .select('alumno_id, fecha, estado, entrenador_id, grupo_gestion_id, grupo_nombre, grupo_hora, grupo_id, horario_id, registrado_por, registrado_nombres, registrado_apellidos, registrado_rol')
-        .gte('fecha', fechaInicio)
-        .lte('fecha', fechaFin)
-        .order('fecha', { ascending: true });
-    if (error) throw error;
-    return (data || []).map((row) => ({
-        ...row,
-        entrenador: row.registrado_nombres || row.registrado_apellidos
-            ? { nombres: row.registrado_nombres, apellidos: row.registrado_apellidos, rol: row.registrado_rol }
-            : null,
-    }));
-    /* const fetchAll = async (table) => {
+    const escuelaId = await obtenerEscuelaId();
+
+    const fetchAll = async () => {
         let allData = [];
         let from = 0;
         let to = 999;
@@ -37,7 +27,7 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
 
         while (!finished) {
             const { data, error } = await supabase
-                .from(table)
+                .from('asistencias_normales')
                 .select('alumno_id, fecha, estado, entrenador_id, entrenador:usuarios!asistencias_normales_entrenador_id_fkey(nombres, apellidos, rol), alumnos!inner(escuela_id)')
                 .eq('alumnos.escuela_id', escuelaId)
                 .gte('fecha', fechaInicio)
@@ -63,5 +53,5 @@ export const getAsistenciasRangoDetalle = async (fechaInicio, fechaFin) => {
         return allData;
     };
 
-    return fetchAll('asistencias_normales'); */
+    return fetchAll();
 };
