@@ -5,14 +5,14 @@ import { getDataScope } from '../config/roles';
 
 export const getGrupos = async () => {
     // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('grupos_v3');
+    const cached = cacheService.get('grupos_v4_canchas');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
-        .from('grupos')
-        .select('id, nombre, sucursal_id, grupos_horarios(horario_id)')
+        .from('canchas')
+        .select('id, nombre, sucursal_id, canchas_horarios(horario_id)')
         .eq('escuela_id', escuelaId)
         .eq('activo', true);
 
@@ -22,11 +22,11 @@ export const getGrupos = async () => {
         id: c.id,
         nombre: c.nombre,
         sucursal_id: c.sucursal_id,
-        horario_ids: (c.grupos_horarios || []).map(ch => ch.horario_id)
+        horario_ids: (c.canchas_horarios || []).map(ch => ch.horario_id)
     }));
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('grupos_v3', formatted);
+    cacheService.set('grupos_v4_canchas', formatted);
     return formatted;
 };
 

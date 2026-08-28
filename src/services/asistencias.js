@@ -380,29 +380,17 @@ export const getAsistenciasRangoLegacy = async (fechaInicio, fechaFin) => {
 };
 
 export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
+    const escuelaId = await obtenerEscuelaId();
     const { data, error } = await supabase
-        .from('v_asistencias_contexto')
-        .select('fecha, estado, escuela_id, entrenador_id, grupo_gestion_id, grupo_nombre, grupo_hora, grupo_id, horario_id, registrado_por')
+        .from('v_estadisticas_asistencia_diaria')
+        .select('fecha, presentes, licencias, escuela_id, profesor_asignado_id, cancha_id, horario_id')
+        .eq('escuela_id', escuelaId)
         .gte('fecha', fechaInicio)
         .lte('fecha', fechaFin);
     if (error) throw error;
-    const agregados = new Map();
-    (data || []).forEach((registro) => {
-        const key = [registro.fecha, registro.entrenador_id, registro.grupo_gestion_id || 'sin-grupo'].join('|');
-        if (!agregados.has(key)) agregados.set(key, {
-            fecha: registro.fecha, presentes: 0, licencias: 0,
-            profesor_asignado_id: registro.entrenador_id,
-            entrenador_id: registro.entrenador_id,
-            registrado_por: registro.registrado_por,
-            grupo_gestion_id: registro.grupo_gestion_id,
-            grupo_nombre: registro.grupo_nombre,
-            grupo_hora: registro.grupo_hora,
-            grupo_id: registro.grupo_id, horario_id: registro.horario_id,
-            escuela_id: registro.escuela_id,
-        });
-        const row = agregados.get(key);
-        if (registro.estado === 'Presente') row.presentes += 1;
-        if (registro.estado === 'Licencia') row.licencias += 1;
-    });
-    return Array.from(agregados.values());
+    return (data || []).map((registro) => ({
+        ...registro,
+        // Adaptación de presentación: "grupo" en UI, cancha_id en PostgreSQL.
+        grupo_id: registro.cancha_id,
+    }));
 };

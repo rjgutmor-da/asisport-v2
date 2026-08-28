@@ -179,7 +179,7 @@ export const getAlumnos = async (filtros = {}) => {
             estado,
             es_arquero,
             profesor_asignado_id,
-            grupo_id,
+            cancha_id,
             horario_id,
             nombre_padre,
             telefono_padre,
@@ -193,7 +193,7 @@ export const getAlumnos = async (filtros = {}) => {
             asistencias_mes_anterior,
             tipo,
             mensualidad,
-            grupo:grupos(nombre),
+            grupo:canchas(nombre),
             horario:horarios(hora)
         `)
         .eq('escuela_id', escuelaId)
@@ -224,9 +224,9 @@ export const getAlumnos = async (filtros = {}) => {
 
     // Filtros multi-selección de grupo desde el servidor
     if (grupoIds.length === 1) {
-        query = query.eq('grupo_id', grupoIds[0]);
+        query = query.eq('cancha_id', grupoIds[0]);
     } else if (grupoIds.length > 1) {
-        query = query.in('grupo_id', grupoIds);
+        query = query.in('cancha_id', grupoIds);
     }
 
     // Filtros multi-selección de horario desde el servidor
@@ -256,6 +256,8 @@ export const getAlumnos = async (filtros = {}) => {
     let resultado = data.map(alumno => {
         return {
             ...alumno,
+            // La interfaz usa "grupo", pero la columna física sigue siendo cancha_id.
+            grupo_id: alumno.cancha_id,
             asistencias_count: alumno.asistencias_mes_actual || 0
         };
     });
