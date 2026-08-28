@@ -73,9 +73,7 @@ export const useAlumno = (id) => {
                 ).length;
 
                 // Cargar datos maestros y verificar deuda en paralelo
-                // Bug P5 corregido: se renombró la segunda variable a gruposGestionData
-                // para evitar colisión con la primera (gruposData de getGrupos)
-                const [gruposData, horariosData, entrenadoresData, sucursalesData, tieneDeuda, gruposGestionData] = await Promise.all([
+                const [gruposData, horariosData, entrenadoresData, sucursalesData, tieneDeuda, gruposData] = await Promise.all([
                     getGrupos(),
                     getHorarios(),
                     getEntrenadores(),
@@ -83,7 +81,7 @@ export const useAlumno = (id) => {
                     verificarDeudaAlumno(id),
                     getGruposGestionActivos()
                 ]);
-                setGruposGestion(gruposGestionData || []);
+                setGruposGestion(gruposData || []);
 
                 const alumnoConTotales = {
                     ...alumnoData,
