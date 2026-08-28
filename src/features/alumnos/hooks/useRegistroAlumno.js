@@ -61,14 +61,16 @@ export const useRegistroAlumno = (onSuccess) => {
     useEffect(() => {
         const loadMaestros = async () => {
             try {
-                const [gruposData, horariosData, entrenadoresData, sucursalesData, gruposData] = await Promise.all([
+                // Bug P5 corregido: se renombró la segunda variable a gruposGestionData
+                // para evitar colisión con la primera (gruposData de getGrupos)
+                const [gruposData, horariosData, entrenadoresData, sucursalesData, gruposGestionData] = await Promise.all([
                     getGrupos(),
                     getHorarios(),
                     getEntrenadores(),
                     getSucursales(),
                     getGruposGestionActivos()
                 ]);
-                setGruposGestion(gruposData || []);
+                setGruposGestion(gruposGestionData || []);
                 // Guardamos los datos crudos para poder filtrar por sucursal_id
                 setGruposRaw(gruposData);
                 setGrupos(gruposData.map(c => ({ value: c.id, label: c.nombre, sucursal_id: c.sucursal_id })));
@@ -215,7 +217,7 @@ export const useRegistroAlumno = (onSuccess) => {
         (!formData.sucursal_id || String(g.sucursal_id) === String(formData.sucursal_id))
         && (!formData.grupo_id || String(g.grupo_id) === String(formData.grupo_id))),
     [gruposGestion, formData.sucursal_id, formData.grupo_id]);
-    const gruposGestion = useMemo(() => Array.from(new Map(
+    const gruposGestionMemo = useMemo(() => Array.from(new Map(
         gruposGestion.filter(g => !formData.sucursal_id || String(g.sucursal_id) === String(formData.sucursal_id))
             .map(g => [g.grupo_id, { value: g.grupo_id, label: g.nombre_snapshot, sucursal_id: g.sucursal_id }]),
     ).values()), [gruposGestion, formData.sucursal_id]);
@@ -275,7 +277,7 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
-        maestros: { grupos: gruposGestion.length ? gruposGestion : gruposFiltradas, horarios: horariosGestion.length ? horariosGestion : horariosFiltrados, entrenadores: entrenadorFiltrados, sucursales },
+        maestros: { grupos: gruposGestionMemo.length ? gruposGestionMemo : gruposFiltradas, horarios: horariosGestion.length ? horariosGestion : horariosFiltrados, entrenadores: entrenadorFiltrados, sucursales },
 
         handleChange,
         setPhotoFile,
