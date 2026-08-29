@@ -44,7 +44,6 @@ export const useAsistencias = () => {
     // --- DATOS MAESTROS (Caché centralizada) ---
     const { 
         canchas: rawCanchas, 
-        horarios: rawHorarios, 
         entrenadores: rawEntrenadores,
         isLoading: loadingMaestros 
     } = useMasterData();
@@ -77,51 +76,43 @@ export const useAsistencias = () => {
 
     const canchas = useMemo(() => {
         if (isAdmin && !selectedEntrenador) {
-            return rawCanchas.map(c => ({ value: c.id, label: c.nombre }));
+            return rawCanchas.map(c => ({
+                value: c.id,
+                label: c.nombre,
+                horarioId: c.horario_ids?.[0] || ''
+            }));
         }
 
         const canchasMap = new Map();
         facetsData.forEach(a => {
             if (a.cancha_id) {
                 const cInfo = rawCanchas.find(rc => rc.id === a.cancha_id);
-                if (cInfo) canchasMap.set(cInfo.id, { value: cInfo.id, label: cInfo.nombre });
+                if (cInfo) {
+                    canchasMap.set(cInfo.id, {
+                        value: cInfo.id,
+                        label: cInfo.nombre,
+                        horarioId: cInfo.horario_ids?.[0] || a.horario_id || ''
+                    });
+                }
             }
         });
         
         return Array.from(canchasMap.values()).sort((a,b) => a.label.localeCompare(b.label));
     }, [facetsData, rawCanchas, isAdmin, selectedEntrenador]);
 
-    const horarios = useMemo(() => {
-        // Si no hay cancha seleccionada y es admin viendo todos, mostrar todos los horarios
-        if (isAdmin && !selectedEntrenador && !selectedCancha) {
-            return rawHorarios.map(h => ({ value: h.id, label: h.hora }));
-        }
-
-        const horariosMap = new Map();
-        facetsData.forEach(a => {
-            // Filtrar por cancha si hay una seleccionada
-            if (selectedCancha && a.cancha_id !== selectedCancha) return;
-            
-            if (a.horario_id) {
-                const hInfo = rawHorarios.find(rh => rh.id === a.horario_id);
-                if (hInfo) horariosMap.set(hInfo.id, { value: hInfo.id, label: hInfo.hora });
-            }
-        });
-
-        return Array.from(horariosMap.values()).sort((a,b) => a.label.localeCompare(b.label));
-    }, [facetsData, rawHorarios, selectedCancha, isAdmin, selectedEntrenador]);
-
     const entrenadores = useMemo(() => rawEntrenadores.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [rawEntrenadores]);
 
-    // Limpiar horario si el nuevo grupo seleccionado no contiene el horario actual
+    // Cada grupo tiene un único horario. Lo asignamos internamente al elegirlo,
+    // sin exigir al entrenador una segunda selección.
     useEffect(() => {
-        if (selectedHorario && horarios.length > 0) {
-            const horarioValido = horarios.find(h => h.value === selectedHorario);
-            if (!horarioValido) {
-                setSelectedHorario('');
-            }
+        if (!selectedCancha) {
+            setSelectedHorario('');
+            return;
         }
-    }, [horarios, selectedHorario, selectedCancha]);
+
+        const grupoSeleccionado = canchas.find(cancha => cancha.value === selectedCancha);
+        setSelectedHorario(grupoSeleccionado?.horarioId || '');
+    }, [canchas, selectedCancha]);
 
     // --- DATOS DE ASISTENCIA (TanStack Query) ---
     const { 
@@ -368,7 +359,6 @@ export const useAsistencias = () => {
         resumen,
         enviosRealizados,
         canchas,
-        horarios,
         selectedCancha,
         selectedHorario,
         setSelectedCancha,

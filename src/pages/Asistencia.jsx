@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle, MapPin, Clock, Camera, X, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, RefreshCw, Send, AlertTriangle, CheckCircle, MapPin, Camera, X, ImageIcon } from 'lucide-react';
 import Select from '../components/ui/Select';
 import AsistenciaListItem from '../features/asistencias/components/AsistenciaListItem';
 
@@ -24,11 +24,8 @@ const Asistencia = () => {
         resumen, // { total, presentes, licencias, ausentes, cambiosPendientes }
         enviosRealizados, // 0, 1, 2
         canchas,
-        horarios,
         selectedCancha,
-        selectedHorario,
         setSelectedCancha,
-        setSelectedHorario,
         handleDateChange,
         handleAsistenciaNormal,
         handleEliminarAsistenciaNormal,
@@ -164,9 +161,8 @@ const Asistencia = () => {
 
     const isButtonDisabled = loading || submitting || subiendoFoto || enviosRealizados >= 2;
 
-    // Determinar si los filtros obligatorios están seleccionados
-    // Para entrenadores (no admin) la cancha y horario son obligatorios
-    const filtrosCompletos = isAdmin || isGoalkeeperCoach || (selectedCancha && selectedHorario);
+    // Para entrenadores, basta elegir el grupo: su horario se resuelve automáticamente.
+    const filtrosCompletos = isAdmin || isGoalkeeperCoach || Boolean(selectedCancha);
 
     return (
         <div className="min-h-screen bg-background pb-32 md:pb-10 relative">
@@ -214,7 +210,7 @@ const Asistencia = () => {
             </header>
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
-                <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-2' : ''} gap-4`}>
                     {isAdmin && (
                         <Select
                             placeholder="Todos los Entrenadores"
@@ -224,43 +220,27 @@ const Asistencia = () => {
                         />
                     )}
                     <Select
-                        placeholder="Todos los Grupos"
+                        placeholder={isAdmin ? 'Todos los Grupos' : 'Elige tu grupo'}
                         options={canchas}
                         value={selectedCancha}
                         onChange={(e) => setSelectedCancha(e.target.value)}
-                    />
-                    <Select
-                        placeholder="Todos los Horarios"
-                        options={horarios}
-                        value={selectedHorario}
-                        onChange={(e) => setSelectedHorario(e.target.value)}
                     />
                 </div>
 
                 {/* Mensaje si no se han seleccionado los filtros obligatorios */}
                 {!filtrosCompletos ? (
                     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                        <div className="bg-surface border border-border rounded-xl p-8 max-w-md w-full space-y-4">
-                            <div className="flex justify-center gap-3">
-                                <div className={`p-3 rounded-full ${selectedCancha ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
-                                    <MapPin size={28} />
-                                </div>
-                                <div className={`p-3 rounded-full ${selectedHorario ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
-                                    <Clock size={28} />
+                        <div className="bg-surface border border-border rounded-2xl p-8 max-w-md w-full space-y-4 shadow-xl shadow-black/10">
+                            <div className="flex justify-center">
+                                <div className="p-4 rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                                    <MapPin size={30} />
                                 </div>
                             </div>
                             <h3 className="text-lg font-bold text-white">
-                                Selecciona Grupo y Horario
+                                Elige tu grupo para comenzar
                             </h3>
                             <p className="text-text-secondary text-sm">
-                                Para tomar lista debes elegir un grupo
-                                {!selectedCancha && !selectedHorario
-                                    ? ' y un horario.'
-                                    : !selectedCancha
-                                        ? '.'
-                                        : !selectedHorario
-                                            ? '. Falta seleccionar el horario.'
-                                            : '.'}
+                                El horario se aplicará automáticamente.
                             </p>
                         </div>
                     </div>
