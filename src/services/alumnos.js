@@ -184,7 +184,7 @@ export const getAlumnos = async (filtros = {}) => {
         .eq('id', user.id)
         .single();
 
-    // Query principal con JOINs usando la vista v_alumnos para tener el dato 'sub' precalculado
+    // Query principal usando la vista v_alumnos para tener datos precalculados
     let query = supabase
         .from('v_alumnos')
         .select(`
@@ -211,8 +211,8 @@ export const getAlumnos = async (filtros = {}) => {
             asistencias_mes_anterior,
             tipo,
             mensualidad,
-            cancha:canchas(nombre),
-            horario:horarios(hora)
+            cancha_nombre,
+            horario_hora
         `)
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
@@ -274,6 +274,8 @@ export const getAlumnos = async (filtros = {}) => {
     let resultado = data.map(alumno => {
         return {
             ...alumno,
+            cancha: { nombre: alumno.cancha_nombre || '' },
+            horario: { hora: alumno.horario_hora || '' },
             asistencias_count: alumno.asistencias_mes_actual || 0
         };
     });
@@ -319,8 +321,8 @@ export const getAlumnosPaginados = async (filtros = {}) => {
             telefono_deportista, whatsapp_preferido, created_at, sub,
             asistencias_mes_actual, asistencias_mes_anterior, tipo, mensualidad,
             colegio, direccion, sucursal_id,
-            cancha:canchas(nombre),
-            horario:horarios(hora)
+            cancha_nombre,
+            horario_hora
         `, { count: 'exact' })
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
@@ -387,7 +389,12 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     if (error) throw error;
 
     return {
-        alumnos: data.map(a => ({ ...a, asistencias_count: a.asistencias_mes_actual || 0 })),
+        alumnos: data.map(a => ({ 
+            ...a, 
+            cancha: { nombre: a.cancha_nombre || '' },
+            horario: { hora: a.horario_hora || '' },
+            asistencias_count: a.asistencias_mes_actual || 0 
+        })),
         totalCount: count || 0
     };
 };
@@ -406,7 +413,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id')
+        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id, terminos_busqueda')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -504,7 +511,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             telefono_madre,
             whatsapp_preferido,
             created_at,
-            cancha:canchas(nombre),
+            cancha:grupos(nombre),
             horario:horarios(hora),
             asistencias_normales(count),
             asistencias_arqueros(count)

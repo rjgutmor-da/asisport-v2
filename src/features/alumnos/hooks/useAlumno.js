@@ -48,7 +48,7 @@ export const useAlumno = (id) => {
                     .from('alumnos')
                     .select(`
                         *,
-                        cancha:canchas(id, nombre),
+                        cancha:grupos(id, nombre),
                         horario:horarios(id, hora),
                         asistencias_normales(id, fecha, estado),
                         asistencias_arqueros(id, fecha, estado),
@@ -180,7 +180,7 @@ export const useAlumno = (id) => {
             .from('alumnos')
             .select(`
                 *,
-                cancha:canchas(id, nombre),
+                cancha:grupos(id, nombre),
                 horario:horarios(id, hora),
                 asistencias_normales(id, fecha, estado),
                 asistencias_arqueros(id, fecha, estado),
