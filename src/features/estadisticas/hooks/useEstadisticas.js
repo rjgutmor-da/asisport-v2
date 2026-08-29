@@ -48,7 +48,7 @@ export const useEstadisticas = () => {
     const [asistenciasDetalle, setAsistenciasDetalle] = useState(null); // Datos individuales para exportación (carga bajo demanda)
 
     // --- ESTADOS DE FILTROS ---
-    const [dateRangeOption, setDateRangeOption] = useState('mes_anterior'); // Opción de pre-ajuste de fecha
+    const [dateRangeOption, setDateRangeOption] = useState('este_mes'); // Opción de pre-ajuste de fecha
 
     // Filtros de Selección Múltiple (Arrays vacíos significan "Seleccionar Todos")
     const [selectedEntrenadores, setSelectedEntrenadores] = useState([]);
