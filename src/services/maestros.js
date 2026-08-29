@@ -10,20 +10,21 @@ export const getCanchas = async () => {
 
     const escuelaId = await obtenerEscuelaId();
 
-    const { data, error } = await supabase.rpc('rpc_obtener_grupos_con_entrenador', {
-        p_escuela_id: escuelaId
-    });
+    const { data, error } = await supabase
+        .from('canchas')
+        .select('id, nombre, sucursal_id, canchas_horarios(horario_id)')
+        .eq('escuela_id', escuelaId)
+        .eq('activo', true);
 
     if (error) throw error;
 
-    const formatted = (data || [])
-        .filter(c => c.activo)
-        .map(c => ({
+    const formatted = (data || []).map(c => ({
             id: c.id,
             nombre: c.nombre,
             sucursal_id: c.sucursal_id,
-            horario_ids: c.horario_id ? [c.horario_id] : [],
-            entrenador_id: c.entrenador_id || null
+            horario_ids: (c.canchas_horarios || []).map(ch => ch.horario_id),
+            // El entrenador se asigna por alumno; no hay una tabla física de grupos.
+            entrenador_id: null
         }));
 
     // Guardar en caché (5 minutos por defecto)
@@ -71,7 +72,7 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
 
     let query = supabase
         .from('alumnos')
-        .select('cancha_id, cancha:grupos(id, nombre)')
+        .select('cancha_id, cancha:canchas(id, nombre)')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -175,7 +176,7 @@ export const getAllCanchas = async () => {
     const escuelaId = await obtenerEscuelaId();
 
     const { data, error } = await supabase
-        .from('grupos')
+        .from('canchas')
         // Se incluye la sucursal relacionada para mostrarla en la UI
         .select('id, nombre, activo, sucursal_id, sucursal:sucursales(id, nombre)')
         .eq('escuela_id', escuelaId)
@@ -201,7 +202,7 @@ export const createCancha = async (nombre, sucursalId = null) => {
 
     // Validar duplicados dentro de la misma sucursal
     const { data: existing } = await supabase
-        .from('grupos')
+        .from('canchas')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
@@ -213,7 +214,7 @@ export const createCancha = async (nombre, sucursalId = null) => {
     }
 
     const { data, error } = await supabase
-        .from('grupos')
+        .from('canchas')
         .insert([{
             nombre: nombre.trim(),
             escuela_id: escuelaId,
@@ -242,7 +243,7 @@ export const updateCancha = async (id, nombre, sucursalId = null) => {
 
     // Validar duplicados (excepto la misma cancha, dentro de la misma sucursal)
     const { data: existing } = await supabase
-        .from('grupos')
+        .from('canchas')
         .select('id')
         .eq('escuela_id', escuelaId)
         .eq('nombre', nombre.trim())
@@ -255,7 +256,7 @@ export const updateCancha = async (id, nombre, sucursalId = null) => {
     }
 
     const { data, error } = await supabase
-        .from('grupos')
+        .from('canchas')
         .update({ nombre: nombre.trim(), sucursal_id: sucursalId })
         .eq('id', id)
         .eq('escuela_id', escuelaId)
@@ -276,7 +277,7 @@ export const toggleCanchaStatus = async (id, currentStatus) => {
     // Si está activando, permitir directamente
     if (!currentStatus) {
         const { data, error } = await supabase
-            .from('grupos')
+            .from('canchas')
             .update({ activo: true })
             .eq('id', id)
             .eq('escuela_id', escuelaId)
@@ -301,7 +302,7 @@ export const toggleCanchaStatus = async (id, currentStatus) => {
     }
 
     const { data, error } = await supabase
-        .from('grupos')
+        .from('canchas')
         .update({ activo: false })
         .eq('id', id)
         .eq('escuela_id', escuelaId)
