@@ -20,6 +20,7 @@ export const useAlumno = (id) => {
 
     const [alumno, setAlumno] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -43,12 +44,13 @@ export const useAlumno = (id) => {
             if (!id) return;
 
             try {
+                setLoadError(null);
                 // Cargar alumno con sus relaciones
                 const { data: alumnoData, error: alumnoError } = await supabase
                     .from('alumnos')
                     .select(`
                         *,
-                        cancha:canchas(id, nombre),
+                        cancha:grupos(id, nombre),
                         horario:horarios(id, hora),
                         asistencias_normales(id, fecha, estado),
                         asistencias_arqueros(id, fecha, estado),
@@ -95,6 +97,7 @@ export const useAlumno = (id) => {
 
             } catch (error) {
                 console.error(error);
+                setLoadError(error);
                 addToast('Error al cargar datos del alumno', 'error');
             } finally {
                 setLoading(false);
@@ -180,7 +183,7 @@ export const useAlumno = (id) => {
             .from('alumnos')
             .select(`
                 *,
-                cancha:canchas(id, nombre),
+                cancha:grupos(id, nombre),
                 horario:horarios(id, hora),
                 asistencias_normales(id, fecha, estado),
                 asistencias_arqueros(id, fecha, estado),
@@ -314,6 +317,7 @@ export const useAlumno = (id) => {
     return {
         alumno,
         loading,
+        loadError,
         editing,
         saving,
         formData,

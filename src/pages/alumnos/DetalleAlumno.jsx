@@ -33,6 +33,7 @@ const DetalleAlumno = () => {
     const {
         alumno,
         loading,
+        loadError,
         editing,
         saving,
         formData,
@@ -51,6 +52,31 @@ const DetalleAlumno = () => {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background">
                 <Loader2 className="animate-spin text-primary w-8 h-8" />
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div className="min-h-screen bg-background p-4">
+                <div className="text-center py-12">
+                    <p className="text-white text-xl">No pudimos cargar el alumno</p>
+                    <p className="mt-2 text-text-secondary">La consulta falló. Intenta nuevamente.</p>
+                    <div className="mt-4 flex justify-center gap-4">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="text-primary hover:underline"
+                        >
+                            Reintentar
+                        </button>
+                        <button
+                            onClick={() => navigate('/alumnos')}
+                            className="text-primary hover:underline"
+                        >
+                            Volver a la lista
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }

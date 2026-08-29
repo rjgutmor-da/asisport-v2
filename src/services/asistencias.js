@@ -47,7 +47,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
             .from('alumnos')
             .select(`
                 id, nombres, apellidos, foto_url, es_arquero, estado, cancha_id, horario_id, fecha_nacimiento,
-                cancha:canchas(id, nombre),
+                cancha:grupos(id, nombre),
                 horario:horarios(id, hora),
                 asistenciaNormal:asistencias_normales(
                     id, estado, fecha, entrenador_id,

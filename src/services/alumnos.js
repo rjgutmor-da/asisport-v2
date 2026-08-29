@@ -511,7 +511,7 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             telefono_madre,
             whatsapp_preferido,
             created_at,
-            cancha:canchas(nombre),
+            cancha:grupos(nombre),
             horario:horarios(hora),
             asistencias_normales(count),
             asistencias_arqueros(count)
