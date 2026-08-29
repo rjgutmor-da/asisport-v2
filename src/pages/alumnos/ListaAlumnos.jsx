@@ -20,8 +20,8 @@ import {
  * Página principal de la lista de alumnos.
  * Funcionalidades:
  *  - Vista cuadrícula y tabla con navegación al detalle
- *  - Búsqueda y filtros multi-selección: cancha, horario, sub
- *  - Filtro inteligente para entrenadores (solo sus canchas/horarios)
+ *  - Búsqueda y filtros multi-selección: cancha y sub
+ *  - Filtro inteligente para entrenadores (solo sus canchas)
  *  - Archivar alumno individual con confirmación
  *  - Combinar alumnos duplicados mediante modal
  *  - Selección múltiple para envío de WhatsApp
@@ -54,12 +54,10 @@ const ListaAlumnos = () => {
         hayFiltrosActivos,
         filtrosMaestros: {
             canchas,
-            horarios,
             entrenadores,
             subs,
             tipos,
             selectedCanchas,
-            selectedHorarios,
             selectedEntrenadores,
             selectedSubs,
             selectedTipos
@@ -68,7 +66,6 @@ const ListaAlumnos = () => {
         setViewMode,
         setCurrentPage,
         setSelectedCanchas,
-        setSelectedHorarios,
         setSelectedEntrenadores,
         setSelectedSubs,
         setSelectedTipos,
@@ -335,7 +332,7 @@ const ListaAlumnos = () => {
                 )}
 
                 {/* ── Fila 1: Filtros Multi-selección (primero, igual que SaaSport) ── */}
-                <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1 md:grid-cols-4'}`}>
+                <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
                     {/* 1. Filtro Entrenador — solo para admins */}
                     {esAdmin && (
                         <MultiSelectFilter
@@ -374,14 +371,6 @@ const ListaAlumnos = () => {
                         onChange={setSelectedTipos}
                     />
 
-                    {/* 4. Filtro Horario */}
-                    <MultiSelectFilter
-                        label="Horario"
-                        placeholder="Todos los Horarios"
-                        options={horarios}
-                        selectedValues={selectedHorarios}
-                        onChange={setSelectedHorarios}
-                    />
                 </div>
 
                 {/* ── Fila 2: Buscador + Tabs de estado (debajo de los filtros) ── */}

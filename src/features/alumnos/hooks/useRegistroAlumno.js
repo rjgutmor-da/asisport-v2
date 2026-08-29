@@ -132,14 +132,13 @@ export const useRegistroAlumno = (onSuccess) => {
     }, [formData.sucursal_id, entrenadores]);
 
     /**
-     * Horarios filtrados según el grupo (cancha) seleccionado.
-     * Si la cancha tiene horarios asociados en canchas_horarios, se muestran solo esos.
+     * Horario del grupo seleccionado, mostrado solo como referencia.
      */
     const horariosFiltrados = useMemo(() => {
-        if (!formData.cancha_id) return horarios;
+        if (!formData.cancha_id) return [];
         const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(formData.cancha_id));
         if (!canchaSeleccionada || !canchaSeleccionada.horario_ids || canchaSeleccionada.horario_ids.length === 0) {
-            return horarios;
+            return [];
         }
         return horarios.filter(h => canchaSeleccionada.horario_ids.includes(h.value));
     }, [formData.cancha_id, canchasRaw, horarios]);
@@ -164,7 +163,7 @@ export const useRegistroAlumno = (onSuccess) => {
             }));
         } else if (name === 'cancha_id') {
             const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(value));
-            let newHorarioId = formData.horario_id;
+            let newHorarioId = '';
             let newProfesorId = formData.profesor_asignado_id;
 
             if (canchaSeleccionada) {
@@ -207,7 +206,7 @@ export const useRegistroAlumno = (onSuccess) => {
         if (!formData.apellidos.trim()) newErrors.apellidos = 'Por favor, completa los apellidos';
         if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'Fecha de nacimiento es requerida';
         if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona una cancha';
-        if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
+        if (!formData.horario_id) newErrors.horario_id = 'El grupo seleccionado no tiene un horario asignado';
         if (!formData.sucursal_id) newErrors.sucursal_id = 'Selecciona una sucursal';
 
         // Validación Representante Legal: solo el nombre es obligatorio, el teléfono es opcional

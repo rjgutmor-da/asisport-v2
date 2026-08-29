@@ -293,15 +293,22 @@ const RegistroAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 3. Horario de Entrenamiento */}
-                            <Select
-                                label="Horario de Entrenamiento *"
-                                name="horario_id"
-                                value={formData.horario_id}
-                                options={horarios}
-                                onChange={handleChange}
-                                error={errors.horario_id}
-                            />
+                            {/* 3. Horario asignado automáticamente por el grupo */}
+                            <div className="flex flex-col justify-start">
+                                <Select
+                                    label="Horario de Entrenamiento *"
+                                    name="horario_id"
+                                    value={formData.horario_id}
+                                    options={horarios}
+                                    onChange={handleChange}
+                                    error={errors.horario_id}
+                                    disabled
+                                    placeholder="Se asigna al seleccionar un grupo"
+                                />
+                                <p className="text-[11px] text-text-secondary mt-1 leading-tight">
+                                    Asignado automáticamente según el grupo seleccionado
+                                </p>
+                            </div>
 
                             {/* 4. Profesor Asignado */}
                             <Select
