@@ -5,52 +5,29 @@ import { getDataScope } from '../config/roles';
 
 export const getCanchas = async () => {
     // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('canchas_v4');
+    const cached = cacheService.get('canchas_v5');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
 
-    const [gruposRes, entrenadoresRes] = await Promise.all([
-        supabase
-            .from('grupos')
-            .select('id, nombre, sucursal_id, grupos_horarios(horario_id)')
-            .eq('escuela_id', escuelaId)
-            .eq('activo', true),
-        supabase
-            .from('grupos_gestion')
-            .select(`
-                grupo_id,
-                horario_id,
-                entrenadores:entrenadores_grupos(
-                    estado,
-                    entrenador_id
-                ),
-                gestion:gestiones_deportivas!inner(estado)
-            `)
-            .eq('escuela_id', escuelaId)
-            .eq('gestiones_deportivas.estado', 'activa')
-    ]);
-
-    if (gruposRes.error) throw gruposRes.error;
-
-    const entrenadorPorGrupo = new Map();
-    (entrenadoresRes.data || []).forEach((gg) => {
-        const act = (gg.entrenadores || []).find((e) => e.estado === 'activa');
-        if (act?.entrenador_id) {
-            entrenadorPorGrupo.set(gg.grupo_id, act.entrenador_id);
-        }
+    const { data, error } = await supabase.rpc('rpc_obtener_grupos_con_entrenador', {
+        p_escuela_id: escuelaId
     });
 
-    const formatted = (gruposRes.data || []).map(c => ({
-        id: c.id,
-        nombre: c.nombre,
-        sucursal_id: c.sucursal_id,
-        horario_ids: (c.grupos_horarios || []).map(ch => ch.horario_id),
-        entrenador_id: entrenadorPorGrupo.get(c.id) || null
-    }));
+    if (error) throw error;
+
+    const formatted = (data || [])
+        .filter(c => c.activo)
+        .map(c => ({
+            id: c.id,
+            nombre: c.nombre,
+            sucursal_id: c.sucursal_id,
+            horario_ids: c.horario_id ? [c.horario_id] : [],
+            entrenador_id: c.entrenador_id || null
+        }));
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('canchas_v4', formatted);
+    cacheService.set('canchas_v5', formatted);
     return formatted;
 };
 
