@@ -71,7 +71,7 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
 
     let query = supabase
         .from('alumnos')
-        .select('cancha_id, cancha:grupos(id, nombre)')
+        .select('cancha_id, cancha:grupos!alumnos_cancha_id_fkey1(id, nombre)')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
