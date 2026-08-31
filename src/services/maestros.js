@@ -16,15 +16,31 @@ export const getCanchas = async () => {
 
     if (error) throw error;
 
-    const formatted = (data || [])
+    // Deduplicar defensivamente por id de grupo
+    const gruposMap = new Map();
+    (data || [])
         .filter(c => c.activo)
-        .map(c => ({
-            id: c.id,
-            nombre: c.nombre,
-            sucursal_id: c.sucursal_id,
-            horario_ids: c.horario_id ? [c.horario_id] : [],
-            entrenador_id: c.entrenador_id || null
-        }));
+        .forEach(c => {
+            if (!gruposMap.has(c.id)) {
+                gruposMap.set(c.id, {
+                    id: c.id,
+                    nombre: c.nombre,
+                    sucursal_id: c.sucursal_id,
+                    horario_ids: c.horario_id ? [c.horario_id] : [],
+                    entrenador_id: c.entrenador_id || null
+                });
+            } else {
+                const existing = gruposMap.get(c.id);
+                if (c.horario_id && !existing.horario_ids.includes(c.horario_id)) {
+                    existing.horario_ids.push(c.horario_id);
+                }
+                if (!existing.entrenador_id && c.entrenador_id) {
+                    existing.entrenador_id = c.entrenador_id;
+                }
+            }
+        });
+
+    const formatted = Array.from(gruposMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     // Guardar en caché (5 minutos por defecto)
     cacheService.set('canchas_v5', formatted);

@@ -76,11 +76,17 @@ export const useAsistencias = () => {
 
     const canchas = useMemo(() => {
         if (isAdmin && !selectedEntrenador) {
-            return rawCanchas.map(c => ({
-                value: c.id,
-                label: c.nombre,
-                horarioId: c.horario_ids?.[0] || ''
-            }));
+            const map = new Map();
+            rawCanchas.forEach(c => {
+                if (!map.has(c.id)) {
+                    map.set(c.id, {
+                        value: c.id,
+                        label: c.nombre,
+                        horarioId: c.horario_ids?.[0] || ''
+                    });
+                }
+            });
+            return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
         }
 
         const canchasMap = new Map();
