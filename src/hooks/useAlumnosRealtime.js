@@ -12,14 +12,15 @@ export const useAlumnosRealtime = () => {
             .on(
                 'postgres_changes',
                 {
-                    event: '*',        // INSERT, UPDATE, DELETE
+                    event: '*', // INSERT, UPDATE, DELETE
                     schema: 'public',
                     table: 'alumnos',
                 },
                 () => {
-                    // Silencioso: solo marca el caché como stale
-                    // TanStack Query re-fetchea cuando se navegue a un módulo que los use
-                    queryClient.invalidateQueries({ queryKey: queryKeys.alumnos });
+                    // Invalida la familia completa de queries de alumnos
+                    queryClient.invalidateQueries({ queryKey: queryKeys.alumnosFamilia });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.estadisticasFamilia });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.cumpleanosFamilia });
                 }
             )
             .subscribe();

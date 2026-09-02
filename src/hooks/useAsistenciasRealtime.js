@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabaseClient';
 import { asistenciasKeys } from './useAsistenciasQuery';
+import { queryKeys } from './useMasterData';
 
 /**
  * Hook de Realtime para Asistencias.
@@ -37,11 +38,16 @@ export const useAsistenciasRealtime = () => {
                     queryClient.invalidateQueries({
                         queryKey: asistenciasKeys.all,
                         predicate: (query) => {
-                            const queryFecha = query.queryKey[1]?.fecha;
-                            const payloadFecha = payload.new?.fecha || payload.old?.fecha;
+                            const queryContext = /** @type {{fecha?: string}} */ (query.queryKey[1] || {});
+                            const nuevo = /** @type {{fecha?: string}} */ (payload.new || {});
+                            const anterior = /** @type {{fecha?: string}} */ (payload.old || {});
+                            const queryFecha = queryContext.fecha;
+                            const payloadFecha = nuevo.fecha || anterior.fecha;
                             return queryFecha === payloadFecha;
                         }
                     });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.estadisticasFamilia });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.alumnosFamilia });
                 }
             )
             .subscribe();

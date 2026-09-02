@@ -11,7 +11,8 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { can, getDataScope } from '../config/roles';
 import { registerCurrentAsiSportSession } from '../lib/sessionLimit';
 
-const AuthContext = createContext({});
+/** @type {React.Context<any>} */
+const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -37,19 +38,19 @@ export const AuthProvider = ({ children }) => {
             await Promise.all([
                 queryClient.prefetchQuery({ 
                     queryKey: queryKeys.sucursales, 
-                    queryFn: () => getSucursales(escuelaId) 
+                    queryFn: () => getSucursales()
                 }),
                 queryClient.prefetchQuery({ 
                     queryKey: queryKeys.entrenadores, 
-                    queryFn: () => getEntrenadores(escuelaId) 
+                    queryFn: () => getEntrenadores()
                 }),
                 queryClient.prefetchQuery({ 
                     queryKey: queryKeys.horarios, 
-                    queryFn: () => getHorarios(escuelaId) 
+                    queryFn: () => getHorarios()
                 }),
                 queryClient.prefetchQuery({ 
                     queryKey: queryKeys.canchas, 
-                    queryFn: () => getCanchas(escuelaId) 
+                    queryFn: () => getCanchas()
                 }),
             ]);
             console.log('✅ Prefetch completado');

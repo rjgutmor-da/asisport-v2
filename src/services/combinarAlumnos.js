@@ -13,7 +13,7 @@ import { supabase } from '../lib/supabaseClient';
  *
  * @param {string} destinoId - ID del alumno que conservaremos (prioridad)
  * @param {string} origenId - ID del alumno que se fusionará y eliminará/archivará
- * @returns {Object} Alumno destino actualizado
+ * @returns {Promise<any>} Alumno destino actualizado
  */
 export const combinarAlumnos = async (destinoId, origenId) => {
     if (!destinoId || !origenId) {

@@ -8,8 +8,7 @@ import { can } from '../../config/roles';
  * DesktopNavbar — Componente de navegación superior para PC.
  * Muestra las opciones principales: Inicio, Asistencia, Alumnos, Cumpleaños y SaaSport (para administradores).
  * 
- * @param {string} className - Clases de Tailwind para aplicar a los botones (principalmente tamaño de fuente).
- * @param {string} gap - Clases de espaciado entre los elementos del menú.
+ * @param {{className?: string, gap?: string}} props - Configuración visual del menú.
  */
 const DesktopNavbar = ({ className = "text-[18px]", gap = "gap-6" }) => {
     const navigate = useNavigate();

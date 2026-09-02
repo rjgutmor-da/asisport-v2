@@ -1,19 +1,18 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
-import { getAlumnos, getAlumnosPaginados, getAlumnosFacets, archivarAlumno } from '../../../services/alumnos';
+import { listarAlumnosAsisport, archivarAlumno } from '../../../services/alumnos';
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
-import { getCanchasParaEntrenador, getEntrenadores } from '../../../services/maestros';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { esAlumnoIncompleto } from '../utils/alumnoCompletitud';
+import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
 
 /**
  * Lee el estado de filtros guardado en sessionStorage.
- * Si no existe o está corrompido, devuelve los valores por defecto.
  */
 const leerFiltrosGuardados = () => {
     try {
@@ -32,61 +31,66 @@ const guardarFiltros = (estado) => {
     try {
         sessionStorage.setItem(FILTROS_SESSION_KEY, JSON.stringify(estado));
     } catch {
-        // sessionStorage no disponible — ignorar silenciosamente
+        // Ignorar si sessionStorage no está disponible
     }
 };
 
 /**
- * Hook para manejar la lógica de la lista de alumnos optimizada con Server-side Filtering.
+ * Hook para manejar la lista de alumnos con TanStack Query, paginación y filtrado en servidor.
  */
 export const useAlumnos = () => {
     const { addToast } = useToast();
-    const { user, role, isAdmin } = useAuth();
+    const { user, role, userProfile, escuelaId } = useAuth();
+    const queryClient = useQueryClient();
 
-    // Restaurar filtros guardados en sessionStorage (si existen)
+    // Restaurar filtros previos de sessionStorage
     const filtrosGuardados = leerFiltrosGuardados();
 
-    const [alumnos, setAlumnos] = useState([]); // Alumnos de la página actual
-    const [facetData, setFacetData] = useState([]); // Data ligera para Smart Filters
-    const [allAlumnos, setAllAlumnos] = useState([]); // Lista completa (solo nombres/ids) para combinar
-    // loading = skeleton completo (solo si nunca hemos mostrado datos)
-    // isFetching = recarga silenciosa en segundo plano (no borra la pantalla)
-    const [loading, setLoading] = useState(!filtrosGuardados); // false si ya había estado guardado
-    const [isFetching, setIsFetching] = useState(false);
     const [activeFilter, setActiveFilter] = useState(filtrosGuardados?.activeFilter ?? 'todos');
-    const [asistenciaHistory, setAsistenciaHistory] = useState({});
-
-    // Opciones maestros
-    const [maestros, setMaestros] = useState({ canchas: [], entrenadores: [], subs: [], tipos: [] });
-
-    // Filtros seleccionados — restaurados desde sessionStorage si existen
+    const [searchTerm, setSearchTerm] = useState(filtrosGuardados?.searchTerm ?? '');
     const [selectedCanchas, setSelectedCanchas] = useState(filtrosGuardados?.selectedCanchas ?? []);
     const [selectedEntrenadores, setSelectedEntrenadores] = useState(filtrosGuardados?.selectedEntrenadores ?? []);
     const [selectedSubs, setSelectedSubs] = useState(filtrosGuardados?.selectedSubs ?? []);
     const [selectedTipos, setSelectedTipos] = useState(filtrosGuardados?.selectedTipos ?? []);
-
-    // --- DEBOUNCE DE FILTROS (600ms) ---
-    const debouncedCanchas = useDebounce(selectedCanchas, 600);
-    const debouncedEntrenadores = useDebounce(selectedEntrenadores, 600);
-    const debouncedSubs = useDebounce(selectedSubs, 600);
-    const debouncedTipos = useDebounce(selectedTipos, 600);
-
-    // Búsqueda con Debounce — restaurada desde sessionStorage si existe
-    const [searchTerm, setSearchTerm] = useState(filtrosGuardados?.searchTerm ?? '');
-    const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-    // Paginación en servidor — restaurada desde sessionStorage si existe
     const [currentPage, setCurrentPage] = useState(filtrosGuardados?.currentPage ?? 1);
-    const [totalCount, setTotalCount] = useState(0);
-    const itemsPerPage = 20;
-
     const [viewMode, setViewMode] = useState(filtrosGuardados?.viewMode ?? 'list');
     const [selectedAlumnos, setSelectedAlumnos] = useState([]);
     const [introMessage, setIntroMessage] = useState('Esta es la lista de Convocados:');
+    const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
+    const itemsPerPage = 30;
     const esEntrenador = role === 'Entrenador' || role === 'Entrenarqueros';
 
-    // Persistir filtros en sessionStorage cada vez que cambian
+    // Debounce único de 300 ms conforme a las directrices de rendimiento
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+    const debouncedCanchas = useDebounce(selectedCanchas, 300);
+    const debouncedEntrenadores = useDebounce(selectedEntrenadores, 300);
+    const debouncedSubs = useDebounce(selectedSubs, 300);
+    const debouncedTipos = useDebounce(selectedTipos, 300);
+
+    // Validación de búsqueda con 1 carácter: advertir y no consultar
+    const searchToastShownRef = useRef(false);
+    useEffect(() => {
+        const trimmed = searchTerm.trim();
+        if (trimmed.length === 1 && !searchToastShownRef.current) {
+            addToast('Escribe al menos 2 caracteres', 'info');
+            searchToastShownRef.current = true;
+        } else if (trimmed.length !== 1) {
+            searchToastShownRef.current = false;
+        }
+    }, [searchTerm, addToast]);
+
+    // Término efectivo para consultar: solo si tiene al menos 2 caracteres
+    const terminoEfectivo = debouncedSearchTerm.trim().length >= 2 ? debouncedSearchTerm.trim() : '';
+
+    // Catálogos autorizados desde TanStack Query
+    const { data: catalogosData } = useCatalogosAsisport(userProfile?.sucursal_id, {
+        userId: user?.id,
+        escuelaId
+    });
+    const gestionActivaId = catalogosData?.gestiones?.find(gestion => gestion.es_activa)?.id || null;
+
+    // Persistir filtros en sessionStorage
     useEffect(() => {
         guardarFiltros({
             activeFilter,
@@ -100,172 +104,127 @@ export const useAlumnos = () => {
         });
     }, [activeFilter, selectedCanchas, selectedEntrenadores, selectedSubs, selectedTipos, searchTerm, currentPage, viewMode]);
 
-    // 1. Cargar maestros y data de facets una sola vez al inicio
-    const loadInitialMetadata = useCallback(async () => {
-        try {
-            const [canchasData, entrenadoresData, facets] = await Promise.all([
-                getCanchasParaEntrenador(user?.id, role),
-                isAdmin ? getEntrenadores() : Promise.resolve([]),
-                getAlumnosFacets({ userId: user?.id, userRole: role })
-            ]);
-
-            setFacetData(facets);
-
-            const subsUnicas = [...new Set(facets.map(a => a.sub))].sort((a, b) => a - b);
-            const tiposUnicos = [...new Set(facets.map(a => a.tipo).filter(Boolean))].sort();
-            setMaestros({
-                canchas: canchasData.map(c => ({ value: c.id, label: c.nombre })),
-                entrenadores: entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })),
-                subs: subsUnicas.map(sub => ({ value: sub, label: `Sub ${sub}` })),
-                tipos: tiposUnicos.map(t => ({ value: t, label: t }))
-            });
-
-            // Opcional: Cargar lista simple para combinar
-            setAllAlumnos(facets.map(f => ({ id: f.id, nombres: f.nombres, apellidos: f.apellidos })));
-
-        } catch (error) {
-            console.error('Error cargando metadatos:', error);
+    // Query principal de alumnos con TanStack Query
+    const alumnosQueryKey = useMemo(() => [
+        'alumnos',
+        'lista',
+        {
+            userId: user?.id,
+            escuelaId: escuelaId || 'sin-escuela',
+            userRole: role,
+            sucursalId: catalogosData?.sucursal_efectiva || userProfile?.sucursal_id || 'todas',
+            gestionId: gestionActivaId || 'sin-gestion',
+            activeFilter,
+            canchaIds: debouncedCanchas,
+            horarioIds: [],
+            entrenadorIds: debouncedEntrenadores,
+            subAnios: debouncedSubs,
+            tipos: debouncedTipos,
+            searchTerm: terminoEfectivo,
+            page: currentPage,
+            limit: itemsPerPage
         }
-    }, [user, role, isAdmin]);
+    ], [
+        user?.id,
+        escuelaId,
+        role,
+        userProfile?.sucursal_id,
+        catalogosData?.sucursal_efectiva,
+        gestionActivaId,
+        activeFilter,
+        debouncedCanchas,
+        debouncedEntrenadores,
+        debouncedSubs,
+        debouncedTipos,
+        terminoEfectivo,
+        currentPage,
+        itemsPerPage
+    ]);
+
+    const {
+        data: alumnosData,
+        isLoading: loading,
+        isFetching,
+        error: alumnosError
+    } = useQuery({
+        queryKey: alumnosQueryKey,
+        queryFn: ({ signal }) => listarAlumnosAsisport({
+            page: currentPage,
+            limit: itemsPerPage,
+            activeFilter,
+            searchTerm: terminoEfectivo,
+            canchaIds: debouncedCanchas,
+            entrenadorIds: debouncedEntrenadores,
+            subAnios: debouncedSubs,
+            tipos: debouncedTipos,
+            sucursalId: userProfile?.sucursal_id
+        }, { signal }),
+        placeholderData: (previousData) => previousData,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 20 * 60 * 1000,
+        enabled: Boolean(user?.id) && searchTerm.trim().length !== 1
+    });
 
     useEffect(() => {
-        if (user) loadInitialMetadata();
-    }, [user, loadInitialMetadata]);
-
-    // Ref para saber si es la primera carga (nunca hubo datos en pantalla)
-    const primeraVezRef = useRef(!filtrosGuardados);
-
-    // 2. Cargar página de alumnos cuando cambian filtros o página
-    const fetchPage = useCallback(async () => {
-        // Si es la primera carga sin datos previos → skeleton completo
-        // Si ya hay datos visibles → recarga silenciosa (sin borrar la pantalla)
-        if (primeraVezRef.current) {
-            setLoading(true);
-        } else {
-            setIsFetching(true);
+        if (alumnosError) {
+            addToast(alumnosError.message || 'Error al cargar alumnos', 'error');
         }
-        try {
-            const { alumnos: data, totalCount: count } = await getAlumnosPaginados({
-                userId: user?.id,
-                userRole: role,
-                canchaIds: debouncedCanchas,
-                subAnios: debouncedSubs,
-                entrenadorIds: debouncedEntrenadores,
-                tipos: debouncedTipos,
-                searchTerm: debouncedSearchTerm,
-                activeFilter,
-                page: currentPage,
-                limit: itemsPerPage
-            });
+    }, [alumnosError, addToast]);
 
-            setAlumnos(data);
-            setTotalCount(count);
-            primeraVezRef.current = false; // Ya mostramos datos al menos una vez
+    const alumnos = useMemo(() => alumnosData?.items || [], [alumnosData?.items]);
+    const totalCount = alumnosData?.total_resultados || 0;
+    const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
-            // Cargar historial de asistencia para los de la página
-            if (data.length > 0) {
-                getAsistenciasEstaSemana(data.map(a => a.id))
-                    .then(history => setAsistenciaHistory(prev => ({ ...prev, ...history })))
-                    .catch(err => console.error('Error asistencias:', err));
-            }
-        } catch (error) {
-            addToast('Error al cargar alumnos', 'error');
-        } finally {
-            setLoading(false);
-            setIsFetching(false);
-        }
-    }, [user, role, debouncedCanchas, debouncedSubs, debouncedEntrenadores, debouncedTipos, debouncedSearchTerm, activeFilter, currentPage, addToast]);
-
+    // Cargar historial de asistencia semanal para los alumnos de la página actual
     useEffect(() => {
-        if (user) fetchPage();
-    }, [user, fetchPage]);
+        if (alumnos.length > 0) {
+            const alumnoIds = alumnos.map(a => a.id);
+            getAsistenciasEstaSemana(alumnoIds)
+                .then(history => setAsistenciaHistory(prev => ({ ...prev, ...history })))
+                .catch(err => console.error('Error al cargar historial de asistencias:', err));
+        }
+    }, [alumnos]);
 
-    // 3. Lógica de Smart Filters bidireccionales (en memoria sobre facetData)
-    // Solo muestra opciones que tienen resultados válidos dado el contexto actual.
-    // Comportamiento igual a FiltrosCxc de SaaSport: oculta en lugar de tachar.
+    // Opciones maestras construidas desde los catálogos y facetas del servidor
     const dynamicOptions = useMemo(() => {
-        const getFilteredFacets = (excludeFilter) => {
-            let temp = facetData;
+        const canchasOpts = (catalogosData?.canchas || []).map(c => ({ value: c.id, label: c.nombre }));
+        const entrenadoresOpts = (catalogosData?.entrenadores || []).map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` }));
+        const subsOpts = (alumnosData?.facetas?.subs || []).map(sub => ({ value: sub, label: `Sub ${sub}` }));
+        const tiposOpts = (alumnosData?.facetas?.tipos || []).map(t => ({ value: t, label: t }));
 
-            // Filtro por estado
-            // Filtro por completitud dinámica
-            if (activeFilter === 'pendientes') temp = temp.filter(a => esAlumnoIncompleto(a));
-            else if (activeFilter === 'arqueros') temp = temp.filter(a => a.es_arquero === true);
-
-            // Filtros cruzados — se excluye el propio filtro para calcular sus opciones disponibles
-            if (excludeFilter !== 'entrenador' && debouncedEntrenadores.length > 0)
-                temp = temp.filter(a => debouncedEntrenadores.includes(a.profesor_asignado_id));
-            if (excludeFilter !== 'sub' && debouncedSubs.length > 0)
-                temp = temp.filter(a => debouncedSubs.includes(a.sub));
-            if (excludeFilter !== 'cancha' && debouncedCanchas.length > 0)
-                temp = temp.filter(a => debouncedCanchas.includes(a.cancha_id));
-            if (excludeFilter !== 'tipo' && debouncedTipos.length > 0)
-                temp = temp.filter(a => debouncedTipos.includes(a.tipo));
-            return temp;
-        };
-
-        const validEntrenadoresIds = new Set(getFilteredFacets('entrenador').map(a => a.profesor_asignado_id));
-        const validSubsValues     = new Set(getFilteredFacets('sub').map(a => a.sub));
-        const validCanchasIds     = new Set(getFilteredFacets('cancha').map(a => a.cancha_id));
-        const validTiposValues    = new Set(getFilteredFacets('tipo').map(a => a.tipo).filter(Boolean));
-
-        // Solo retorna las opciones que tienen resultados — sin mostrar opciones tachadas
         return {
-            entrenadores: maestros.entrenadores.filter(opt => validEntrenadoresIds.has(opt.value)),
-            subs:         maestros.subs.filter(opt => validSubsValues.has(opt.value)),
-            canchas:      maestros.canchas.filter(opt => validCanchasIds.has(opt.value)),
-            tipos:        maestros.tipos.filter(opt => validTiposValues.has(opt.value)),
+            canchas: canchasOpts,
+            entrenadores: entrenadoresOpts,
+            subs: subsOpts,
+            tipos: tiposOpts
         };
-    }, [facetData, maestros, activeFilter, debouncedEntrenadores, debouncedSubs, debouncedCanchas, debouncedTipos]);
+    }, [catalogosData, alumnosData?.facetas]);
 
-    // 4. Auto-deselección: si un valor seleccionado ya no aparece en las opciones
-    //    válidas (por un filtro cruzado), se limpia automáticamente.
-    //    Se usa un ref de IDs anteriores para evitar bucles de actualización.
-    const prevValidIdsRef = useRef({ canchas: '', entrenadores: '', subs: '', tipos: '' });
+    // Lista simplificada para el modal de combinar
+    const allAlumnos = useMemo(() => {
+        return alumnos.map(a => ({ id: a.id, nombres: a.nombres, apellidos: a.apellidos }));
+    }, [alumnos]);
 
-    useEffect(() => {
-        const toKey = (arr) => arr.map(o => String(o.value)).sort().join(',');
-        const newKeys = {
-            canchas:      toKey(dynamicOptions.canchas),
-            entrenadores: toKey(dynamicOptions.entrenadores),
-            subs:         toKey(dynamicOptions.subs),
-            tipos:        toKey(dynamicOptions.tipos),
-        };
-        const prev = prevValidIdsRef.current;
-
-        if (newKeys.canchas !== prev.canchas) {
-            const validSet = new Set(dynamicOptions.canchas.map(o => o.value));
-            setSelectedCanchas(p => p.filter(id => validSet.has(id)));
-        }
-        if (newKeys.entrenadores !== prev.entrenadores) {
-            const validSet = new Set(dynamicOptions.entrenadores.map(o => o.value));
-            setSelectedEntrenadores(p => p.filter(id => validSet.has(id)));
-        }
-        if (newKeys.subs !== prev.subs) {
-            const validSet = new Set(dynamicOptions.subs.map(o => o.value));
-            setSelectedSubs(p => p.filter(v => validSet.has(v)));
-        }
-        if (newKeys.tipos !== prev.tipos) {
-            const validSet = new Set(dynamicOptions.tipos.map(o => o.value));
-            setSelectedTipos(p => p.filter(v => validSet.has(v)));
-        }
-
-        prevValidIdsRef.current = newKeys;
-    }, [dynamicOptions]);
-
-    const totalPages = Math.ceil(totalCount / itemsPerPage);
-
-    // =========================================================================
-    // Handlers y Auxiliares
-    // =========================================================================
-
-    const getAsistenciaResumen = (alumnoId) => {
+    const getAsistenciaResumen = useCallback((alumnoId) => {
         const history = asistenciaHistory[alumnoId] || {};
         return Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
+    }, [asistenciaHistory]);
+
+    const handleFilterChange = (filter) => {
+        setActiveFilter(filter);
+        setCurrentPage(1);
     };
 
-    const handleFilterChange = (filter) => { setActiveFilter(filter); setCurrentPage(1); };
-    const handleSearchChange = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+    };
+
+    // Al limpiar únicamente el texto, mantener intactos los demás filtros
+    const handleClearSearchOnly = () => {
+        setSearchTerm('');
+        setCurrentPage(1);
+    };
 
     const handleClearFilters = () => {
         setActiveFilter('todos');
@@ -276,7 +235,6 @@ export const useAlumnos = () => {
         setSearchTerm('');
         setCurrentPage(1);
         setSelectedAlumnos([]);
-        // Limpiar también los filtros guardados en sessionStorage
         try { sessionStorage.removeItem(FILTROS_SESSION_KEY); } catch {}
     };
 
@@ -311,21 +269,12 @@ export const useAlumnos = () => {
 
     const sendBulkWhatsApp = () => {
         if (selectedAlumnos.length === 0) return;
-        
-        // Crear un diccionario de todos los alumnos conocidos para buscarlos por ID
+
         const mapaAlumnos = new Map();
-        
-        // Agregar primero los de la lista total (allAlumnos)
-        allAlumnos.forEach(a => {
-            if (a.id) mapaAlumnos.set(a.id, a);
-        });
-        
-        // Agregar/sobrescribir con los de la página actual (por si tienen datos más recientes)
         alumnos.forEach(a => {
             if (a.id) mapaAlumnos.set(a.id, a);
         });
-        
-        // Obtener los datos de los alumnos seleccionados en base a sus IDs
+
         const selectedData = selectedAlumnos
             .map(id => mapaAlumnos.get(id))
             .filter(Boolean);
@@ -335,13 +284,11 @@ export const useAlumnos = () => {
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
-
-
     const handleArchivarAlumno = async (alumnoId) => {
         try {
             await archivarAlumno(alumnoId);
             addToast('Alumno archivado correctamente', 'success');
-            fetchPage();
+            queryClient.invalidateQueries({ queryKey: queryKeys.alumnosFamilia });
             return true;
         } catch (error) {
             addToast(error.message || 'Error al archivar alumno', 'error');
@@ -353,7 +300,7 @@ export const useAlumnos = () => {
         try {
             await combinarAlumnos(destinoId, origenId);
             addToast('Alumnos combinados correctamente', 'success');
-            fetchPage();
+            queryClient.invalidateQueries({ queryKey: queryKeys.alumnosFamilia });
             return true;
         } catch (error) {
             addToast(error.message || 'Error al combinar alumnos', 'error');
@@ -367,8 +314,8 @@ export const useAlumnos = () => {
         loading,
         isFetching,
         alumnos,
-        todosLosAlumnosFiltrados: alumnos, // Alias para exportaciones (página actual)
-        allAlumnos, // Para el modal de combinar
+        todosLosAlumnosFiltrados: alumnos,
+        allAlumnos,
         totalAlumnos: totalCount,
         totalPages,
         currentPage,
@@ -395,6 +342,7 @@ export const useAlumnos = () => {
         getAsistenciaResumen,
         handleFilterChange,
         handleSearchChange,
+        handleClearSearchOnly,
         handleClearFilters,
         toggleAlumnoSelection,
         handleSelectAll,

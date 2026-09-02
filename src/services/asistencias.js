@@ -153,11 +153,13 @@ export const registrarAsistenciasPorLote = async (asistencias, fecha, targetEntr
             );
             const updateResults = await Promise.allSettled(updatePromises);
             updateResults.forEach((r, i) => {
-                if (r.status === 'fulfilled' && !r.value.error) resultados.exitosos++;
-                else {
+                if (r.status === 'fulfilled' && !r.value.error) {
+                    resultados.exitosos++;
+                } else {
+                    const errorResultado = r.status === 'fulfilled' ? r.value.error : r.reason;
                     resultados.fallidos++;
-                    console.error(`[Data Integrity Error] Fallo al actualizar asistencia ID: ${updates[i].id} generada por User: ${userIdForLog}.`, r.value?.error || r.reason);
-                    resultados.errores.push({ alumnoId: updates[i].alumno_id, error: r.value?.error?.message || 'Error' });
+                    console.error(`[Data Integrity Error] Fallo al actualizar asistencia ID: ${updates[i].id} generada por User: ${userIdForLog}.`, errorResultado);
+                    resultados.errores.push({ alumnoId: updates[i].alumno_id, error: errorResultado?.message || 'Error' });
                 }
             });
         }
@@ -305,7 +307,8 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
 
     const agregados = new Map();
     registros.forEach(registro => {
-        const alumno = registro.alumnos;
+        const alumno = Array.isArray(registro.alumnos) ? registro.alumnos[0] : registro.alumnos;
+        if (!alumno) return;
         const key = [registro.fecha, alumno.profesor_asignado_id, alumno.cancha_id, alumno.horario_id].join('|');
         if (!agregados.has(key)) {
             agregados.set(key, {
@@ -324,4 +327,41 @@ export const getAsistenciasRango = async (fechaInicio, fechaFin) => {
     });
 
     return Array.from(agregados.values());
+};
+
+/**
+ * Carga candidatos autorizados, asistencias de la fecha y estado de envío en una sola llamada RPC.
+ *
+ * @param {string} fecha - Fecha en formato YYYY-MM-DD.
+ * @param {string|null} [canchaId=null] - ID opcional de cancha.
+ * @param {string|null} [horarioId=null] - ID opcional de horario.
+ * @param {string|null} [entrenadorId=null] - ID opcional de entrenador.
+ * @param {Object} [options={}] - Opciones de la petición.
+ * @param {AbortSignal} [options.signal] - Señal de cancelación.
+ * @returns {Promise<{ candidatos: Array, asistencias_existentes: Array, estado_envio: { existe: boolean, cantidad: number } }>}
+ */
+export const cargarAsistenciaAsisport = async (fecha, canchaId = null, horarioId = null, entrenadorId = null, options = {}) => {
+    let query = supabase.rpc('rpc_cargar_asistencia_asisport', {
+        p_fecha: fecha,
+        p_cancha_id: canchaId || null,
+        p_horario_id: horarioId || null,
+        p_entrenador_id: entrenadorId || null
+    });
+
+    if (options.signal) {
+        query = query.abortSignal(options.signal);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error al cargar asistencia vía RPC:', error);
+        throw new Error(error.message || 'Error al cargar los datos de asistencia.');
+    }
+
+    return data || {
+        candidatos: [],
+        asistencias_existentes: [],
+        estado_envio: { existe: false, cantidad: 0 }
+    };
 };

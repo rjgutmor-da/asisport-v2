@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { X, CheckCircle, AlertCircle } from 'lucide-react';
 
-const ToastContext = createContext();
+/** @type {React.Context<any>} */
+const ToastContext = createContext(null);
 
 export const useToast = () => useContext(ToastContext);
 

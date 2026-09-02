@@ -24,7 +24,7 @@ const TabBar = () => {
         if (role === 'Medico' && (item.path === '/asistencia' || item.path === '/alumnos/registro')) {
             return false;
         }
-        return can(role, item.permission);
+        return can(role, /** @type {import('../../config/roles').Permission} */ (item.permission));
     });
 
     if (location.pathname === '/asistencia') return null;

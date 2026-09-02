@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { obtenerActividadAsisport } from '../services/actividadService';
 import { 
   ChevronLeft, RefreshCw, Calendar, Activity, Search
 } from 'lucide-react';
@@ -27,19 +27,14 @@ const RegistroActividad = () => {
     const dInicio = `${fechaDesde}T00:00:00.000Z`;
     const dFin = `${fechaHasta}T23:59:59.999Z`;
 
-    const { data, error } = await supabase
-      .from('audit_log')
-      .select('id, created_at, modulo, accion, detalle, usuario_nombre')
-      .eq('escuela_id', escuelaId)
-      .eq('ip_address', 'AsiSport')   // Solo actividades propias de AsiSport
-      .gte('created_at', dInicio)
-      .lte('created_at', dFin)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setRegistros(data);
+    try {
+      const data = await obtenerActividadAsisport(dInicio, dFin, 100);
+      setRegistros(data || []);
+    } catch (err) {
+      console.error('Error al cargar auditoría:', err);
+    } finally {
+      setCargando(false);
     }
-    setCargando(false);
   };
 
   useEffect(() => {

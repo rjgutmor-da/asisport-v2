@@ -5,16 +5,14 @@ import { useAuth } from '../../../context/AuthContext';
 import { useMasterData } from '../../../hooks/useMasterData';
 import { useAsistenciasQuery } from '../../../hooks/useAsistenciasQuery';
 import {
-    getAlumnosParaAsistencia,
-    registrarAsistenciasPorLote,
-    verificarEstadoEnvio
+    registrarAsistenciasPorLote
 } from '../../../services/asistencias';
 import { getAlumnosFacets } from '../../../services/alumnos';
 import { subirFotoAsistenciaGrupal } from '../../../services/fotoAsistenciaGrupal';
 
 export const useAsistencias = () => {
     const { addToast } = useToast();
-    const { isAdmin, userProfile, escuelaId } = useAuth();
+    const { isAdmin, userProfile, escuelaId, user } = useAuth();
 
     // Fecha selecionada (por defecto HOY)
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -121,40 +119,33 @@ export const useAsistencias = () => {
     }, [canchas, selectedCancha]);
 
     // --- DATOS DE ASISTENCIA (TanStack Query) ---
-    const { 
-        data: alumnos = [], 
+    const {
+        data: asistenciaData,
         isLoading: loadingAsistencias,
         refetch: refresh 
     } = useAsistenciasQuery(
         selectedDate, 
         selectedCancha || null, 
         selectedHorario || null, 
-        selectedEntrenador || null
+        selectedEntrenador || null,
+        {
+            userId: user?.id,
+            escuelaId,
+            sucursalId: userProfile?.sucursal_id
+        }
     );
+    const alumnos = asistenciaData?.alumnos || [];
 
     // Estado para verificar si ya se envió (Esto podría ser otra query, pero lo mantenemos simple por ahora)
     const [enviosRealizados, setEnviosRealizados] = useState(0);
 
-    // Efecto para verificar estado de envío cuando cambian filtros
+    // La RPC de carga ya incluye el estado de envío; no se dispara una consulta adicional.
     useEffect(() => {
-        const checkEnvio = async () => {
-            if (!isAdmin && userProfile?.rol !== 'Entrenarqueros' && (!selectedCancha || !selectedHorario)) return;
-            try {
-                const estadoEnvio = await verificarEstadoEnvio(selectedDate, selectedCancha || null, selectedHorario || null);
-                const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
-                const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
-
-                if (estadoEnvio.existe) {
-                    setEnviosRealizados(reenviadoLocal ? 2 : 1);
-                } else {
-                    setEnviosRealizados(0);
-                }
-            } catch (error) {
-                console.error("Error verificando envío:", error);
-            }
-        };
-        checkEnvio();
-    }, [selectedDate, selectedCancha, selectedHorario, isAdmin]);
+        if (!asistenciaData?.estadoEnvio) return;
+        const reenvioKey = `asistencia_reenvio_${selectedDate}_${selectedCancha || 'all'}_${selectedHorario || 'all'}`;
+        const reenviadoLocal = localStorage.getItem(reenvioKey) === 'true';
+        setEnviosRealizados(asistenciaData.estadoEnvio.existe ? (reenviadoLocal ? 2 : 1) : 0);
+    }, [asistenciaData?.estadoEnvio, selectedDate, selectedCancha, selectedHorario]);
 
     const loading = loadingMaestros || loadingAsistencias;
 

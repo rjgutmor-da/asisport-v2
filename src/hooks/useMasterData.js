@@ -1,62 +1,79 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { getAlumnos } from '../services/alumnos';
 import { getCanchas, getHorarios, getEntrenadores } from '../services/maestros';
+import { obtenerCatalogosAsisport } from '../services/catalogosService';
 
-// --- Query Keys (centralizados para invalidación precisa) ---
+// --- Query Keys centralizados para invalidación precisa ---
 export const queryKeys = {
+  catalogos: ({ userId = null, escuelaId = null, sucursalId = null } = {}) => [
+    'catalogos',
+    { userId: userId || 'sin-usuario', escuelaId: escuelaId || 'sin-escuela', sucursalId: sucursalId || 'todas' }
+  ],
   alumnos: ['alumnos'],
+  alumnosLista: (filtros = {}) => ['alumnos', 'lista', filtros],
+  alumnosFamilia: ['alumnos'],
   entrenadores: ['entrenadores'],
   canchas: ['canchas'],
   horarios: ['horarios'],
+  gestiones: ['gestiones'],
   sucursales: ['sucursales'],
-  estadisticas: (filtros) => ['estadisticas', filtros],
+  estadisticas: ['estadisticas'],
+  estadisticasResumen: (filtros = {}) => ['estadisticas', 'resumen', filtros],
+  estadisticasFamilia: ['estadisticas'],
+  asistencias: ['asistencias'],
+  asistenciasFamilia: ['asistencias'],
+  cumpleanos: (contexto = {}) => ['cumpleanos', contexto],
+  cumpleanosFamilia: ['cumpleanos'],
+  actividad: ['actividad'],
+};
+
+// --- Hook de Catálogos Completos Autorizados de AsiSport ---
+export const useCatalogosAsisport = (sucursalId = null, contexto = {}) => {
+  return useQuery({
+    queryKey: queryKeys.catalogos({ ...contexto, sucursalId }),
+    queryFn: ({ signal }) => obtenerCatalogosAsisport(sucursalId, { signal }),
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    gcTime: 30 * 60 * 1000,
+    enabled: Boolean(contexto.userId),
+  });
 };
 
 // --- Hooks individuales ---
-export const useAlumnos = () =>
-  useQuery({ queryKey: queryKeys.alumnos, queryFn: getAlumnos });
-
 export const useEntrenadores = () =>
-  useQuery({ queryKey: queryKeys.entrenadores, queryFn: getEntrenadores });
+  useQuery({ queryKey: queryKeys.entrenadores, queryFn: getEntrenadores, staleTime: 10 * 60 * 1000 });
 
 export const useCanchas = () =>
-  useQuery({ queryKey: queryKeys.canchas, queryFn: getCanchas });
+  useQuery({ queryKey: queryKeys.canchas, queryFn: getCanchas, staleTime: 30 * 60 * 1000 });
 
 export const useHorarios = () =>
-  useQuery({ queryKey: queryKeys.horarios, queryFn: getHorarios });
+  useQuery({ queryKey: queryKeys.horarios, queryFn: getHorarios, staleTime: 30 * 60 * 1000 });
 
-// --- Hook combinado (reemplaza Promise.all en dashboard/estadísticas) ---
-// Dispara TODAS las queries en paralelo, sin waterfall
+// --- Hook combinado para datos maestros (desacoplado de alumnos) ---
+// Evita descargar la lista masiva de alumnos al ingresar a Asistencia o Estadísticas
 export const useMasterData = () => {
   const results = useQueries({
     queries: [
       { 
-        queryKey: queryKeys.alumnos, 
-        queryFn: getAlumnos, 
-        staleTime: 10 * 60 * 1000 // Alumnos: 10 minutos
-      },
-      { 
         queryKey: queryKeys.entrenadores, 
         queryFn: getEntrenadores, 
-        staleTime: 10 * 60 * 1000 // Entrenadores: 10 minutos
+        staleTime: 10 * 60 * 1000 // 10 minutos
       },
       { 
         queryKey: queryKeys.canchas, 
         queryFn: getCanchas, 
-        staleTime: 30 * 60 * 1000 // Canchas: 30 minutos
+        staleTime: 30 * 60 * 1000 // 30 minutos
       },
       { 
         queryKey: queryKeys.horarios, 
         queryFn: getHorarios, 
-        staleTime: 30 * 60 * 1000 // Horarios: 30 minutos
+        staleTime: 30 * 60 * 1000 // 30 minutos
       },
     ],
   });
 
-  const [alumnos, entrenadores, canchas, horarios] = results;
+  const [entrenadores, canchas, horarios] = results;
 
   return {
-    alumnos: alumnos.data || [],
+    alumnos: [], // Desacoplado intencionalmente para evitar descargas masivas no solicitadas
     entrenadores: entrenadores.data || [],
     canchas: canchas.data || [],
     horarios: horarios.data || [],

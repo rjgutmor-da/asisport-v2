@@ -33,7 +33,7 @@ const rpcLog = {
  * @param {string} rpcName - Nombre del RPC a ejecutar
  * @param {object} params - Parámetros del RPC (opcional)
  * @param {number} timeoutMs - Timeout en milisegundos (por defecto 8000)
- * @returns {*} - El dato devuelto por el RPC
+ * @returns {Promise<*>} - El dato devuelto por el RPC
  * @throws {Error} - Si el RPC falla o hay timeout
  */
 export async function ejecutarRPC(rpcName, params = {}, timeoutMs = RPC_TIMEOUT_MS) {
@@ -80,7 +80,7 @@ export async function ejecutarRPC(rpcName, params = {}, timeoutMs = RPC_TIMEOUT_
  * Wrapper específico para el RPC más usado en la app.
  * Incluye validación de que el resultado no sea null.
  * 
- * @returns {string} - UUID de la escuela del usuario
+ * @returns {Promise<string>} - UUID de la escuela del usuario
  * @throws {Error} - Si no se puede obtener la escuela
  */
 export async function obtenerEscuelaId() {

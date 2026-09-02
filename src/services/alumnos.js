@@ -162,12 +162,7 @@ export const createAlumno = async (alumnoData, photoFile) => {
  * 
  * Acepta filtros opcionales de canchas, horarios y subs (multi-selección).
  * 
- * @param {Object} filtros - Filtros opcionales
- * @param {string} filtros.userId - ID del usuario actual
- * @param {string} filtros.userRole - Rol del usuario ('Entrenador', 'Administrador', etc.)
- * @param {Array<string>} filtros.canchaIds - Filtrar por una o más canchas
- * @param {Array<string>} filtros.horarioIds - Filtrar por uno o más horarios
- * @param {Array<number>} filtros.subAnios - Filtrar por uno o más años (sub = año de nacimiento)
+ * @param {{userId?: string, userRole?: string, canchaIds?: string[], horarioIds?: string[], subAnios?: number[], tipos?: string[]}} [filtros] - Filtros opcionales.
  */
 export const getAlumnos = async (filtros = {}) => {
     const { userId, userRole, canchaIds = [], horarioIds = [], subAnios = [], tipos = [] } = filtros;
@@ -599,5 +594,102 @@ export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimient
         console.error("Error al buscar posibles duplicados:", error);
         return []; // En caso de error, permitimos continuar sin bloquear
     }
+};
+
+/**
+ * Consulta la lista paginada de alumnos mediante la RPC optimizada rpc_listar_alumnos_asisport.
+ *
+ * @param {Object} [filtros={}] - Filtros de consulta.
+ * @param {Array<string>} [filtros.canchaIds] - IDs de canchas/grupos.
+ * @param {Array<string>} [filtros.horarioIds] - IDs de horarios.
+ * @param {Array<string>} [filtros.entrenadorIds] - IDs de entrenadores.
+ * @param {Array<number>} [filtros.subAnios] - Años/categorías Sub.
+ * @param {Array<string>} [filtros.tipos] - Tipos formativos.
+ * @param {string} [filtros.searchTerm] - Término de búsqueda (mínimo 2 caracteres).
+ * @param {string} [filtros.activeFilter] - Estado: 'todos', 'activos', 'archivados', 'pendientes', 'arqueros'.
+ * @param {number} [filtros.page=1] - Número de página.
+ * @param {number} [filtros.limit=20] - Cantidad de registros por página.
+ * @param {string|null} [filtros.sucursalId=null] - ID opcional de sucursal.
+ * @param {Object} [options={}] - Opciones de la petición.
+ * @param {AbortSignal} [options.signal] - Señal de cancelación de la petición.
+ * @returns {Promise<{ items: Array, total_resultados: number, pagina: number, items_por_pagina: number, resumen: Object, facetas: Object }>}
+ */
+export const listarAlumnosAsisport = async (filtros = {}, options = {}) => {
+    const payload = {
+        pagina: filtros.page || 1,
+        limite: filtros.limit || 30,
+        estado_filtro: filtros.activeFilter || 'activos',
+        termino_busqueda: filtros.searchTerm ? filtros.searchTerm.trim() : '',
+        cancha_ids: filtros.canchaIds && filtros.canchaIds.length > 0 ? filtros.canchaIds : undefined,
+        horario_ids: filtros.horarioIds && filtros.horarioIds.length > 0 ? filtros.horarioIds : undefined,
+        entrenador_ids: filtros.entrenadorIds && filtros.entrenadorIds.length > 0 ? filtros.entrenadorIds : undefined,
+        subs: filtros.subAnios && filtros.subAnios.length > 0 ? filtros.subAnios : undefined,
+        tipos: filtros.tipos && filtros.tipos.length > 0 ? filtros.tipos : undefined,
+        sucursal_id: filtros.sucursalId || undefined
+    };
+
+    let query = supabase.rpc('rpc_listar_alumnos_asisport', {
+        p_filtros: payload
+    });
+
+    if (options.signal) {
+        query = query.abortSignal(options.signal);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error al listar alumnos vía RPC:', error);
+        throw new Error(error.message || 'Error al obtener el listado de alumnos.');
+    }
+
+    return data || {
+        items: [],
+        total_resultados: 0,
+        pagina: payload.pagina,
+        items_por_pagina: payload.limite,
+        resumen: { total_activos: 0, total_pendientes: 0, total_archivados: 0, total_arqueros: 0 },
+        facetas: { subs: [], tipos: [] }
+    };
+};
+
+/**
+ * Sugerencias ultrarrápidas de hasta 10 alumnos para selectores compactos.
+ *
+ * @param {string} termino - Término de búsqueda (mínimo 2 caracteres).
+ * @param {Object} [filtros={}] - Filtros contextuales adicionales.
+ * @param {Object} [options={}] - Opciones de la petición.
+ * @param {AbortSignal} [options.signal] - Señal de cancelación.
+ * @returns {Promise<Array>} - Lista de hasta 10 coincidencias.
+ */
+export const sugerirAlumnosAsisport = async (termino, filtros = {}, options = {}) => {
+    if (!termino || termino.trim().length < 2) {
+        return [];
+    }
+
+    const payload = {
+        cancha_ids: filtros.canchaIds && filtros.canchaIds.length > 0 ? filtros.canchaIds : undefined,
+        horario_ids: filtros.horarioIds && filtros.horarioIds.length > 0 ? filtros.horarioIds : undefined,
+        entrenador_ids: filtros.entrenadorIds && filtros.entrenadorIds.length > 0 ? filtros.entrenadorIds : undefined
+    };
+
+    let query = supabase.rpc('rpc_sugerir_alumnos_asisport', {
+        p_termino: termino.trim(),
+        p_limite: 10,
+        p_filtros: payload
+    });
+
+    if (options.signal) {
+        query = query.abortSignal(options.signal);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error al sugerir alumnos vía RPC:', error);
+        return [];
+    }
+
+    return data || [];
 };
 

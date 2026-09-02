@@ -104,8 +104,9 @@ export const getCanchasParaEntrenador = async (userId = null, userRole = null) =
     // Extraer canchas únicas
     const canchasMap = new Map();
     data.forEach(a => {
-        if (a.cancha_id && a.cancha) {
-            canchasMap.set(a.cancha_id, { id: a.cancha_id, nombre: a.cancha.nombre });
+        const cancha = Array.isArray(a.cancha) ? a.cancha[0] : a.cancha;
+        if (a.cancha_id && cancha) {
+            canchasMap.set(a.cancha_id, { id: a.cancha_id, nombre: cancha.nombre });
         }
     });
 
@@ -148,8 +149,9 @@ export const getHorariosParaEntrenador = async (userId = null, userRole = null) 
     // Extraer horarios únicos
     const horariosMap = new Map();
     data.forEach(a => {
-        if (a.horario_id && a.horario) {
-            horariosMap.set(a.horario_id, { id: a.horario_id, hora: a.horario.hora });
+        const horario = Array.isArray(a.horario) ? a.horario[0] : a.horario;
+        if (a.horario_id && horario) {
+            horariosMap.set(a.horario_id, { id: a.horario_id, hora: horario.hora });
         }
     });
 

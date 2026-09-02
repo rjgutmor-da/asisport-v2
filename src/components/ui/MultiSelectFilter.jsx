@@ -4,11 +4,7 @@ import { ChevronDown, Check } from 'lucide-react';
 
 /**
  * Componente de selección múltiple con checkboxes
- * @param {Array} options - [{ value: string, label: string }]
- * @param {Array} selectedValues - Valores actualmente seleccionados
- * @param {Function} onChange - Callback con el nuevo array de valores
- * @param {string} label - Etiqueta del campo
- * @param {string} placeholder - Texto cuando no hay selección (ej. "Todos")
+ * @param {{options: Array<{value: any, label: string, disabled?: boolean}>, selectedValues?: any[], onChange: (values: any[]) => void, label: string, placeholder?: string}} props
  */
 const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, placeholder = 'Todos' }) => {
     const [isOpen, setIsOpen] = useState(false);

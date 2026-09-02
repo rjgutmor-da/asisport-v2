@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Merge, Search, ArrowRight, AlertTriangle, Loader2, CheckCircle } from 'lucide-react';
+import { sugerirAlumnosAsisport } from '../../../services/alumnos';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 /**
  * Modal para combinar (fusionar) dos alumnos duplicados.
@@ -10,10 +12,7 @@ import { X, Merge, Search, ArrowRight, AlertTriangle, Loader2, CheckCircle } fro
  *  3. Se muestra un resumen de la fusión antes de confirmar
  *  4. Al confirmar, se ejecuta la fusión y se cierra el modal
  *
- * @param {boolean} isOpen - Si el modal está visible
- * @param {Function} onClose - Función para cerrar el modal
- * @param {Array} alumnos - Lista completa de alumnos disponibles
- * @param {Function} onCombinar - Función que ejecuta la combinación (destinoId, origenId)
+ * @param {{isOpen: boolean, onClose: () => void, alumnos: any[], onCombinar: (destinoId: string, origenId: string) => Promise<any>}} props
  */
 const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
     // Estado del flujo: 'seleccion' | 'confirmacion' | 'procesando' | 'exito'
@@ -23,32 +22,82 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
     const [busquedaOrigen, setBusquedaOrigen] = useState('');
     const [busquedaDestino, setBusquedaDestino] = useState('');
     const [error, setError] = useState('');
+    const [resultadosOrigen, setResultadosOrigen] = useState([]);
+    const [resultadosDestino, setResultadosDestino] = useState([]);
+    const busquedaOrigenEstable = useDebounce(busquedaOrigen, 300);
+    const busquedaDestinoEstable = useDebounce(busquedaDestino, 300);
+
+    useEffect(() => {
+        const termino = busquedaOrigenEstable.trim();
+        if (!isOpen || termino.length < 2) {
+            setResultadosOrigen([]);
+            return undefined;
+        }
+        const controller = new AbortController();
+        let active = true;
+        sugerirAlumnosAsisport(termino, {}, { signal: controller.signal })
+            .then(resultados => { if (active) setResultadosOrigen(resultados); })
+            .catch(errorBusqueda => {
+                if (active && errorBusqueda?.name !== 'AbortError') setResultadosOrigen([]);
+            });
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [busquedaOrigenEstable, isOpen]);
+
+    useEffect(() => {
+        const termino = busquedaDestinoEstable.trim();
+        if (!isOpen || termino.length < 2) {
+            setResultadosDestino([]);
+            return undefined;
+        }
+        const controller = new AbortController();
+        let active = true;
+        sugerirAlumnosAsisport(termino, {}, { signal: controller.signal })
+            .then(resultados => { if (active) setResultadosDestino(resultados); })
+            .catch(errorBusqueda => {
+                if (active && errorBusqueda?.name !== 'AbortError') setResultadosDestino([]);
+            });
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [busquedaDestinoEstable, isOpen]);
+
+    const alumnosDisponibles = useMemo(() => {
+        const mapa = new Map();
+        [...(alumnos || []), ...resultadosOrigen, ...resultadosDestino].forEach(alumno => {
+            if (alumno?.id) mapa.set(alumno.id, alumno);
+        });
+        return Array.from(mapa.values());
+    }, [alumnos, resultadosOrigen, resultadosDestino]);
 
     // Filtrar alumnos para búsqueda (excluyendo el ya seleccionado en el otro campo)
     const alumnosFiltradosOrigen = useMemo(() => {
-        if (!alumnos) return [];
-        return alumnos
+        const base = busquedaOrigen.trim().length >= 2 ? resultadosOrigen : alumnosDisponibles;
+        return base
             .filter(a => a.id !== destinoId)
             .filter(a => {
                 if (!busquedaOrigen.trim()) return true;
                 const nombre = `${a.nombres} ${a.apellidos}`.toLowerCase();
                 return nombre.includes(busquedaOrigen.toLowerCase());
             });
-    }, [alumnos, destinoId, busquedaOrigen]);
+    }, [alumnosDisponibles, resultadosOrigen, destinoId, busquedaOrigen]);
 
     const alumnosFiltradosDestino = useMemo(() => {
-        if (!alumnos) return [];
-        return alumnos
+        const base = busquedaDestino.trim().length >= 2 ? resultadosDestino : alumnosDisponibles;
+        return base
             .filter(a => a.id !== origenId)
             .filter(a => {
                 if (!busquedaDestino.trim()) return true;
                 const nombre = `${a.nombres} ${a.apellidos}`.toLowerCase();
                 return nombre.includes(busquedaDestino.toLowerCase());
             });
-    }, [alumnos, origenId, busquedaDestino]);
+    }, [alumnosDisponibles, resultadosDestino, origenId, busquedaDestino]);
 
     // Obtener datos del alumno por ID
-    const getAlumno = (id) => alumnos?.find(a => a.id === id);
+    const getAlumno = (id) => alumnosDisponibles.find(a => a.id === id);
 
     // Renderizar la foto o iniciales de un alumno
     const renderFoto = (alumno, size = 'w-10 h-10') => {
@@ -89,6 +138,8 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
         setDestinoId('');
         setBusquedaOrigen('');
         setBusquedaDestino('');
+        setResultadosOrigen([]);
+        setResultadosDestino([]);
         setError('');
         onClose();
     };
