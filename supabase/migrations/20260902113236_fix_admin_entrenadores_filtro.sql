@@ -59,24 +59,43 @@ BEGIN
   FROM public.gestiones_deportivas g
   WHERE g.escuela_id = v_escuela_id;
 
-  -- 2. Entrenadores autorizados
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'id', u.id,
-      'value', u.id,
-      'label', (u.nombres || ' ' || u.apellidos),
-      'nombres', u.nombres,
-      'apellidos', u.apellidos,
-      'rol', u.rol,
-      'sucursal_id', u.sucursal_id
-    ) ORDER BY u.nombres, u.apellidos
-  ), '[]'::jsonb)
-  INTO v_entrenadores
-  FROM public.usuarios u
-  WHERE u.escuela_id = v_escuela_id
-    AND u.activo IS TRUE
-    AND u.rol IN ('Entrenador', 'Entrenarqueros')
-    AND (v_sucursal_efectiva IS NULL OR u.sucursal_id IS NULL OR u.sucursal_id = v_sucursal_efectiva);
+  -- 2. Entrenadores autorizados:
+  -- Si es Entrenador, solo se ve a sí mismo (1 entrenador).
+  -- Si es Admin/SuperAdmin, ve a los entrenadores de su sucursal o escuela.
+  IF v_rol IN ('Entrenador', 'Entrenarqueros') THEN
+    SELECT COALESCE(jsonb_agg(
+      jsonb_build_object(
+        'id', u.id,
+        'value', u.id,
+        'label', (u.nombres || ' ' || u.apellidos),
+        'nombres', u.nombres,
+        'apellidos', u.apellidos,
+        'rol', u.rol,
+        'sucursal_id', u.sucursal_id
+      )
+    ), '[]'::jsonb)
+    INTO v_entrenadores
+    FROM public.usuarios u
+    WHERE u.id = v_user_id;
+  ELSE
+    SELECT COALESCE(jsonb_agg(
+      jsonb_build_object(
+        'id', u.id,
+        'value', u.id,
+        'label', (u.nombres || ' ' || u.apellidos),
+        'nombres', u.nombres,
+        'apellidos', u.apellidos,
+        'rol', u.rol,
+        'sucursal_id', u.sucursal_id
+      ) ORDER BY u.nombres, u.apellidos
+    ), '[]'::jsonb)
+    INTO v_entrenadores
+    FROM public.usuarios u
+    WHERE u.escuela_id = v_escuela_id
+      AND u.activo IS TRUE
+      AND u.rol IN ('Entrenador', 'Entrenarqueros')
+      AND (v_sucursal_efectiva IS NULL OR u.sucursal_id IS NULL OR u.sucursal_id = v_sucursal_efectiva);
+  END IF;
 
   -- 3. Canchas / Grupos autorizados
   IF v_rol IN ('Entrenador', 'Entrenarqueros') THEN
