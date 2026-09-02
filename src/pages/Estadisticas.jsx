@@ -22,6 +22,10 @@ const Estadisticas = () => {
         canchas,
         entrenadores,
         horarios,
+        canchasDisponibles,
+        entrenadoresDisponibles,
+        handleEntrenadoresChange,
+        handleCanchasChange,
         selectedGestionId, setSelectedGestionId,
         dateRangeOption, setDateRangeOption,
         selectedEntrenadores, setSelectedEntrenadores,
@@ -492,18 +496,20 @@ const Estadisticas = () => {
                         {/* 3. Entrenador (Multi-select) */}
                         <MultiSelectFilter
                             label="Entrenador"
-                            options={entrenadores}
+                            options={entrenadoresDisponibles}
+                            allOptions={entrenadores}
                             selectedValues={selectedEntrenadores}
-                            onChange={setSelectedEntrenadores}
+                            onChange={handleEntrenadoresChange}
                             placeholder="Todos"
                         />
 
                         {/* 4. Grupo (Multi-select, anteriormente Cancha) */}
                         <MultiSelectFilter
                             label="Grupo"
-                            options={canchas}
+                            options={canchasDisponibles}
+                            allOptions={canchas}
                             selectedValues={selectedCanchas}
-                            onChange={setSelectedCanchas}
+                            onChange={handleCanchasChange}
                             placeholder="Todos"
                         />
                     </div>

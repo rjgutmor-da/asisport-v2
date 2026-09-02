@@ -1,12 +1,11 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 
 /**
  * Componente de selección múltiple con checkboxes
- * @param {{options: Array<{value: any, label: string, disabled?: boolean}>, selectedValues?: any[], onChange: (values: any[]) => void, label: string, placeholder?: string}} props
+ * @param {{options: Array<{value: any, label: string, disabled?: boolean}>, allOptions?: Array<{value: any, label: string}>, selectedValues?: any[], onChange: (values: any[]) => void, label: string, placeholder?: string}} props
  */
-const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, placeholder = 'Todos' }) => {
+const MultiSelectFilter = ({ options = [], allOptions, selectedValues = [], onChange, label, placeholder = 'Todos' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -35,10 +34,11 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
         setIsOpen(false);
     };
 
+    const lookupList = allOptions && allOptions.length > 0 ? allOptions : options;
     const displayText = selectedValues.length === 0
         ? placeholder
         : selectedValues.length === 1
-            ? options.find(o => o.value == selectedValues[0])?.label || placeholder
+            ? lookupList.find(o => o.value == selectedValues[0])?.label || placeholder
             : `${selectedValues.length} seleccionados`;
 
     return (
@@ -74,6 +74,13 @@ const MultiSelectFilter = ({ options, selectedValues = [], onChange, label, plac
                     </button>
 
                     <div className="border-t border-border" />
+
+                    {/* Mensaje si no hay opciones */}
+                    {options.length === 0 && (
+                        <div className="px-3 py-3 text-xs text-text-secondary text-center">
+                            No hay opciones disponibles
+                        </div>
+                    )}
 
                     {/* Opciones individuales */}
                     {options.map(option => {

@@ -1,10 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
 import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
 import { obtenerResumenEstadisticas, exportarAsistenciasAsisport } from '../../../services/estadisticasService';
 import { useDebounce } from '../../../hooks/useDebounce';
+import {
+    filtrarGruposPorEntrenadores,
+    filtrarEntrenadoresPorGrupos,
+    sanearSeleccionIncompatible
+} from '../utils/filtrosCruzados';
 
 /**
  * Hook para gestionar las estadísticas de AsiSport mediante TanStack Query y RPCs de PostgreSQL.
@@ -21,8 +26,16 @@ export const useEstadisticas = () => {
     });
 
     const gestiones = useMemo(() => catalogosData?.gestiones || [], [catalogosData?.gestiones]);
-    const canchas = useMemo(() => (catalogosData?.canchas || []).map(c => ({ value: c.id, label: c.nombre })), [catalogosData?.canchas]);
-    const entrenadores = useMemo(() => (catalogosData?.entrenadores || []).map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })), [catalogosData?.entrenadores]);
+    const canchas = useMemo(() => (catalogosData?.canchas || []).map(c => ({
+        value: c.id,
+        label: c.nombre,
+        entrenador_ids: c.entrenador_ids || []
+    })), [catalogosData?.canchas]);
+    const entrenadores = useMemo(() => (catalogosData?.entrenadores || []).map(e => ({
+        value: e.id,
+        label: `${e.nombres} ${e.apellidos}`,
+        grupo_ids: e.grupo_ids || []
+    })), [catalogosData?.entrenadores]);
     const horarios = useMemo(() => (catalogosData?.horarios || []).map(h => ({ value: h.id, label: h.hora })), [catalogosData?.horarios]);
 
     // Estados de filtros
@@ -33,6 +46,34 @@ export const useEstadisticas = () => {
     const [selectedHorarios, setSelectedHorarios] = useState([]);
     const [selectedDias, setSelectedDias] = useState([]);
     const [selectedAlumnoId, setSelectedAlumnoId] = useState(null);
+
+    // Opciones dinámicas para desplegables con filtrado inteligente bidireccional
+    const canchasDisponibles = useMemo(() => {
+        return filtrarGruposPorEntrenadores(canchas, selectedEntrenadores);
+    }, [canchas, selectedEntrenadores]);
+
+    const entrenadoresDisponibles = useMemo(() => {
+        return filtrarEntrenadoresPorGrupos(entrenadores, selectedCanchas);
+    }, [entrenadores, selectedCanchas]);
+
+    // Manejadores con saneamiento automático de selecciones incompatibles
+    const handleEntrenadoresChange = useCallback((nuevosEntrenadores) => {
+        setSelectedEntrenadores(nuevosEntrenadores);
+
+        if (nuevosEntrenadores && nuevosEntrenadores.length > 0) {
+            const gruposPermitidos = filtrarGruposPorEntrenadores(canchas, nuevosEntrenadores);
+            setSelectedCanchas(prevCanchas => sanearSeleccionIncompatible(prevCanchas, gruposPermitidos));
+        }
+    }, [canchas]);
+
+    const handleCanchasChange = useCallback((nuevasCanchas) => {
+        setSelectedCanchas(nuevasCanchas);
+
+        if (nuevasCanchas && nuevasCanchas.length > 0) {
+            const entrenadoresPermitidos = filtrarEntrenadoresPorGrupos(entrenadores, nuevasCanchas);
+            setSelectedEntrenadores(prevEntrenadores => sanearSeleccionIncompatible(prevEntrenadores, entrenadoresPermitidos));
+        }
+    }, [entrenadores]);
 
     // Debounce único de 300 ms conforme a las directrices de rendimiento
     const debouncedEntrenadores = useDebounce(selectedEntrenadores, 300);
@@ -216,6 +257,10 @@ export const useEstadisticas = () => {
         canchas,
         entrenadores,
         horarios,
+        canchasDisponibles,
+        entrenadoresDisponibles,
+        handleEntrenadoresChange,
+        handleCanchasChange,
         availableCategorias: [], // Preservar retiro de Categoría
 
         // Filtros y setters
