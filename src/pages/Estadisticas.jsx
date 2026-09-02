@@ -14,7 +14,6 @@ const Estadisticas = () => {
     const navigate = useNavigate();
     const {
         loading,
-        metrics,
         tableData,
         alumnoSeleccionado,
         dateRangeText,
@@ -645,31 +644,6 @@ const Estadisticas = () => {
                     </div>
                 ) : (
                     <>
-                        {/* KPIs Principales */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-surface border border-border rounded-lg p-4 flex flex-col justify-between">
-                                <div>
-                                    <div className="text-xs text-text-secondary uppercase font-bold">Total Alumnos</div>
-                                    <div className="text-3xl font-black text-white mt-1">{metrics.total_alumnos ?? metrics.total}</div>
-                                </div>
-                                <div className="text-[11px] text-text-secondary mt-1">
-                                    {metrics.total} {metrics.total === 1 ? 'registro evaluado' : 'registros evaluados'}
-                                </div>
-                            </div>
-                            <div className="bg-surface border border-border rounded-lg p-4">
-                                <div className="text-xs text-success uppercase font-bold">Presentes</div>
-                                <div className="text-3xl font-black text-success mt-1">{metrics.presentes}</div>
-                            </div>
-                            <div className="bg-surface border border-border rounded-lg p-4">
-                                <div className="text-xs text-warning uppercase font-bold">Licencias</div>
-                                <div className="text-3xl font-black text-warning mt-1">{metrics.licencias}</div>
-                            </div>
-                            <div className="bg-surface border border-border rounded-lg p-4">
-                                <div className="text-xs text-primary uppercase font-bold">% Asistencia</div>
-                                <div className="text-3xl font-black text-primary mt-1">{metrics.porcentaje_asistencia}%</div>
-                            </div>
-                        </div>
-
                         {/* Tabla de Resumen Diario */}
                         <div className="bg-surface border border-border rounded-lg overflow-hidden">
                             <div className="p-4 border-b border-border">
