@@ -256,8 +256,10 @@ export const getAlumnos = async (filtros = {}) => {
         query = query.in('tipo', tipos);
     }
 
-    // Ordenamiento
-    query = query.order('created_at', { ascending: false });
+    // Últimos inscritos primero. Los registros históricos sin fecha quedan al final.
+    query = query
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false });
 
     const { data, error } = await query;
 
@@ -378,7 +380,11 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     // Paginación
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    query = query.range(from, to).order('created_at', { ascending: false });
+    // Últimos inscritos primero. Los registros históricos sin fecha quedan al final.
+    query = query
+        .range(from, to)
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false });
 
     const { data, error, count } = await query;
     if (error) throw error;
