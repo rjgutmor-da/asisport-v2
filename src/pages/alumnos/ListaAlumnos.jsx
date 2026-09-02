@@ -54,7 +54,9 @@ const ListaAlumnos = () => {
         hayFiltrosActivos,
         filtrosMaestros: {
             canchas,
+            canchasDisponibles,
             entrenadores,
+            entrenadoresDisponibles,
             subs,
             tipos,
             selectedCanchas,
@@ -338,7 +340,8 @@ const ListaAlumnos = () => {
                         <MultiSelectFilter
                             label="Entrenador"
                             placeholder="Todos los Entrenadores"
-                            options={entrenadores}
+                            options={entrenadoresDisponibles}
+                            allOptions={entrenadores}
                             selectedValues={selectedEntrenadores}
                             onChange={setSelectedEntrenadores}
                         />
@@ -348,7 +351,8 @@ const ListaAlumnos = () => {
                     <MultiSelectFilter
                         label="Grupo"
                         placeholder="Todos los Grupos"
-                        options={canchas}
+                        options={canchasDisponibles}
+                        allOptions={canchas}
                         selectedValues={selectedCanchas}
                         onChange={setSelectedCanchas}
                     />

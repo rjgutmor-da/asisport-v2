@@ -7,6 +7,11 @@ import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
+import {
+    filtrarGruposPorEntrenadores,
+    filtrarEntrenadoresPorGrupos,
+    sanearSeleccionIncompatible
+} from '../utils/filtrosCruzados';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
@@ -187,8 +192,18 @@ export const useAlumnos = () => {
 
     // Opciones maestras construidas desde los catálogos y facetas del servidor
     const dynamicOptions = useMemo(() => {
-        const canchasOpts = (catalogosData?.canchas || []).map(c => ({ value: c.id, label: c.nombre }));
-        const entrenadoresOpts = (catalogosData?.entrenadores || []).map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` }));
+        const canchasOpts = (catalogosData?.canchas || []).map(c => ({
+            value: c.id,
+            label: c.label || `${c.nombre} (${c.total_alumnos ?? 0})`,
+            nombre: c.nombre,
+            total_alumnos: c.total_alumnos ?? 0,
+            entrenador_ids: c.entrenador_ids || []
+        }));
+        const entrenadoresOpts = (catalogosData?.entrenadores || []).map(e => ({
+            value: e.id,
+            label: `${e.nombres} ${e.apellidos}`,
+            grupo_ids: e.grupo_ids || []
+        }));
         const subsOpts = (alumnosData?.facetas?.subs || []).map(sub => ({ value: sub, label: `Sub ${sub}` }));
         const tiposOpts = (alumnosData?.facetas?.tipos || []).map(t => ({ value: t, label: t }));
 
@@ -199,6 +214,57 @@ export const useAlumnos = () => {
             tipos: tiposOpts
         };
     }, [catalogosData, alumnosData?.facetas]);
+
+    // Opciones dinámicas para desplegables con filtrado inteligente bidireccional
+    const canchasDisponibles = useMemo(() => {
+        return filtrarGruposPorEntrenadores(dynamicOptions.canchas, selectedEntrenadores);
+    }, [dynamicOptions.canchas, selectedEntrenadores]);
+
+    const entrenadoresDisponibles = useMemo(() => {
+        return filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, selectedCanchas);
+    }, [dynamicOptions.entrenadores, selectedCanchas]);
+
+    // Manejadores con saneamiento automático de selecciones incompatibles
+    const handleEntrenadoresChange = useCallback((nuevosEntrenadores) => {
+        setSelectedEntrenadores(nuevosEntrenadores);
+        setCurrentPage(1);
+
+        if (nuevosEntrenadores && nuevosEntrenadores.length > 0) {
+            const gruposPermitidos = filtrarGruposPorEntrenadores(dynamicOptions.canchas, nuevosEntrenadores);
+            setSelectedCanchas(prevCanchas => sanearSeleccionIncompatible(prevCanchas, gruposPermitidos));
+        }
+    }, [dynamicOptions.canchas]);
+
+    const handleCanchasChange = useCallback((nuevasCanchas) => {
+        setSelectedCanchas(nuevasCanchas);
+        setCurrentPage(1);
+
+        if (nuevasCanchas && nuevasCanchas.length > 0) {
+            const entrenadoresPermitidos = filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, nuevasCanchas);
+            setSelectedEntrenadores(prevEntrenadores => sanearSeleccionIncompatible(prevEntrenadores, entrenadoresPermitidos));
+        }
+    }, [dynamicOptions.entrenadores]);
+
+    // Saneamiento de selecciones incompatibles provenientes de sessionStorage o cambios de catálogo
+    useEffect(() => {
+        if (!catalogosData) return;
+
+        if (selectedEntrenadores.length > 0) {
+            const gruposPermitidos = filtrarGruposPorEntrenadores(dynamicOptions.canchas, selectedEntrenadores);
+            setSelectedCanchas(prev => {
+                const saneados = sanearSeleccionIncompatible(prev, gruposPermitidos);
+                return saneados.length === prev.length ? prev : saneados;
+            });
+        }
+
+        if (selectedCanchas.length > 0) {
+            const entrenadoresPermitidos = filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, selectedCanchas);
+            setSelectedEntrenadores(prev => {
+                const saneados = sanearSeleccionIncompatible(prev, entrenadoresPermitidos);
+                return saneados.length === prev.length ? prev : saneados;
+            });
+        }
+    }, [catalogosData, dynamicOptions.canchas, dynamicOptions.entrenadores, selectedEntrenadores, selectedCanchas]);
 
     // Lista simplificada para el modal de combinar
     const allAlumnos = useMemo(() => {
@@ -328,6 +394,8 @@ export const useAlumnos = () => {
         hayFiltrosActivos,
         filtrosMaestros: {
             ...dynamicOptions,
+            canchasDisponibles,
+            entrenadoresDisponibles,
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,
@@ -335,8 +403,8 @@ export const useAlumnos = () => {
         },
         setViewMode,
         setCurrentPage,
-        setSelectedCanchas: (val) => { setSelectedCanchas(val); setCurrentPage(1); },
-        setSelectedEntrenadores: (val) => { setSelectedEntrenadores(val); setCurrentPage(1); },
+        setSelectedCanchas: handleCanchasChange,
+        setSelectedEntrenadores: handleEntrenadoresChange,
         setSelectedSubs: (val) => { setSelectedSubs(val); setCurrentPage(1); },
         setSelectedTipos: (val) => { setSelectedTipos(val); setCurrentPage(1); },
         getAsistenciaResumen,

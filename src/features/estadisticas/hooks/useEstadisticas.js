@@ -28,7 +28,9 @@ export const useEstadisticas = () => {
     const gestiones = useMemo(() => catalogosData?.gestiones || [], [catalogosData?.gestiones]);
     const canchas = useMemo(() => (catalogosData?.canchas || []).map(c => ({
         value: c.id,
-        label: c.nombre,
+        label: c.label || `${c.nombre} (${c.total_alumnos ?? 0})`,
+        nombre: c.nombre,
+        total_alumnos: c.total_alumnos ?? 0,
         entrenador_ids: c.entrenador_ids || []
     })), [catalogosData?.canchas]);
     const entrenadores = useMemo(() => (catalogosData?.entrenadores || []).map(e => ({
@@ -177,15 +179,28 @@ export const useEstadisticas = () => {
 
     const metrics = useMemo(() => {
         const res = estadisticasData?.resumen;
+        let totalAlumnosFallback = 0;
+        if (selectedCanchas.length > 0) {
+            totalAlumnosFallback = selectedCanchas.reduce((acc, cId) => {
+                const found = canchas.find(c => String(c.value) === String(cId));
+                return acc + (found?.total_alumnos || 0);
+            }, 0);
+        } else if (selectedEntrenadores.length > 0) {
+            totalAlumnosFallback = canchasDisponibles.reduce((acc, c) => acc + (c.total_alumnos || 0), 0);
+        } else {
+            totalAlumnosFallback = canchas.reduce((acc, c) => acc + (c.total_alumnos || 0), 0);
+        }
+
         return {
             presentes: res?.presentes || 0,
             licencias: res?.licencias || 0,
             ausentes: res?.ausentes || 0,
             total: res?.total_registros || 0,
+            total_alumnos: res?.total_alumnos !== undefined && res.total_alumnos !== null ? res.total_alumnos : totalAlumnosFallback,
             porcentaje_asistencia: res?.porcentaje_asistencia || 0,
             total_alumnos_unicos: res?.total_alumnos_unicos || 0
         };
-    }, [estadisticasData?.resumen]);
+    }, [estadisticasData?.resumen, selectedCanchas, selectedEntrenadores, canchas, canchasDisponibles]);
 
     const tableData = useMemo(() => {
         const serie = estadisticasData?.serie_diaria || [];

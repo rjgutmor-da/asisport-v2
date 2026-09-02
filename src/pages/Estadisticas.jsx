@@ -647,9 +647,14 @@ const Estadisticas = () => {
                     <>
                         {/* KPIs Principales */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-surface border border-border rounded-lg p-4">
-                                <div className="text-xs text-text-secondary uppercase font-bold">Total Asistencias</div>
-                                <div className="text-3xl font-black text-white mt-1">{metrics.total}</div>
+                            <div className="bg-surface border border-border rounded-lg p-4 flex flex-col justify-between">
+                                <div>
+                                    <div className="text-xs text-text-secondary uppercase font-bold">Total Alumnos</div>
+                                    <div className="text-3xl font-black text-white mt-1">{metrics.total_alumnos ?? metrics.total}</div>
+                                </div>
+                                <div className="text-[11px] text-text-secondary mt-1">
+                                    {metrics.total} {metrics.total === 1 ? 'registro evaluado' : 'registros evaluados'}
+                                </div>
                             </div>
                             <div className="bg-surface border border-border rounded-lg p-4">
                                 <div className="text-xs text-success uppercase font-bold">Presentes</div>
