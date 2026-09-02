@@ -41,7 +41,6 @@ BEGIN
   IF v_rol IN ('Administrador', 'Asistente') AND v_user_sucursal_id IS NOT NULL THEN
     v_sucursal_efectiva := v_user_sucursal_id;
   ELSIF p_sucursal_id IS NOT NULL THEN
-    -- Validar que la sucursal pertenezca a la escuela
     IF EXISTS (SELECT 1 FROM public.sucursales s WHERE s.id = p_sucursal_id AND s.escuela_id = v_escuela_id) THEN
       v_sucursal_efectiva := p_sucursal_id;
     END IF;
@@ -97,7 +96,7 @@ BEGIN
       AND (
         EXISTS (
           SELECT 1 FROM public.alumnos a 
-          WHERE a.cancha_id = g.id 
+          WHERE (a.grupo_id = g.id OR a.cancha_id = g.id)
             AND (a.profesor_asignado_id = v_user_id 
                  OR EXISTS (SELECT 1 FROM public.alumnos_entrenadores ae WHERE ae.alumno_id = a.id AND ae.entrenador_id = v_user_id))
             AND a.estado <> 'ELIMINADO SISTEMA' 
@@ -105,7 +104,8 @@ BEGIN
         )
         OR EXISTS (
           SELECT 1 FROM public.entrenadores_grupos eg 
-          WHERE eg.grupo_id = g.id AND eg.entrenador_id = v_user_id
+          JOIN public.grupos_gestion gg ON gg.id = eg.grupo_gestion_id
+          WHERE gg.grupo_id = g.id AND eg.entrenador_id = v_user_id AND eg.estado = 'activa'
         )
       );
   ELSE
@@ -124,19 +124,19 @@ BEGIN
       AND (v_sucursal_efectiva IS NULL OR g.sucursal_id IS NULL OR g.sucursal_id = v_sucursal_efectiva);
   END IF;
 
-  -- 4. Horarios autorizados
+  -- 4. Horarios autorizados (corregido: horarios no tiene columna dias)
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
       'id', h.id,
       'value', h.id,
       'label', h.hora,
-      'hora', h.hora,
-      'dias', h.dias
+      'hora', h.hora
     ) ORDER BY h.hora
   ), '[]'::jsonb)
   INTO v_horarios
   FROM public.horarios h
-  WHERE h.escuela_id = v_escuela_id;
+  WHERE h.escuela_id = v_escuela_id
+    AND h.activo IS TRUE;
 
   RETURN jsonb_build_object(
     'gestiones', v_gestiones,
