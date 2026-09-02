@@ -6,8 +6,8 @@
 -- ------------------------------------------------------------------------------
 -- 1. Endurecimiento de funciones auxiliares y revocación de accesos anónimos
 -- ------------------------------------------------------------------------------
-REVOKE EXECUTE ON FUNCTION public.current_user_escuela_id() FROM PUBLIC, anon, service_role;
-GRANT EXECUTE ON FUNCTION public.current_user_escuela_id() TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.current_user_escuela_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_user_escuela_id() TO authenticated, service_role;
 
 CREATE SCHEMA IF NOT EXISTS private;
 
@@ -25,8 +25,8 @@ AS $$
   LIMIT 1
 $$;
 
-REVOKE ALL ON FUNCTION private.current_user_escuela_id_asisport() FROM PUBLIC, anon, service_role;
-GRANT EXECUTE ON FUNCTION private.current_user_escuela_id_asisport() TO authenticated;
+REVOKE ALL ON FUNCTION private.current_user_escuela_id_asisport() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.current_user_escuela_id_asisport() TO authenticated, service_role;
 
 -- ------------------------------------------------------------------------------
 -- 2. Políticas RLS RESTRICTIVE (FOR SELECT TO authenticated)
