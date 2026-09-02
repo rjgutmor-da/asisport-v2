@@ -617,7 +617,7 @@ const Estadisticas = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 border-t border-border/50 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-3 border-t border-border/50 pt-4">
                         {/* 1. Rango de Fechas */}
                         <div className="relative">
                             <label className="text-xs text-text-secondary block mb-1">Rango de Fechas</label>
@@ -632,7 +632,6 @@ const Estadisticas = () => {
                                 <option value="semana_anterior">Semana Anterior</option>
                                 <option value="este_mes">Mes en Curso</option>
                                 <option value="mes_anterior">Mes Anterior</option>
-                                <option value="todo">Histórico Completo</option>
                             </select>
                         </div>
 
@@ -651,24 +650,6 @@ const Estadisticas = () => {
                             options={canchas}
                             selectedValues={selectedCanchas}
                             onChange={setSelectedCanchas}
-                            placeholder="Todos"
-                        />
-
-                        {/* 4. Categoría (Multi-select) */}
-                        <MultiSelectFilter
-                            label="Categoría (Sub)"
-                            options={availableCategorias}
-                            selectedValues={selectedCategorias}
-                            onChange={setSelectedCategorias}
-                            placeholder="Todas"
-                        />
-
-                        {/* 5. Horario (Multi-select) */}
-                        <MultiSelectFilter
-                            label="Horario"
-                            options={horarios}
-                            selectedValues={selectedHorarios}
-                            onChange={setSelectedHorarios}
                             placeholder="Todos"
                         />
                     </div>
