@@ -6,10 +6,11 @@ import { listarAlumnosAsisport, archivarAlumno } from '../../../services/alumnos
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
+import { useCatalogosAsisport, useCanchas, queryKeys } from '../../../hooks/useMasterData';
 import {
-    filtrarGruposPorEntrenadores,
-    filtrarEntrenadoresPorGrupos,
+    filtrarGruposPorEntrenadoresYHorarios,
+    filtrarEntrenadoresPorGruposYHorarios,
+    filtrarHorariosPorGruposYEntrenadores,
     sanearSeleccionIncompatible
 } from '../utils/filtrosCruzados';
 
@@ -56,7 +57,7 @@ export const useAlumnos = () => {
     const [selectedCanchas, setSelectedCanchas] = useState(filtrosGuardados?.selectedCanchas ?? []);
     const [selectedEntrenadores, setSelectedEntrenadores] = useState(filtrosGuardados?.selectedEntrenadores ?? []);
     const [selectedSubs, setSelectedSubs] = useState(filtrosGuardados?.selectedSubs ?? []);
-    const [selectedTipos, setSelectedTipos] = useState(filtrosGuardados?.selectedTipos ?? []);
+    const [selectedHorarios, setSelectedHorarios] = useState(filtrosGuardados?.selectedHorarios ?? []);
     const [currentPage, setCurrentPage] = useState(filtrosGuardados?.currentPage ?? 1);
     const [viewMode, setViewMode] = useState(filtrosGuardados?.viewMode ?? 'list');
     const [selectedAlumnos, setSelectedAlumnos] = useState([]);
@@ -71,7 +72,7 @@ export const useAlumnos = () => {
     const debouncedCanchas = useDebounce(selectedCanchas, 300);
     const debouncedEntrenadores = useDebounce(selectedEntrenadores, 300);
     const debouncedSubs = useDebounce(selectedSubs, 300);
-    const debouncedTipos = useDebounce(selectedTipos, 300);
+    const debouncedHorarios = useDebounce(selectedHorarios, 300);
 
     // Validación de búsqueda con 1 carácter: advertir y no consultar
     const searchToastShownRef = useRef(false);
@@ -93,6 +94,7 @@ export const useAlumnos = () => {
         userId: user?.id,
         escuelaId
     });
+    const { data: canchasConHorario = [] } = useCanchas();
     const gestionActivaId = catalogosData?.gestiones?.find(gestion => gestion.es_activa)?.id || null;
 
     // Persistir filtros en sessionStorage
@@ -102,12 +104,12 @@ export const useAlumnos = () => {
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,
-            selectedTipos,
+            selectedHorarios,
             searchTerm,
             currentPage,
             viewMode,
         });
-    }, [activeFilter, selectedCanchas, selectedEntrenadores, selectedSubs, selectedTipos, searchTerm, currentPage, viewMode]);
+    }, [activeFilter, selectedCanchas, selectedEntrenadores, selectedSubs, selectedHorarios, searchTerm, currentPage, viewMode]);
 
     // Query principal de alumnos con TanStack Query
     const alumnosQueryKey = useMemo(() => [
@@ -121,10 +123,9 @@ export const useAlumnos = () => {
             gestionId: gestionActivaId || 'sin-gestion',
             activeFilter,
             canchaIds: debouncedCanchas,
-            horarioIds: [],
+            horarioIds: debouncedHorarios,
             entrenadorIds: debouncedEntrenadores,
             subAnios: debouncedSubs,
-            tipos: debouncedTipos,
             searchTerm: terminoEfectivo,
             page: currentPage,
             limit: itemsPerPage
@@ -140,7 +141,7 @@ export const useAlumnos = () => {
         debouncedCanchas,
         debouncedEntrenadores,
         debouncedSubs,
-        debouncedTipos,
+        debouncedHorarios,
         terminoEfectivo,
         currentPage,
         itemsPerPage
@@ -161,7 +162,7 @@ export const useAlumnos = () => {
             canchaIds: debouncedCanchas,
             entrenadorIds: debouncedEntrenadores,
             subAnios: debouncedSubs,
-            tipos: debouncedTipos,
+            horarioIds: debouncedHorarios,
             sucursalId: userProfile?.sucursal_id
         }, { signal }),
         placeholderData: (previousData) => previousData,
@@ -190,81 +191,58 @@ export const useAlumnos = () => {
         }
     }, [alumnos]);
 
-    // Opciones maestras construidas desde los catálogos y facetas del servidor
+    // Opciones maestras con relaciones Grupo ↔ Entrenador ↔ Horario.
     const dynamicOptions = useMemo(() => {
-        const canchasOpts = (catalogosData?.canchas || []).map(c => ({
-            value: c.id,
-            label: c.label || `${c.nombre} (${c.total_alumnos ?? 0})`,
-            nombre: c.nombre,
-            total_alumnos: c.total_alumnos ?? 0,
-            entrenador_ids: c.entrenador_ids || []
+        const horariosPorGrupo = new Map((canchasConHorario || []).map(cancha => [String(cancha.id), cancha.horario_ids || []]));
+        const canchasOpts = (catalogosData?.canchas || []).map(cancha => ({
+            value: cancha.id,
+            label: cancha.label || `${cancha.nombre} (${cancha.total_alumnos ?? 0})`,
+            nombre: cancha.nombre,
+            total_alumnos: cancha.total_alumnos ?? 0,
+            entrenador_ids: cancha.entrenador_ids || [],
+            horario_ids: horariosPorGrupo.get(String(cancha.id)) || []
         }));
-        const entrenadoresOpts = (catalogosData?.entrenadores || []).map(e => ({
-            value: e.id,
-            label: `${e.nombres} ${e.apellidos}`,
-            grupo_ids: e.grupo_ids || []
+        const entrenadoresOpts = (catalogosData?.entrenadores || []).map(entrenador => ({
+            value: entrenador.id,
+            label: `${entrenador.nombres} ${entrenador.apellidos}`,
+            grupo_ids: entrenador.grupo_ids || [],
+            horario_ids: [...new Set(canchasOpts
+                .filter(cancha => (entrenador.grupo_ids || []).map(String).includes(String(cancha.value)))
+                .flatMap(cancha => cancha.horario_ids || []))]
         }));
+        const horariosOpts = (catalogosData?.horarios || []).map(horario => {
+            const grupos = canchasOpts.filter(cancha => (cancha.horario_ids || []).map(String).includes(String(horario.id)));
+            return {
+                value: horario.id,
+                label: horario.hora || horario.label,
+                grupo_ids: grupos.map(grupo => grupo.value),
+                entrenador_ids: [...new Set(grupos.flatMap(grupo => grupo.entrenador_ids || []))]
+            };
+        });
         const subsOpts = (alumnosData?.facetas?.subs || []).map(sub => ({ value: sub, label: `Sub ${sub}` }));
-        const tiposOpts = (alumnosData?.facetas?.tipos || []).map(t => ({ value: t, label: t }));
+        return { canchas: canchasOpts, entrenadores: entrenadoresOpts, horarios: horariosOpts, subs: subsOpts };
+    }, [catalogosData, canchasConHorario, alumnosData?.facetas]);
 
-        return {
-            canchas: canchasOpts,
-            entrenadores: entrenadoresOpts,
-            subs: subsOpts,
-            tipos: tiposOpts
-        };
-    }, [catalogosData, alumnosData?.facetas]);
+    const canchasDisponibles = useMemo(
+        () => filtrarGruposPorEntrenadoresYHorarios(dynamicOptions.canchas, selectedEntrenadores, selectedHorarios),
+        [dynamicOptions.canchas, selectedEntrenadores, selectedHorarios]
+    );
+    const entrenadoresDisponibles = useMemo(
+        () => filtrarEntrenadoresPorGruposYHorarios(dynamicOptions.entrenadores, selectedCanchas, selectedHorarios),
+        [dynamicOptions.entrenadores, selectedCanchas, selectedHorarios]
+    );
+    const horariosDisponibles = useMemo(
+        () => filtrarHorariosPorGruposYEntrenadores(dynamicOptions.horarios, selectedCanchas, selectedEntrenadores),
+        [dynamicOptions.horarios, selectedCanchas, selectedEntrenadores]
+    );
 
-    // Opciones dinámicas para desplegables con filtrado inteligente bidireccional
-    const canchasDisponibles = useMemo(() => {
-        return filtrarGruposPorEntrenadores(dynamicOptions.canchas, selectedEntrenadores);
-    }, [dynamicOptions.canchas, selectedEntrenadores]);
-
-    const entrenadoresDisponibles = useMemo(() => {
-        return filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, selectedCanchas);
-    }, [dynamicOptions.entrenadores, selectedCanchas]);
-
-    // Manejadores con saneamiento automático de selecciones incompatibles
-    const handleEntrenadoresChange = useCallback((nuevosEntrenadores) => {
-        setSelectedEntrenadores(nuevosEntrenadores);
-        setCurrentPage(1);
-
-        if (nuevosEntrenadores && nuevosEntrenadores.length > 0) {
-            const gruposPermitidos = filtrarGruposPorEntrenadores(dynamicOptions.canchas, nuevosEntrenadores);
-            setSelectedCanchas(prevCanchas => sanearSeleccionIncompatible(prevCanchas, gruposPermitidos));
-        }
-    }, [dynamicOptions.canchas]);
-
-    const handleCanchasChange = useCallback((nuevasCanchas) => {
-        setSelectedCanchas(nuevasCanchas);
-        setCurrentPage(1);
-
-        if (nuevasCanchas && nuevasCanchas.length > 0) {
-            const entrenadoresPermitidos = filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, nuevasCanchas);
-            setSelectedEntrenadores(prevEntrenadores => sanearSeleccionIncompatible(prevEntrenadores, entrenadoresPermitidos));
-        }
-    }, [dynamicOptions.entrenadores]);
-
-    // Saneamiento de selecciones incompatibles provenientes de sessionStorage o cambios de catálogo
+    // Las selecciones incompatibles se limpian al cambiar cualquier filtro o catálogo.
     useEffect(() => {
         if (!catalogosData) return;
-
-        if (selectedEntrenadores.length > 0) {
-            const gruposPermitidos = filtrarGruposPorEntrenadores(dynamicOptions.canchas, selectedEntrenadores);
-            setSelectedCanchas(prev => {
-                const saneados = sanearSeleccionIncompatible(prev, gruposPermitidos);
-                return saneados.length === prev.length ? prev : saneados;
-            });
-        }
-
-        if (selectedCanchas.length > 0) {
-            const entrenadoresPermitidos = filtrarEntrenadoresPorGrupos(dynamicOptions.entrenadores, selectedCanchas);
-            setSelectedEntrenadores(prev => {
-                const saneados = sanearSeleccionIncompatible(prev, entrenadoresPermitidos);
-                return saneados.length === prev.length ? prev : saneados;
-            });
-        }
-    }, [catalogosData, dynamicOptions.canchas, dynamicOptions.entrenadores, selectedEntrenadores, selectedCanchas]);
+        setSelectedCanchas(prev => sanearSeleccionIncompatible(prev, canchasDisponibles));
+        setSelectedEntrenadores(prev => sanearSeleccionIncompatible(prev, entrenadoresDisponibles));
+        setSelectedHorarios(prev => sanearSeleccionIncompatible(prev, horariosDisponibles));
+    }, [catalogosData, canchasDisponibles, entrenadoresDisponibles, horariosDisponibles]);
 
     // Lista simplificada para el modal de combinar
     const allAlumnos = useMemo(() => {
@@ -297,7 +275,7 @@ export const useAlumnos = () => {
         setSelectedCanchas([]);
         setSelectedEntrenadores([]);
         setSelectedSubs([]);
-        setSelectedTipos([]);
+        setSelectedHorarios([]);
         setSearchTerm('');
         setCurrentPage(1);
         setSelectedAlumnos([]);
@@ -374,7 +352,7 @@ export const useAlumnos = () => {
         }
     };
 
-    const hayFiltrosActivos = activeFilter !== 'todos' || selectedCanchas.length > 0 || selectedEntrenadores.length > 0 || selectedSubs.length > 0 || selectedTipos.length > 0 || searchTerm;
+    const hayFiltrosActivos = activeFilter !== 'todos' || selectedCanchas.length > 0 || selectedEntrenadores.length > 0 || selectedSubs.length > 0 || selectedHorarios.length > 0 || searchTerm;
 
     return {
         loading,
@@ -396,17 +374,18 @@ export const useAlumnos = () => {
             ...dynamicOptions,
             canchasDisponibles,
             entrenadoresDisponibles,
+            horariosDisponibles,
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,
-            selectedTipos,
+            selectedHorarios,
         },
         setViewMode,
         setCurrentPage,
-        setSelectedCanchas: handleCanchasChange,
-        setSelectedEntrenadores: handleEntrenadoresChange,
+        setSelectedCanchas: (val) => { setSelectedCanchas(val); setCurrentPage(1); },
+        setSelectedEntrenadores: (val) => { setSelectedEntrenadores(val); setCurrentPage(1); },
         setSelectedSubs: (val) => { setSelectedSubs(val); setCurrentPage(1); },
-        setSelectedTipos: (val) => { setSelectedTipos(val); setCurrentPage(1); },
+        setSelectedHorarios: (val) => { setSelectedHorarios(val); setCurrentPage(1); },
         getAsistenciaResumen,
         handleFilterChange,
         handleSearchChange,

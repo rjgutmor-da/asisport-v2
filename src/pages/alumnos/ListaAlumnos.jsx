@@ -58,11 +58,11 @@ const ListaAlumnos = () => {
             entrenadores,
             entrenadoresDisponibles,
             subs,
-            tipos,
+            horarios,
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,
-            selectedTipos
+            selectedHorarios
         },
         getAsistenciaResumen,
         setViewMode,
@@ -70,7 +70,7 @@ const ListaAlumnos = () => {
         setSelectedCanchas,
         setSelectedEntrenadores,
         setSelectedSubs,
-        setSelectedTipos,
+        setSelectedHorarios,
         handleFilterChange,
         handleSearchChange,
         handleClearFilters,
@@ -365,14 +365,13 @@ const ListaAlumnos = () => {
                         selectedValues={selectedSubs}
                         onChange={setSelectedSubs}
                     />
-
-                    {/* Filtro Tipo */}
+                    {/* 4. Filtro Horario */}
                     <MultiSelectFilter
-                        label="Tipo"
-                        placeholder="Todos los Tipos"
-                        options={tipos}
-                        selectedValues={selectedTipos}
-                        onChange={setSelectedTipos}
+                        label="Horario"
+                        placeholder="Todos los Horarios"
+                        options={horariosDisponibles}
+                        selectedValues={selectedHorarios}
+                        onChange={setSelectedHorarios}
                     />
 
                 </div>

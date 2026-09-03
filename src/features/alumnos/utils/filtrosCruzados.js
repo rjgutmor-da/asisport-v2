@@ -68,3 +68,26 @@ export const sanearSeleccionIncompatible = (seleccionados = [], opcionesPermitid
 
     return seleccionados.filter(id => permitidos.has(String(id)));
 };
+const coincidenConSeleccion = (relaciones = [], seleccionados = []) => {
+    if (!seleccionados || seleccionados.length === 0) return true;
+    const seleccion = new Set(seleccionados.map(String));
+    return (relaciones || []).some(id => seleccion.has(String(id)));
+};
+
+export const filtrarGruposPorEntrenadoresYHorarios = (canchas = [], entrenadorIds = [], horarioIds = []) =>
+    canchas.filter(cancha =>
+        coincidenConSeleccion(cancha.entrenador_ids, entrenadorIds)
+        && coincidenConSeleccion(cancha.horario_ids, horarioIds)
+    );
+
+export const filtrarEntrenadoresPorGruposYHorarios = (entrenadores = [], grupoIds = [], horarioIds = []) =>
+    entrenadores.filter(entrenador =>
+        coincidenConSeleccion(entrenador.grupo_ids, grupoIds)
+        && coincidenConSeleccion(entrenador.horario_ids, horarioIds)
+    );
+
+export const filtrarHorariosPorGruposYEntrenadores = (horarios = [], grupoIds = [], entrenadorIds = []) =>
+    horarios.filter(horario =>
+        coincidenConSeleccion(horario.grupo_ids, grupoIds)
+        && coincidenConSeleccion(horario.entrenador_ids, entrenadorIds)
+    );
