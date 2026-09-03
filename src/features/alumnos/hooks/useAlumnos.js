@@ -2,17 +2,12 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/ui/Toast';
-import { listarAlumnosAsisport, archivarAlumno } from '../../../services/alumnos';
+import { listarAlumnosAsisport, obtenerOpcionesFiltrosAlumnosAsisport, archivarAlumno } from '../../../services/alumnos';
 import { combinarAlumnos } from '../../../services/combinarAlumnos';
 import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { useCatalogosAsisport, useCanchas, queryKeys } from '../../../hooks/useMasterData';
-import {
-    filtrarGruposPorEntrenadoresYHorarios,
-    filtrarEntrenadoresPorGruposYHorarios,
-    filtrarHorariosPorGruposYEntrenadores,
-    sanearSeleccionIncompatible
-} from '../utils/filtrosCruzados';
+import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
+import { sanearSeleccionIncompatible } from '../utils/filtrosCruzados';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
@@ -94,8 +89,34 @@ export const useAlumnos = () => {
         userId: user?.id,
         escuelaId
     });
-    const { data: canchasConHorario = [] } = useCanchas();
     const gestionActivaId = catalogosData?.gestiones?.find(gestion => gestion.es_activa)?.id || null;
+
+    // Relaciones efectivas de alumnos: misma autorización y mismo estado que la lista.
+    const opcionesFiltrosQueryKey = useMemo(() => [
+        'alumnos',
+        'opciones-filtros',
+        user?.id,
+        escuelaId || 'sin-escuela',
+        role,
+        activeFilter
+    ], [user?.id, escuelaId, role, activeFilter]);
+
+    const {
+        data: opcionesFiltrosData,
+        error: opcionesFiltrosError
+    } = useQuery({
+        queryKey: opcionesFiltrosQueryKey,
+        queryFn: ({ signal }) => obtenerOpcionesFiltrosAlumnosAsisport({ activeFilter }, { signal }),
+        staleTime: 5 * 60 * 1000,
+        gcTime: 20 * 60 * 1000,
+        enabled: Boolean(user?.id)
+    });
+
+    useEffect(() => {
+        if (opcionesFiltrosError) {
+            addToast(opcionesFiltrosError.message || 'Error al cargar las opciones de filtros.', 'error');
+        }
+    }, [opcionesFiltrosError, addToast]);
 
     // Persistir filtros en sessionStorage
     useEffect(() => {
@@ -191,59 +212,100 @@ export const useAlumnos = () => {
         }
     }, [alumnos]);
 
-    // Opciones maestras con relaciones Grupo ↔ Entrenador ↔ Horario.
+    // Los catálogos aportan las etiquetas. Las opciones permitidas se obtienen
+    // exclusivamente de relaciones reales de alumnos, no de asignaciones de gestión.
     const dynamicOptions = useMemo(() => {
-        const horariosPorGrupo = new Map((canchasConHorario || []).map(cancha => [String(cancha.id), cancha.horario_ids || []]));
         const canchasOpts = (catalogosData?.canchas || []).map(cancha => ({
             value: cancha.id,
             label: cancha.label || `${cancha.nombre} (${cancha.total_alumnos ?? 0})`,
             nombre: cancha.nombre,
-            total_alumnos: cancha.total_alumnos ?? 0,
-            entrenador_ids: cancha.entrenador_ids || [],
-            horario_ids: horariosPorGrupo.get(String(cancha.id)) || []
+            total_alumnos: cancha.total_alumnos ?? 0
         }));
         const entrenadoresOpts = (catalogosData?.entrenadores || []).map(entrenador => ({
             value: entrenador.id,
-            label: `${entrenador.nombres} ${entrenador.apellidos}`,
-            grupo_ids: entrenador.grupo_ids || [],
-            horario_ids: [...new Set(canchasOpts
-                .filter(cancha => (entrenador.grupo_ids || []).map(String).includes(String(cancha.value)))
-                .flatMap(cancha => cancha.horario_ids || []))]
+            label: `${entrenador.nombres} ${entrenador.apellidos}`
         }));
-        const horariosOpts = (catalogosData?.horarios || []).map(horario => {
-            const grupos = canchasOpts.filter(cancha => (cancha.horario_ids || []).map(String).includes(String(horario.id)));
-            return {
-                value: horario.id,
-                label: horario.hora || horario.label,
-                grupo_ids: grupos.map(grupo => grupo.value),
-                entrenador_ids: [...new Set(grupos.flatMap(grupo => grupo.entrenador_ids || []))]
-            };
-        });
-        const subsOpts = (alumnosData?.facetas?.subs || []).map(sub => ({ value: sub, label: `Sub ${sub}` }));
-        return { canchas: canchasOpts, entrenadores: entrenadoresOpts, horarios: horariosOpts, subs: subsOpts };
-    }, [catalogosData, canchasConHorario, alumnosData?.facetas]);
+        const horariosOpts = (catalogosData?.horarios || []).map(horario => ({
+            value: horario.id,
+            label: horario.hora || horario.label
+        }));
+        const subsFuente = Array.isArray(opcionesFiltrosData)
+            ? [...new Set(opcionesFiltrosData
+                .map(relacion => relacion.sub)
+                .filter(Number.isInteger))].sort((a, b) => a - b)
+            : (alumnosData?.facetas?.subs || []);
+        const subsOpts = subsFuente.map(sub => ({ value: sub, label: `Sub ${sub}` }));
 
+        return { canchas: canchasOpts, entrenadores: entrenadoresOpts, horarios: horariosOpts, subs: subsOpts };
+    }, [catalogosData, opcionesFiltrosData, alumnosData?.facetas?.subs]);
+
+    const filtrarOpcionesPorRelaciones = useCallback((opciones, campoPropio, filtros) => {
+        // Hasta recibir la matriz se mantienen los catálogos completos para no borrar una selección válida.
+        if (!opcionesFiltrosData) return opciones;
+
+        const coincide = (valor, seleccionados = []) => {
+            if (!seleccionados.length) return true;
+            return seleccionados.some(seleccionado => String(seleccionado) === String(valor));
+        };
+        const relaciones = Array.isArray(opcionesFiltrosData) ? opcionesFiltrosData : [];
+        const permitidos = new Set(
+            relaciones
+                .filter(relacion => (
+                    coincide(relacion.cancha_id, filtros.canchas)
+                    && coincide(relacion.entrenador_id, filtros.entrenadores)
+                    && coincide(relacion.horario_id, filtros.horarios)
+                    && coincide(relacion.sub, filtros.subs)
+                ))
+                .map(relacion => relacion[campoPropio])
+                .filter(valor => valor !== null && valor !== undefined)
+                .map(String)
+        );
+
+        return opciones.filter(opcion => permitidos.has(String(opcion.value)));
+    }, [opcionesFiltrosData]);
+
+    // Cada filtro se calcula con los otros tres criterios: relación bidireccional completa.
     const canchasDisponibles = useMemo(
-        () => filtrarGruposPorEntrenadoresYHorarios(dynamicOptions.canchas, selectedEntrenadores, selectedHorarios),
-        [dynamicOptions.canchas, selectedEntrenadores, selectedHorarios]
+        () => filtrarOpcionesPorRelaciones(dynamicOptions.canchas, 'cancha_id', {
+            entrenadores: selectedEntrenadores,
+            horarios: selectedHorarios,
+            subs: selectedSubs
+        }),
+        [dynamicOptions.canchas, filtrarOpcionesPorRelaciones, selectedEntrenadores, selectedHorarios, selectedSubs]
     );
     const entrenadoresDisponibles = useMemo(
-        () => filtrarEntrenadoresPorGruposYHorarios(dynamicOptions.entrenadores, selectedCanchas, selectedHorarios),
-        [dynamicOptions.entrenadores, selectedCanchas, selectedHorarios]
+        () => filtrarOpcionesPorRelaciones(dynamicOptions.entrenadores, 'entrenador_id', {
+            canchas: selectedCanchas,
+            horarios: selectedHorarios,
+            subs: selectedSubs
+        }),
+        [dynamicOptions.entrenadores, filtrarOpcionesPorRelaciones, selectedCanchas, selectedHorarios, selectedSubs]
     );
     const horariosDisponibles = useMemo(
-        () => filtrarHorariosPorGruposYEntrenadores(dynamicOptions.horarios, selectedCanchas, selectedEntrenadores),
-        [dynamicOptions.horarios, selectedCanchas, selectedEntrenadores]
+        () => filtrarOpcionesPorRelaciones(dynamicOptions.horarios, 'horario_id', {
+            canchas: selectedCanchas,
+            entrenadores: selectedEntrenadores,
+            subs: selectedSubs
+        }),
+        [dynamicOptions.horarios, filtrarOpcionesPorRelaciones, selectedCanchas, selectedEntrenadores, selectedSubs]
+    );
+    const subsDisponibles = useMemo(
+        () => filtrarOpcionesPorRelaciones(dynamicOptions.subs, 'sub', {
+            canchas: selectedCanchas,
+            entrenadores: selectedEntrenadores,
+            horarios: selectedHorarios
+        }),
+        [dynamicOptions.subs, filtrarOpcionesPorRelaciones, selectedCanchas, selectedEntrenadores, selectedHorarios]
     );
 
-    // Las selecciones incompatibles se limpian al cambiar cualquier filtro o catálogo.
+    // Cuando otro criterio deja una selección sin resultados, se descarta una sola vez.
     useEffect(() => {
-        if (!catalogosData) return;
+        if (!opcionesFiltrosData) return;
         setSelectedCanchas(prev => sanearSeleccionIncompatible(prev, canchasDisponibles));
         setSelectedEntrenadores(prev => sanearSeleccionIncompatible(prev, entrenadoresDisponibles));
         setSelectedHorarios(prev => sanearSeleccionIncompatible(prev, horariosDisponibles));
-    }, [catalogosData, canchasDisponibles, entrenadoresDisponibles, horariosDisponibles]);
-
+        setSelectedSubs(prev => sanearSeleccionIncompatible(prev, subsDisponibles));
+    }, [opcionesFiltrosData, canchasDisponibles, entrenadoresDisponibles, horariosDisponibles, subsDisponibles]);
     // Lista simplificada para el modal de combinar
     const allAlumnos = useMemo(() => {
         return alumnos.map(a => ({ id: a.id, nombres: a.nombres, apellidos: a.apellidos }));
@@ -375,6 +437,7 @@ export const useAlumnos = () => {
             canchasDisponibles,
             entrenadoresDisponibles,
             horariosDisponibles,
+            subsDisponibles,
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,

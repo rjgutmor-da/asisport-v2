@@ -59,14 +59,15 @@ export const filtrarEntrenadoresPorGrupos = (entrenadores = [], selectedCanchas 
  * @returns {Array<string>} IDs seleccionados que continúan siendo válidos.
  */
 export const sanearSeleccionIncompatible = (seleccionados = [], opcionesPermitidas = []) => {
-    if (!Array.isArray(seleccionados) || seleccionados.length === 0) return [];
+    if (!Array.isArray(seleccionados) || seleccionados.length === 0) return seleccionados;
     if (!Array.isArray(opcionesPermitidas) || opcionesPermitidas.length === 0) return [];
 
     const permitidos = new Set(
         opcionesPermitidas.map(op => String(op.value ?? op.id))
     );
 
-    return seleccionados.filter(id => permitidos.has(String(id)));
+    const saneados = seleccionados.filter(id => permitidos.has(String(id)));
+    return saneados.length === seleccionados.length ? seleccionados : saneados;
 };
 const coincidenConSeleccion = (relaciones = [], seleccionados = []) => {
     if (!seleccionados || seleccionados.length === 0) return true;

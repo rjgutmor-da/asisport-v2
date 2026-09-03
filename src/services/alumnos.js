@@ -660,6 +660,35 @@ export const listarAlumnosAsisport = async (filtros = {}, options = {}) => {
 };
 
 /**
+ * Obtiene la matriz compacta de relaciones reales de la lista autorizada.
+ * Se usa para que los filtros de entrenador, grupo, horario y categoría se
+ * condicionen entre sí con el mismo universo que filtra la RPC principal.
+ *
+ * @param {Object} [filtros={}] - Contexto de la lista.
+ * @param {string} [filtros.activeFilter='todos'] - Estado activo de la lista.
+ * @param {Object} [options={}] - Opciones de la petición.
+ * @param {AbortSignal} [options.signal] - Señal de cancelación.
+ * @returns {Promise<Array<{entrenador_id: string|null, cancha_id: string|null, horario_id: string|null, sub: number|null}>>}
+ */
+export const obtenerOpcionesFiltrosAlumnosAsisport = async (filtros = {}, options = {}) => {
+    let query = supabase.rpc('rpc_opciones_filtros_alumnos_asisport', {
+        p_estado_filtro: filtros.activeFilter || 'todos'
+    });
+
+    if (options.signal) {
+        query = query.abortSignal(options.signal);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('Error al obtener opciones inteligentes de alumnos:', error);
+        throw new Error(error.message || 'Error al obtener las opciones de filtros.');
+    }
+
+    return data || [];
+};
+/**
  * Sugerencias ultrarrápidas de hasta 10 alumnos para selectores compactos.
  *
  * @param {string} termino - Término de búsqueda (mínimo 2 caracteres).

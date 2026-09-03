@@ -59,6 +59,7 @@ const ListaAlumnos = () => {
             entrenadoresDisponibles,
             horariosDisponibles,
             subs,
+            subsDisponibles,
             horarios,
             selectedCanchas,
             selectedEntrenadores,
@@ -362,7 +363,8 @@ const ListaAlumnos = () => {
                     <MultiSelectFilter
                         label="Categoría (Sub)"
                         placeholder="Todos los Sub"
-                        options={subs}
+                        options={subsDisponibles}
+                        allOptions={subs}
                         selectedValues={selectedSubs}
                         onChange={setSelectedSubs}
                     />
