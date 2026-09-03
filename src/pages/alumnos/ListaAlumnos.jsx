@@ -57,6 +57,7 @@ const ListaAlumnos = () => {
             canchasDisponibles,
             entrenadores,
             entrenadoresDisponibles,
+            horariosDisponibles,
             subs,
             horarios,
             selectedCanchas,
