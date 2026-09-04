@@ -8,6 +8,7 @@ import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
 import { sanearSeleccionIncompatible } from '../utils/filtrosCruzados';
+import { generarMensajeWhatsAppListaBuenaFe } from '../utils/exportarListaBuenaFe';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
@@ -385,8 +386,8 @@ export const useAlumnos = () => {
             .map(id => mapaAlumnos.get(id))
             .filter(Boolean);
 
-        const namesList = selectedData.map((a, index) => `${index + 1}. ${a.nombres} ${a.apellidos}`).join('\n');
-        const message = encodeURIComponent(`${introMessage}\n\n${namesList}`);
+        const textoMensaje = generarMensajeWhatsAppListaBuenaFe(selectedData, introMessage);
+        const message = encodeURIComponent(textoMensaje);
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 

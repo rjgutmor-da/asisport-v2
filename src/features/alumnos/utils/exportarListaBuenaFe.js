@@ -127,3 +127,28 @@ export const exportarListaBuenaFe = (opciones) => {
     XLSX.utils.book_append_sheet(libro, hoja, 'Lista de Buena Fe');
     XLSX.writeFile(libro, `Lista_Buena_Fe_${fechaArchivo(fechaGeneracion)}.xlsx`);
 };
+
+/**
+ * Genera el texto de la lista de buena fe para compartir por WhatsApp.
+ * Considera exclusivamente los nombres de los alumnos (sin apellidos).
+ *
+ * @param {Array} alumnos - Lista de alumnos seleccionados
+ * @param {string} mensajeEncabezado - Texto o encabezado inicial del mensaje
+ * @returns {string} Mensaje formateado listo para enviar por WhatsApp
+ */
+export const generarMensajeWhatsAppListaBuenaFe = (alumnos, mensajeEncabezado = '') => {
+    if (!Array.isArray(alumnos) || alumnos.length === 0) {
+        return '';
+    }
+
+    const listaNombres = alumnos
+        .map((alumno, indice) => {
+            const nombre = (alumno?.nombres || '').trim().replace(/\s+/g, ' ');
+            return `${indice + 1}. ${nombre || VALOR_VACIO}`;
+        })
+        .join('\n');
+
+    const encabezado = (mensajeEncabezado || '').trim();
+    return encabezado ? `${encabezado}\n\n${listaNombres}` : listaNombres;
+};
+
