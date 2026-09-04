@@ -250,9 +250,13 @@ export const getAsistenciasEstaSemana = async (alumnoIds) => {
 
     const hoy = new Date();
     hoy.setHours(23, 59, 59, 999);
-    const lunes = obtenerLunesDeEstaSemana(hoy);
+    
+    // Últimos 7 días contando hoy (hoy - 6 días)
+    const hace7Dias = new Date(hoy);
+    hace7Dias.setDate(hoy.getDate() - 6);
+    hace7Dias.setHours(0, 0, 0, 0);
 
-    const fechaInicio = lunes.toISOString().split('T')[0];
+    const fechaInicio = hace7Dias.toISOString().split('T')[0];
     const fechaFin = hoy.toISOString().split('T')[0];
 
     const escuelaId = await obtenerEscuelaId();
