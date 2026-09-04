@@ -12,9 +12,9 @@ import { useDebounce } from '../../../hooks/useDebounce';
  *  3. Se muestra un resumen de la fusión antes de confirmar
  *  4. Al confirmar, se ejecuta la fusión y se cierra el modal
  *
- * @param {{isOpen: boolean, onClose: () => void, alumnos: any[], onCombinar: (destinoId: string, origenId: string) => Promise<any>}} props
+ * @param {{isOpen: boolean, onClose: () => void, alumnos: any[], onCombinar: (destinoId: string, origenId: string) => Promise<any>, soloArchivados?: boolean}} props
  */
-const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
+const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar, soloArchivados = false }) => {
     // Estado del flujo: 'seleccion' | 'confirmacion' | 'procesando' | 'exito'
     const [paso, setPaso] = useState('seleccion');
     const [origenId, setOrigenId] = useState('');
@@ -29,7 +29,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
 
     useEffect(() => {
         const termino = busquedaOrigenEstable.trim();
-        if (!isOpen || termino.length < 2) {
+        if (!isOpen || soloArchivados || termino.length < 2) {
             setResultadosOrigen([]);
             return undefined;
         }
@@ -44,11 +44,11 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
             active = false;
             controller.abort();
         };
-    }, [busquedaOrigenEstable, isOpen]);
+    }, [busquedaOrigenEstable, isOpen, soloArchivados]);
 
     useEffect(() => {
         const termino = busquedaDestinoEstable.trim();
-        if (!isOpen || termino.length < 2) {
+        if (!isOpen || soloArchivados || termino.length < 2) {
             setResultadosDestino([]);
             return undefined;
         }
@@ -63,15 +63,15 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
             active = false;
             controller.abort();
         };
-    }, [busquedaDestinoEstable, isOpen]);
+    }, [busquedaDestinoEstable, isOpen, soloArchivados]);
 
     const alumnosDisponibles = useMemo(() => {
         const mapa = new Map();
-        [...(alumnos || []), ...resultadosOrigen, ...resultadosDestino].forEach(alumno => {
+        [...(alumnos || []), ...(soloArchivados ? [] : resultadosOrigen), ...(soloArchivados ? [] : resultadosDestino)].forEach(alumno => {
             if (alumno?.id) mapa.set(alumno.id, alumno);
         });
         return Array.from(mapa.values());
-    }, [alumnos, resultadosOrigen, resultadosDestino]);
+    }, [alumnos, resultadosOrigen, resultadosDestino, soloArchivados]);
 
     // Filtrar alumnos para búsqueda (excluyendo el ya seleccionado en el otro campo)
     const alumnosFiltradosOrigen = useMemo(() => {
@@ -160,8 +160,14 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                             <Merge size={20} className="text-warning" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white">Combinar Alumnos</h2>
-                            <p className="text-xs text-text-secondary">Fusionar datos de un alumno duplicado</p>
+                            <h2 className="text-lg font-bold text-white">
+                                {soloArchivados ? 'Combinar Alumnos Archivados' : 'Combinar Alumnos'}
+                            </h2>
+                            <p className="text-xs text-text-secondary">
+                                {soloArchivados
+                                    ? 'Unir dos registros archivados conservando datos y asistencias'
+                                    : 'Fusionar datos de un alumno duplicado'}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -180,7 +186,9 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                             <CheckCircle size={64} className="text-success mx-auto" />
                             <h3 className="text-xl font-bold text-white">¡Alumnos combinados!</h3>
                             <p className="text-text-secondary">
-                                Los datos fueron fusionados correctamente. El alumno duplicado fue archivado.
+                                Los datos fueron fusionados correctamente. {soloArchivados
+                                    ? 'El duplicado permanece archivado para conservar su historial.'
+                                    : 'El duplicado fue archivado para conservar su historial.'}
                             </p>
                             <button
                                 onClick={handleClose}
@@ -208,7 +216,8 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                 <p className="text-warning text-sm font-medium flex items-start gap-2">
                                     <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />
                                     <span>
-                                        El <strong>alumno duplicado</strong> (origen) será archivado tras la fusión.
+                                        {soloArchivados && <>Ambos registros deben estar archivados. </>}
+                                        El <strong>alumno duplicado</strong> (origen) {soloArchivados ? 'permanecerá archivado' : 'será archivado'} para conservar su historial.
                                         El <strong>alumno destino</strong> conserva sus datos con prioridad.
                                     </span>
                                 </p>
@@ -218,7 +227,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                 {/* Columna: Alumno Duplicado (Origen) */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-error uppercase tracking-wide">
-                                        Alumno Duplicado (se archiva)
+                                        Alumno Duplicado ({soloArchivados ? 'permanece archivado' : 'se archiva'})
                                     </label>
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={16} />
@@ -306,7 +315,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                         <p className="text-error text-xs font-bold mt-1 max-w-[100px] truncate">
                                             {getAlumno(origenId)?.nombres}
                                         </p>
-                                        <p className="text-error/60 text-[10px]">Se archiva</p>
+                                        <p className="text-error/60 text-[10px]">{soloArchivados ? 'Permanece archivado' : 'Se archiva'}</p>
                                     </div>
                                     <ArrowRight size={24} className="text-primary" />
                                     <div className="text-center">
@@ -337,7 +346,7 @@ const CombinarAlumnosModal = ({ isOpen, onClose, alumnos, onCombinar }) => {
                                     <li>Los datos de <strong className="text-white">{getAlumno(destinoId)?.nombres} {getAlumno(destinoId)?.apellidos}</strong> tienen prioridad.</li>
                                     <li>Los campos vacíos se rellenarán con datos de <strong className="text-white">{getAlumno(origenId)?.nombres} {getAlumno(origenId)?.apellidos}</strong>.</li>
                                     <li>Todas las asistencias se migrarán al alumno destino.</li>
-                                    <li><strong className="text-error">{getAlumno(origenId)?.nombres} {getAlumno(origenId)?.apellidos}</strong> será archivado.</li>
+                                    <li><strong className="text-error">{getAlumno(origenId)?.nombres} {getAlumno(origenId)?.apellidos}</strong> {soloArchivados ? 'permanecerá archivado.' : 'será archivado.'}</li>
                                 </ul>
                             </div>
 

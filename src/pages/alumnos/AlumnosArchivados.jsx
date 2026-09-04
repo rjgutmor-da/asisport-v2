@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Archive, RotateCcw, Users, Search } from 'lucide-react';
+import { ArrowLeft, Archive, RotateCcw, Users, Search, Merge } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getAlumnosArchivados, restaurarAlumno } from '../../services/alumnos';
+import { combinarAlumnos } from '../../services/combinarAlumnos';
+import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const AlumnosArchivados = () => {
     const navigate = useNavigate();
     const { addToast } = useToast();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
 
     const [alumnos, setAlumnos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showCombinarModal, setShowCombinarModal] = useState(false);
 
     useEffect(() => {
         loadArchivados();
@@ -45,6 +48,17 @@ const AlumnosArchivados = () => {
         }
     };
 
+    const handleCombinar = async (destinoId, origenId) => {
+        try {
+            await combinarAlumnos(destinoId, origenId, { soloArchivados: true });
+            addToast('Alumnos archivados combinados correctamente', 'success');
+            await loadArchivados();
+        } catch (error) {
+            addToast(error.message || 'Error al combinar alumnos archivados', 'error');
+            throw error;
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -71,6 +85,17 @@ const AlumnosArchivados = () => {
                 <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
                     <DesktopNavbar className="text-[18px]" />
                 </div>
+
+                {isAdmin && alumnos.length > 1 && (
+                    <button
+                        onClick={() => setShowCombinarModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 text-warning border border-warning/30 rounded-md text-sm font-bold hover:bg-warning/20 transition-colors"
+                        title="Combinar solo alumnos archivados"
+                    >
+                        <Merge size={16} />
+                        <span className="hidden sm:inline">Combinar duplicados</span>
+                    </button>
+                )}
             </header>
 
             <main className="max-w-6xl mx-auto p-4 md:p-6">
@@ -188,6 +213,14 @@ const AlumnosArchivados = () => {
                     </>
                 )}
             </main>
+
+            <CombinarAlumnosModal
+                isOpen={showCombinarModal}
+                onClose={() => setShowCombinarModal(false)}
+                alumnos={alumnos}
+                soloArchivados
+                onCombinar={handleCombinar}
+            />
         </div>
     );
 };

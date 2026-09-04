@@ -61,12 +61,12 @@ export const createAlumno = async (alumnoData, photoFile) => {
             .select('id, nombres, apellidos')
             .eq('carnet_identidad', alumnoData.carnet_identidad)
             .eq('escuela_id', escuelaId)
-            .maybeSingle();
+            .limit(1);
 
         if (checkError) console.error('Error al verificar duplicados:', checkError);
 
-        if (existing) {
-            throw new Error(`El carnet ${alumnoData.carnet_identidad} ya está registrado para el alumno: ${existing.nombres} ${existing.apellidos}.`);
+        if (existing?.[0]) {
+            throw new Error(`El carnet ${alumnoData.carnet_identidad} ya está registrado para el alumno: ${existing[0].nombres} ${existing[0].apellidos}.`);
         }
     }
 
@@ -587,13 +587,16 @@ export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimient
         const palabrasInput = inputNormalizado.split(/\s+/).filter(p => p.length > 2); // Solo palabras de +2 letras
 
         // 3. Filtrar aquellos que tengan coincidencia de palabras
-        const duplicadosEncontrados = posibles.filter(alumno => {
+        const duplicadosEncontrados = posibles.map(alumno => {
             const alumnoNormalizado = normalize(`${alumno.nombres} ${alumno.apellidos}`);
             const palabrasAlumno = alumnoNormalizado.split(/\s+/);
 
-            // Verifica si alguna palabra significativa del input está en el nombre del alumno existente
-            return palabrasInput.some(palabra => palabrasAlumno.includes(palabra));
-        });
+            return {
+                ...alumno,
+                esCoincidenciaExacta: alumnoNormalizado === inputNormalizado,
+                esCoincidenciaPosible: palabrasInput.some(palabra => palabrasAlumno.includes(palabra))
+            };
+        }).filter(alumno => alumno.esCoincidenciaPosible);
 
         return duplicadosEncontrados;
     } catch (error) {

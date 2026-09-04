@@ -231,12 +231,25 @@ export const useRegistroAlumno = (onSuccess) => {
 
         setSubmitting(true);
         try {
+            const nombresNormalizados = formData.nombres.trim().replace(/\s+/g, ' ');
+            const apellidosNormalizados = formData.apellidos.trim().replace(/\s+/g, ' ');
+
             // Validación de posibles duplicados
             const duplicados = await checkPosiblesDuplicados(
-                formData.nombres,
-                formData.apellidos,
+                nombresNormalizados,
+                apellidosNormalizados,
                 formData.fecha_nacimiento
             );
+
+            const duplicadoExacto = duplicados.find(duplicado => duplicado.esCoincidenciaExacta);
+            if (duplicadoExacto) {
+                addToast(
+                    `No se puede registrar: ${duplicadoExacto.nombres} ${duplicadoExacto.apellidos} ya existe en esta escuela con la misma fecha de nacimiento.`,
+                    'error'
+                );
+                setSubmitting(false);
+                return;
+            }
 
             if (duplicados.length > 0) {
                 const nombresDuplicados = duplicados.map(d => `${d.nombres} ${d.apellidos}`).join(', ');
@@ -252,8 +265,8 @@ export const useRegistroAlumno = (onSuccess) => {
 
             const cleanFormData = {
                 ...formData,
-                nombres: formData.nombres.trim().replace(/\s+/g, ' '),
-                apellidos: formData.apellidos.trim().replace(/\s+/g, ' '),
+                nombres: nombresNormalizados,
+                apellidos: apellidosNormalizados,
                 mensualidad: formData.mensualidad === '' ? null : Number(formData.mensualidad),
                 observaciones: formData.observaciones?.trim() || null
             };

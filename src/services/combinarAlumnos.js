@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 
 /**
- * Servicio para combinar (fusionar) dos alumnos duplicados.
+ * Servicio para combinar (fusionar) dos alumnos duplicados de la misma escuela.
  *
  * Lógica de fusión:
  *  - El alumno DESTINO tiene prioridad: sus datos no se sobreescriben.
@@ -9,13 +9,15 @@ import { supabase } from '../lib/supabaseClient';
  *  - Las asistencias del origen se migran al destino SOLO donde el destino
  *    no tenga registro para esa fecha (el destino tiene prevalencia).
  *  - Las asistencias del origen que coincidan en fecha con el destino se eliminan.
- *  - Se intenta archivar el alumno origen, marcándolo de estado 'Fusionado'.
+ *  - Si ambos alumnos están activos, el origen se archiva tras la fusión.
+ *  - Si ambos alumnos están archivados, el origen conserva ese estado.
  *
  * @param {string} destinoId - ID del alumno que conservaremos (prioridad)
- * @param {string} origenId - ID del alumno que se fusionará y eliminará/archivará
+ * @param {string} origenId - ID del alumno que se fusionará
+ * @param {{soloArchivados?: boolean}} [options] - Restringe la operación a dos alumnos archivados.
  * @returns {Promise<any>} Alumno destino actualizado
  */
-export const combinarAlumnos = async (destinoId, origenId) => {
+export const combinarAlumnos = async (destinoId, origenId, { soloArchivados = false } = {}) => {
     if (!destinoId || !origenId) {
         throw new Error('Debes seleccionar ambos alumnos para combinar.');
     }
@@ -30,7 +32,7 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     // 2. Obtener datos completos de ambos alumnos
     const { data: destino, error: errDestino } = await supabase
         .from('alumnos')
-        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
+        .select('id, escuela_id, sucursal_id, archivado, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', destinoId)
         .single();
 
@@ -38,11 +40,23 @@ export const combinarAlumnos = async (destinoId, origenId) => {
 
     const { data: origen, error: errOrigen } = await supabase
         .from('alumnos')
-        .select('id, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
+        .select('id, escuela_id, sucursal_id, archivado, nombres, apellidos, fecha_nacimiento, carnet_identidad, nombre_padre, telefono_padre, nombre_madre, telefono_madre, telefono_deportista, colegio, direccion, foto_url, cancha_id, horario_id, profesor_asignado_id, es_arquero')
         .eq('id', origenId)
         .single();
 
     if (errOrigen) throw new Error('Error al obtener alumno origen: ' + errOrigen.message);
+
+    if (destino.escuela_id !== origen.escuela_id) {
+        throw new Error('Los alumnos deben pertenecer a la misma escuela.');
+    }
+    const ambosArchivados = destino.archivado && origen.archivado;
+    const ambosActivos = !destino.archivado && !origen.archivado;
+    if (soloArchivados && !ambosArchivados) {
+        throw new Error('Selecciona dos alumnos archivados para esta combinación.');
+    }
+    if (!soloArchivados && !ambosActivos) {
+        throw new Error('La lista activa solo permite combinar dos alumnos activos.');
+    }
 
     // 3. Fusionar datos: el destino tiene prioridad, solo rellenamos campos vacíos
     const camposTexto = [
@@ -90,15 +104,17 @@ export const combinarAlumnos = async (destinoId, origenId) => {
 
     // 5. Migrar asistencias normales del origen al destino (solo donde el destino NO tiene registro)
     // Obtener todas las asistencias de ambos alumnos
-    const { data: asistenciasOrigen } = await supabase
+    const { data: asistenciasOrigen, error: errAsistenciasOrigen } = await supabase
         .from('asistencias_normales')
         .select('id, fecha')
         .eq('alumno_id', origenId);
+    if (errAsistenciasOrigen) throw new Error('Error al consultar asistencias del alumno origen: ' + errAsistenciasOrigen.message);
 
-    const { data: asistenciasDestino } = await supabase
+    const { data: asistenciasDestino, error: errAsistenciasDestino } = await supabase
         .from('asistencias_normales')
         .select('id, fecha')
         .eq('alumno_id', destinoId);
+    if (errAsistenciasDestino) throw new Error('Error al consultar asistencias del alumno destino: ' + errAsistenciasDestino.message);
 
     // Crear set de fechas que ya tiene el destino
     const fechasDestinoSet = new Set((asistenciasDestino || []).map(a => a.fecha));
@@ -134,15 +150,17 @@ export const combinarAlumnos = async (destinoId, origenId) => {
     }
 
     // 6. Migrar asistencias de arqueros del origen al destino (misma lógica)
-    const { data: asistArqOrigen } = await supabase
+    const { data: asistArqOrigen, error: errAsistArqOrigen } = await supabase
         .from('asistencias_arqueros')
         .select('id, fecha')
         .eq('alumno_id', origenId);
+    if (errAsistArqOrigen) throw new Error('Error al consultar asistencias de arqueros del alumno origen: ' + errAsistArqOrigen.message);
 
-    const { data: asistArqDestino } = await supabase
+    const { data: asistArqDestino, error: errAsistArqDestino } = await supabase
         .from('asistencias_arqueros')
         .select('id, fecha')
         .eq('alumno_id', destinoId);
+    if (errAsistArqDestino) throw new Error('Error al consultar asistencias de arqueros del alumno destino: ' + errAsistArqDestino.message);
 
     const fechasArqDestinoSet = new Set((asistArqDestino || []).map(a => a.fecha));
     const arqMigrables = (asistArqOrigen || []).filter(a => !fechasArqDestinoSet.has(a.fecha));
