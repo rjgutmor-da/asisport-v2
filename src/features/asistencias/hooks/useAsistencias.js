@@ -97,6 +97,12 @@ export const useAsistencias = () => {
                         label: cInfo.nombre,
                         horarioId: cInfo.horario_ids?.[0] || a.horario_id || ''
                     });
+                } else if (a.cancha_nombre) {
+                    canchasMap.set(a.cancha_id, {
+                        value: a.cancha_id,
+                        label: a.cancha_nombre,
+                        horarioId: a.horario_id || ''
+                    });
                 }
             }
         });

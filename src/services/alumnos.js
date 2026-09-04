@@ -218,8 +218,8 @@ export const getAlumnos = async (filtros = {}) => {
         query = query.in('sub', subAnios);
     }
 
-    // Filtro por sucursal (para Administradores y Entrenadores)
-    if (dataScope !== 'school') {
+    // Filtro por sucursal (para roles con alcance de sucursal o arqueros)
+    if (dataScope === 'branch' || dataScope === 'goalkeepers') {
         if (userProfile?.sucursal_id) {
             query = query.eq('sucursal_id', userProfile.sucursal_id);
         }
@@ -373,7 +373,7 @@ export const getAlumnosPaginados = async (filtros = {}) => {
     const dataScope = getDataScope(userRole);
     if (dataScope === 'assigned_students' && userId) query = query.eq('profesor_asignado_id', userId);
     if (dataScope === 'goalkeepers') query = query.eq('es_arquero', true);
-    if (dataScope !== 'school' && userProfile?.sucursal_id) {
+    if ((dataScope === 'branch' || dataScope === 'goalkeepers') && userProfile?.sucursal_id) {
         query = query.eq('sucursal_id', userProfile.sucursal_id);
     }
 
@@ -414,7 +414,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
 
     let query = supabase
         .from('v_alumnos')
-        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id, terminos_busqueda')
+        .select('id, nombres, apellidos, profesor_asignado_id, sub, horario_id, cancha_id, cancha_nombre, horario_hora, estado, es_arquero, tipo, carnet_identidad, colegio, direccion, foto_url, mensualidad, nombre_padre, nombre_madre, telefono_padre, telefono_madre, sucursal_id, terminos_busqueda')
         .eq('escuela_id', escuelaId)
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
@@ -422,7 +422,7 @@ export const getAlumnosFacets = async (filtros = {}) => {
     const dataScope = getDataScope(userRole);
     if (dataScope === 'assigned_students' && userId) query = query.eq('profesor_asignado_id', userId);
     if (dataScope === 'goalkeepers') query = query.eq('es_arquero', true);
-    if (dataScope !== 'school' && userProfile?.sucursal_id) query = query.eq('sucursal_id', userProfile.sucursal_id);
+    if ((dataScope === 'branch' || dataScope === 'goalkeepers') && userProfile?.sucursal_id) query = query.eq('sucursal_id', userProfile.sucursal_id);
 
     const { data, error } = await query;
     if (error) throw error;

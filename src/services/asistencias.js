@@ -65,7 +65,7 @@ export const getAlumnosParaAsistencia = async (fecha, canchaId = null, horarioId
             query = query.eq('profesor_asignado_id', targetEntrenadorId);
         }
 
-        if (dataScope !== 'school') {
+        if (dataScope === 'branch' || dataScope === 'goalkeepers') {
             if (usuarioDB.sucursal_id) {
                 query = query.eq('sucursal_id', usuarioDB.sucursal_id);
             }
@@ -211,10 +211,9 @@ export const verificarEstadoEnvio = async (fecha, canchaId = null, horarioId = n
         .eq('archivado', false)
         .neq('estado', 'ELIMINADO SISTEMA');
 
-    if (userProfile && userProfile.rol !== 'SuperAdministrador') {
-        if (userProfile.sucursal_id) {
-            alumnosQuery = alumnosQuery.eq('sucursal_id', userProfile.sucursal_id);
-        }
+    const dataScope = getDataScope(userProfile?.rol);
+    if ((dataScope === 'branch' || dataScope === 'goalkeepers') && userProfile?.sucursal_id) {
+        alumnosQuery = alumnosQuery.eq('sucursal_id', userProfile.sucursal_id);
     }
 
     if (canchaId) alumnosQuery = alumnosQuery.eq('cancha_id', canchaId);
