@@ -298,7 +298,17 @@ const Estadisticas = () => {
                         case 'fecha_nacimiento': return a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString('es-ES') : '-';
                         case 'cancha': return a.cancha?.nombre || canchas.find(c => c.value === a.cancha_id)?.label || '-';
                         case 'horario': return a.horario?.hora || horarios.find(h => h.value === a.horario_id)?.label || '-';
-                        case 'entrenador': return a.profesor_nombre || entrenadores.find(e => e.value === a.profesor_asignado_id)?.label || '-';
+                        case 'entrenador': {
+                            if (a.es_arquero && selectedEntrenadores.length > 0) {
+                                const entrenadorArqueroSeleccionado = entrenadores.find(
+                                    e => selectedEntrenadores.includes(e.value) && e.rol === 'Entrenarqueros'
+                                );
+                                if (entrenadorArqueroSeleccionado) {
+                                    return entrenadorArqueroSeleccionado.label;
+                                }
+                            }
+                            return a.profesor_nombre || a.entrenador_nombre || entrenadores.find(e => e.value === a.profesor_asignado_id)?.label || '-';
+                        }
                         case 'es_arquero': return a.es_arquero ? 'Sí' : 'No';
                         default: return a[fieldId] || '-';
                     }

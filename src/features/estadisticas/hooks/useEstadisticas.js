@@ -197,7 +197,6 @@ export const useEstadisticas = () => {
             ausentes: res?.ausentes || 0,
             total: res?.total_registros || 0,
             total_alumnos: res?.total_alumnos !== undefined && res.total_alumnos !== null ? res.total_alumnos : totalAlumnosFallback,
-            porcentaje_asistencia: res?.porcentaje_asistencia || 0,
             total_alumnos_unicos: res?.total_alumnos_unicos || 0
         };
     }, [estadisticasData?.resumen, selectedCanchas, selectedEntrenadores, canchas, canchasDisponibles]);

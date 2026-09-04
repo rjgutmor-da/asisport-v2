@@ -45,7 +45,7 @@ export const obtenerResumenEstadisticas = async (filtros = {}, options = {}) => 
     }
 
     return data || {
-        resumen: { total_registros: 0, presentes: 0, licencias: 0, ausentes: 0, porcentaje_asistencia: 0, total_alumnos_unicos: 0 },
+        resumen: { total_registros: 0, total_alumnos: 0, presentes: 0, licencias: 0, ausentes: 0, total_alumnos_unicos: 0 },
         serie_diaria: [],
         gestion: null,
         alumno_seleccionado: null
