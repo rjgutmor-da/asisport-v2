@@ -163,6 +163,7 @@ const Asistencia = () => {
 
     // Para entrenadores, basta elegir el grupo: su horario se resuelve automáticamente.
     const filtrosCompletos = isAdmin || isGoalkeeperCoach || Boolean(selectedCancha);
+    const mostrarFiltroEntrenador = isAdmin && entrenadores.length > 0;
 
     return (
         <div className="min-h-screen bg-background pb-32 md:pb-10 relative">
@@ -210,10 +211,11 @@ const Asistencia = () => {
             </header>
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
-                <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-2' : ''} gap-4`}>
-                    {isAdmin && (
+                <div className={`grid grid-cols-1 ${mostrarFiltroEntrenador ? 'md:grid-cols-2' : ''} gap-4`}>
+                    {mostrarFiltroEntrenador && (
                         <Select
                             placeholder="Todos los Entrenadores"
+                            allowEmpty
                             options={entrenadores}
                             value={selectedEntrenador}
                             onChange={(e) => setSelectedEntrenador(e.target.value)}
@@ -221,6 +223,7 @@ const Asistencia = () => {
                     )}
                     <Select
                         placeholder={isAdmin ? 'Todos los Grupos' : 'Elige tu grupo'}
+                        allowEmpty={isAdmin}
                         options={canchas}
                         value={selectedCancha}
                         onChange={(e) => setSelectedCancha(e.target.value)}
@@ -251,7 +254,9 @@ const Asistencia = () => {
                 ) : alumnos.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-text-secondary">
-                            No hay alumnos asignados a ti que coincidan con los filtros.
+                            {isAdmin
+                                ? 'No hay alumnos que coincidan con los filtros seleccionados.'
+                                : 'No hay alumnos asignados a ti que coincidan con los filtros.'}
                         </p>
                     </div>
                 ) : (

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Select = ({ label, name, options = [], value, onChange, error, disabled, placeholder = "Selecciona una opción" }) => {
+const Select = ({ label, name, options = [], value, onChange, error, disabled, allowEmpty = false, placeholder = "Selecciona una opción" }) => {
     return (
         <div className="flex flex-col gap-1">
             {label && <label htmlFor={name} className="text-sm font-medium text-text-secondary">{label}</label>}
@@ -19,7 +19,7 @@ const Select = ({ label, name, options = [], value, onChange, error, disabled, p
                         ${error ? 'border-error ring-error' : 'border-border'}
                     `}
                 >
-                    <option value="" disabled className="text-gray-500">{placeholder}</option>
+                    <option value="" disabled={!allowEmpty} className="text-gray-500">{placeholder}</option>
                     {options.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                             {opt.label}
