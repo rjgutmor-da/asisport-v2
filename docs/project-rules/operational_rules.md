@@ -72,7 +72,7 @@ Los siguientes campos son obligatorios al crear un alumno:
 - Fecha de Nacimiento
 - Cancha de entrenamiento (selección de lista predefinida)
 - Hora de entrenamiento (selección de lista predefinida)
-- Entrenadores asignados (mínimo 1, máximo 3)
+- Entrenadores asignados (mínimo 1, máximo 1; si es arquero, máximo 2)
 
 **Validación:**
 - El sistema debe validar que estos campos no estén vacíos antes de guardar
@@ -211,19 +211,27 @@ function puedeAprobar(alumno) {
 
 #### Regla #15: Asignación de Entrenadores
 **Descripción:**  
-Un alumno puede tener entre 1 y 3 entrenadores asignados.
+Un alumno puede tener **1 entrenador asignado**. Si el alumno está marcado como arquero (`es_arquero = true`), puede tener hasta **2 entrenadores** (su entrenador principal y su entrenador de arqueros).
 
 **Validación:**
 - **Mínimo:** 1 entrenador
-- **Máximo:** 3 entrenadores
+- **Máximo:** 1 entrenador (alumnos normales)
+- **Máximo:** 2 entrenadores (alumnos arqueros)
 - Cuando un entrenador registra un alumno, él mismo es asignado automáticamente
 - Todos los entrenadores asignados tienen los mismos permisos sobre ese alumno
 
-**Al intentar agregar un cuarto entrenador:**
+**Al intentar agregar un segundo entrenador a un alumno NO arquero:**
 ```javascript
-if (alumno.entrenadores.length >= 3) {
+if (!alumno.es_arquero && alumno.entrenadores.length >= 1) {
+  error('Este alumno ya tiene un entrenador asignado. Solo los arqueros pueden tener 2 entrenadores.');
+}
+```
+
+**Al intentar agregar un tercer entrenador a un arquero:**
+```javascript
+if (alumno.es_arquero && alumno.entrenadores.length >= 2) {
   mostrarDialogo(
-    'Ya tiene 3 entrenadores asignados (máximo permitido). ¿Deseas reemplazar a alguno?',
+    'Ya tiene 2 entrenadores asignados (máximo permitido para arqueros). ¿Deseas reemplazar a alguno?',
     listaEntrenadoresActuales
   );
 }
@@ -236,8 +244,9 @@ if (alumno.entrenadores.length === 1) {
 }
 ```
 
-**Mensaje de error:**
-> "Máximo 3 entrenadores permitidos."  
+**Mensajes de error:**
+> "Este alumno ya tiene un entrenador asignado. Solo los arqueros pueden tener 2 entrenadores."  
+> "Máximo 2 entrenadores permitidos para arqueros."  
 > "Debe haber al menos 1 entrenador asignado."
 
 ---
@@ -248,7 +257,7 @@ Un grupo se define por la combinación de: Horario + Cancha + Entrenadores asign
 
 **Comportamiento:**
 - Un entrenador puede estar asignado a múltiples grupos (diferentes horarios/canchas)
-- Un grupo puede tener múltiples entrenadores (entre 1 y 3)
+- Un alumno tiene 1 entrenador asignado (o 2 si es arquero, ver Regla #15)
 - Los alumnos pertenecen a un grupo según su Cancha y Horario de entrenamiento asignados
 
 **Implicación técnica:**
@@ -278,9 +287,9 @@ if (!alumnoAsignado) {
 
 ---
 
-#### Regla #13: Edición y Eliminación por Entrenador
+#### Regla #13: Edición y Archivo por Entrenador
 **Descripción:**  
-Un entrenador puede editar o eliminar un alumno SOLO si se cumplen TODAS estas condiciones:
+Un entrenador puede editar o archivar un alumno SOLO si se cumplen TODAS estas condiciones:
 
 **Condiciones:**
 1. El alumno está en estado "Pendiente"
@@ -289,7 +298,7 @@ Un entrenador puede editar o eliminar un alumno SOLO si se cumplen TODAS estas c
 
 **Validación:**
 ```javascript
-function puedeEditarOEliminar(entrenador, alumno) {
+function puedeEditarOArchivar(entrenador, alumno) {
   const totalAsistencias = 
     alumno.asistencias_normales.length + 
     alumno.asistencias_arqueros.length;
@@ -301,10 +310,12 @@ function puedeEditarOEliminar(entrenador, alumno) {
 ```
 
 **Si NO cumple:**
-- Solo un Administrador o Super Administrador puede editar/eliminar
+- Solo un Administrador o Super Administrador puede editar/archivar
+
+**Nota:** Los alumnos nunca se eliminan físicamente del sistema, solo se archivan (ver Regla #16).
 
 **Mensaje de error:**
-> "No puedes editar/eliminar este alumno. Solo los administradores pueden modificar alumnos Aprobados o con 5+ asistencias."
+> "No puedes editar/archivar este alumno. Solo los administradores pueden modificar alumnos Aprobados o con 5+ asistencias."
 
 ---
 
@@ -609,22 +620,6 @@ Hoy cumplen años:
 ¡No olvides felicitarlos!
 ```
 
----
-
-### 9. Funcionalidades Deshabilitadas en MVP
-
-#### Regla #22: Condiciones Físicas No Habilitadas
-**Descripción:**  
-La funcionalidad de "condiciones físicas del niño" NO está habilitada en esta fase de MVP.
-
-**Restricción para el agente AI:**
-- NO debe implementar código relacionado con condiciones físicas
-- NO debe sugerir funcionalidades de condiciones físicas
-- Si el usuario lo solicita, el agente debe responder:
-
-> "La funcionalidad de condiciones físicas no está habilitada en esta fase del MVP según las reglas del proyecto. ¿Deseas que lo documentemos para una fase futura?"
-
----
 
 ## Validaciones Cruzadas (Reglas que se Relacionan)
 
@@ -740,7 +735,8 @@ Para mantener consistencia en toda la aplicación, usar estos mensajes exactos:
 - `"Solo los administradores pueden gestionar canchas y horarios."`
 
 ### Entrenadores
-- `"Máximo 3 entrenadores permitidos."`
+- `"Este alumno ya tiene un entrenador asignado. Solo los arqueros pueden tener 2 entrenadores."`
+- `"Máximo 2 entrenadores permitidos para arqueros."`
 - `"Debe haber al menos 1 entrenador asignado."`
 
 ### WhatsApp
