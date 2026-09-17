@@ -89,36 +89,33 @@ const exportarPDF = async (alumno, ficha, ev) => {
             * { box-sizing: border-box; }
             body { 
                 margin: 0; 
-                padding: 30px; 
+                padding: 20px; 
                 font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
                 background: #FFFFFF; 
                 color: #1F2937; 
-                line-height: 1.4;
+                line-height: 1.35;
             }
             @media print { 
                 body { padding: 0; } 
-                @page { size: letter; margin: 15mm; }
+                @page { size: 8.5in 13in; margin: 12mm 15mm; }
                 .section-title,
                 .card,
                 .info-table,
                 .grid-cols-2,
-                .grid-cols-4 {
+                .grid-cols-4,
+                .section-block {
                     break-inside: avoid;
                     page-break-inside: avoid;
                 }
             }
-            .section-block {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
             .section-title {
                 background: #F0F6FF; 
                 border-left: 4px solid #1E3A8A; 
-                padding: 6px 12px; 
-                margin-top: 20px;
-                margin-bottom: 12px; 
+                padding: 4px 10px; 
+                margin-top: 12px;
+                margin-bottom: 8px; 
                 font-weight: bold; 
-                font-size: 13px; 
+                font-size: 11px; 
                 color: #1E3A8A; 
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
@@ -126,22 +123,22 @@ const exportarPDF = async (alumno, ficha, ev) => {
             .grid-cols-4 {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
-                gap: 10px;
+                gap: 8px;
             }
             .grid-cols-2 {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 12px;
+                gap: 8px;
             }
             .card {
                 border: 1px solid #E5E7EB; 
                 border-radius: 6px; 
-                padding: 8px 10px; 
+                padding: 6px 8px; 
                 background: #F9FAFB;
             }
             .card-label {
                 color: #6B7280; 
-                font-size: 9px; 
+                font-size: 8px; 
                 text-transform: uppercase;
                 font-weight: 600;
                 letter-spacing: 0.5px;
@@ -149,17 +146,17 @@ const exportarPDF = async (alumno, ficha, ev) => {
             .card-value {
                 color: #111827; 
                 font-weight: bold; 
-                font-size: 13px;
+                font-size: 11px;
                 margin-top: 2px;
             }
             .info-table {
                 width: 100%;
                 border-collapse: collapse;
-                font-size: 12px;
-                margin-bottom: 12px;
+                font-size: 10.5px;
+                margin-bottom: 8px;
             }
             .info-table td {
-                padding: 6px 8px;
+                padding: 4px 6px;
                 border-bottom: 1px solid #F3F4F6;
             }
             .info-table td.label {
@@ -175,17 +172,17 @@ const exportarPDF = async (alumno, ficha, ev) => {
     </head>
     <body>
         <!-- Encabezado con Branding AsiSport Naranja -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:15px;border-bottom:3px solid #1E3A8A;">
-            <div style="display:flex;align-items:center;gap:15px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:3px solid #1E3A8A;">
+            <div style="display:flex;align-items:center;gap:12px;">
                 ${logoHtml}
                 <div>
-                    <div style="font-size:20px;font-weight:800;color:#111827;">EVALUACIÓN MÉDICA DE APTITUD FÍSICA</div>
-                    <div style="color:#6B7280;font-size:11px;margin-top:2px;">
+                    <div style="font-size:18px;font-weight:800;color:#111827;">EVALUACIÓN MÉDICA DE APTITUD FÍSICA</div>
+                    <div style="color:#6B7280;font-size:10px;margin-top:1px;">
                         Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </div>
                 </div>
             </div>
-            ${alumno.foto_url ? `<img src="${alumno.foto_url}" alt="Foto ${alumno.nombres}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid #1E3A8A;" crossorigin="anonymous" />` : ''}
+            ${alumno.foto_url ? `<img src="${alumno.foto_url}" alt="Foto ${alumno.nombres}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid #1E3A8A;" crossorigin="anonymous" />` : ''}
         </div>
 
         <!-- 1. Datos Generales -->
@@ -354,7 +351,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
 
         <!-- 6. Aptitud Deportiva -->
         <div class="section-title">6. Dictamen de Aptitud Deportiva</div>
-        <div style="border:2px solid ${aptitudColor};border-radius:8px;padding:12px 15px;background:#FAFAFA;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="border:2px solid ${aptitudColor};border-radius:8px;padding:8px 12px;background:#FAFAFA;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
             <div>
                 <span style="font-size:11px;color:#6B7280;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">Dictamen del Médico Evaluador</span>
                 <div style="font-size:20px;font-weight:800;color:${aptitudColor};margin-top:2px;">${ev.aptitud_deportiva.toUpperCase()}</div>
@@ -385,7 +382,7 @@ const exportarPDF = async (alumno, ficha, ev) => {
         ` : ''}
 
         <!-- Firmas y Cierre -->
-        <div style="margin-top:40px;border-top:1px solid #E5E7EB;padding-top:15px;display:flex;justify-content:space-between;font-size:11px;color:#6B7280;">
+        <div style="margin-top:20px;border-top:1px solid #E5E7EB;padding-top:10px;display:flex;justify-content:space-between;font-size:9.5px;color:#6B7280;">
             <div>
                 Este documento es una certificación médica de aptitud física emitida para el ciclo deportivo actual.<br/>
                 La veracidad de los datos clínicos y del dictamen corresponden al profesional firmante.
