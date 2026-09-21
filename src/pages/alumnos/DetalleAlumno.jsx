@@ -10,6 +10,7 @@ import { useAlumno } from '../../features/alumnos/hooks/useAlumno';
 import { can } from '../../config/roles';
 import FichaMedica from '../../features/fichas_medicas/components/FichaMedica';
 import FichaMedicaEntrenador from '../../features/fichas_medicas/components/FichaMedicaEntrenador';
+import AdvertenciaAlumnoDuplicado from '../../features/alumnos/components/AdvertenciaAlumnoDuplicado';
 
 /**
  * Página de detalle y edición de un alumno.
@@ -39,6 +40,9 @@ const DetalleAlumno = () => {
         formData,
         photoFile,
         errors,
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
         maestros: { canchas, horarios, entrenadores, sucursales },
         setEditing,
         handleChange,
@@ -161,7 +165,7 @@ const DetalleAlumno = () => {
                         </button>
                         <button
                             onClick={saveChanges}
-                            disabled={saving}
+                            disabled={saving || verificandoDuplicado || Boolean(advertenciaDuplicado)}
                             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50"
                         >
                             <Save size={18} />
@@ -260,6 +264,14 @@ const DetalleAlumno = () => {
                             ))}
                         </div>
                     </div>
+                )}
+
+                {editing && (
+                    <AdvertenciaAlumnoDuplicado
+                        advertencia={advertenciaDuplicado}
+                        error={errorVerificacionDuplicado}
+                        verificando={verificandoDuplicado}
+                    />
                 )}
 
                 {/* Formulario de Datos */}

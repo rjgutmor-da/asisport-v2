@@ -6,6 +6,12 @@ import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maes
 import { getSucursales } from '../../../services/sucursales';
 import { getCamposFaltantes } from '../utils/alumnoCompletitud';
 import { verificarDeudaAlumno } from '../utils/alumnoDeuda';
+import { obtenerAdvertenciaDuplicadoDesdeError } from '../../../services/alumnos';
+import {
+    normalizarCarnetLocal,
+    normalizarIdentidadLocal,
+    useAlumnoDuplicado
+} from './useAlumnoDuplicado';
 
 /**
  * Hook para manejar la lógica de detalle y edición de un alumno.
@@ -38,6 +44,28 @@ export const useAlumno = (id) => {
 
     // Estado para la nueva foto seleccionada (archivo)
     const [photoFile, setPhotoFile] = useState(null);
+
+    const identidadModificada = Boolean(alumno) && (
+        normalizarIdentidadLocal(`${formData.nombres || ''} ${formData.apellidos || ''}`)
+            !== normalizarIdentidadLocal(`${alumno.nombres || ''} ${alumno.apellidos || ''}`)
+        || normalizarCarnetLocal(formData.carnet_identidad || '')
+            !== normalizarCarnetLocal(alumno.carnet_identidad || '')
+    );
+
+    const {
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
+        verificarAhora: verificarDuplicadoAhora,
+        mostrarAdvertenciaDesdeResultado,
+        limpiarValidacionDuplicado
+    } = useAlumnoDuplicado({
+        nombres: formData.nombres,
+        apellidos: formData.apellidos,
+        carnetIdentidad: formData.carnet_identidad,
+        alumnoId: id,
+        enabled: editing && identidadModificada
+    });
 
     useEffect(() => {
         const loadData = async () => {
@@ -170,7 +198,7 @@ export const useAlumno = (id) => {
             .from('avatars')
             .getPublicUrl(filePath);
 
-        return publicUrl;
+        return { publicUrl, filePath };
     };
 
 
@@ -231,23 +259,28 @@ export const useAlumno = (id) => {
         }
 
         setSaving(true);
+        let fotoNuevaPath = null;
+        let actualizacionConfirmada = false;
         try {
-            // 1. Si hay una nueva foto, subirla primero
+            if (identidadModificada) {
+                const resultadoDuplicado = await verificarDuplicadoAhora();
+                if (resultadoDuplicado.duplicado) {
+                    addToast(
+                        resultadoDuplicado.archivado
+                            ? 'Este alumno tiene un registro archivado.'
+                            : 'Este alumno ya está registrado.',
+                        'error'
+                    );
+                    return false;
+                }
+            }
+
+            // La foto anterior se conserva hasta que la actualización termine.
             let fotoUrl = formData.foto_url || null;
             if (photoFile) {
-                // Eliminar foto antigua de Supabase Storage si existe
-                if (alumno.foto_url) {
-                    try {
-                        const urlParts = alumno.foto_url.split('/avatars/');
-                        if (urlParts.length > 1) {
-                            const oldPath = urlParts[1];
-                            await supabase.storage.from('avatars').remove([oldPath]);
-                        }
-                    } catch (e) {
-                        console.error('Error al eliminar foto antigua:', e);
-                    }
-                }
-                fotoUrl = await uploadPhoto(photoFile);
+                const fotoSubida = await uploadPhoto(photoFile);
+                fotoUrl = fotoSubida.publicUrl;
+                fotoNuevaPath = fotoSubida.filePath;
             }
 
             // 3. Actualizar datos del alumno en la tabla principal
@@ -284,6 +317,20 @@ export const useAlumno = (id) => {
                 throw new Error('No se pudo actualizar el alumno. Es posible que las políticas de seguridad (RLS) impidan la modificación.');
             }
 
+            actualizacionConfirmada = true;
+
+            if (photoFile && alumno.foto_url) {
+                const urlParts = alumno.foto_url.split('/avatars/');
+                if (urlParts.length > 1) {
+                    const { error: removeError } = await supabase.storage
+                        .from('avatars')
+                        .remove([urlParts[1]]);
+                    if (removeError) {
+                        console.error('No se pudo eliminar la foto anterior:', removeError);
+                    }
+                }
+            }
+
             // 4. Recargar los datos del alumno para reflejar los cambios
             await recargarAlumno(id);
 
@@ -296,6 +343,19 @@ export const useAlumno = (id) => {
             return true;
         } catch (error) {
             console.error('Error general al guardar cambios:', error);
+            if (fotoNuevaPath && !actualizacionConfirmada) {
+                const { error: cleanupError } = await supabase.storage
+                    .from('avatars')
+                    .remove([fotoNuevaPath]);
+                if (cleanupError) {
+                    console.error('No se pudo limpiar la foto del cambio rechazado:', cleanupError);
+                }
+            }
+
+            const advertencia = obtenerAdvertenciaDuplicadoDesdeError(error);
+            if (advertencia) {
+                mostrarAdvertenciaDesdeResultado(advertencia);
+            }
             addToast(error.message || 'No pudimos guardar los cambios. Intenta nuevamente.', 'error');
             return false;
         } finally {
@@ -308,6 +368,7 @@ export const useAlumno = (id) => {
         setFormData(alumno);
         setPhotoFile(null);
         setErrors({});
+        limpiarValidacionDuplicado();
         setEditing(false);
     };
 
@@ -323,6 +384,9 @@ export const useAlumno = (id) => {
         formData,
         photoFile,
         errors,
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
         maestros: { canchas, horarios, entrenadores, sucursales },
 
         setEditing,

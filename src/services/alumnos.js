@@ -2,6 +2,59 @@ import { supabase } from '../lib/supabaseClient';
 import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { getDataScope } from '../config/roles';
 
+export const MENSAJE_ERROR_VERIFICACION_DUPLICADO =
+    'No pudimos verificar si el alumno ya existe. Intenta nuevamente.';
+
+export const crearAdvertenciaDuplicado = (archivado = false, motivo = null) => ({
+    archivado: Boolean(archivado),
+    motivo
+});
+
+export const obtenerAdvertenciaDuplicadoDesdeError = (error) => {
+    if (error?.advertenciaDuplicado) return error.advertenciaDuplicado;
+
+    const contenido = [error?.message, error?.details, error?.hint]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+    const esDuplicado = error?.code === '23505'
+        && (
+            contenido.includes('este alumno ya está registrado')
+            || contenido.includes('registro archivado')
+            || contenido.includes('coincide el nombre completo')
+            || contenido.includes('coincide el carnet')
+        );
+
+    if (!esDuplicado) return null;
+
+    return crearAdvertenciaDuplicado(
+        contenido.includes('registro archivado'),
+        contenido.includes('carnet') ? 'carnet' : 'nombre'
+    );
+};
+
+export const verificarAlumnoDuplicado = async ({
+    nombres,
+    apellidos,
+    carnetIdentidad,
+    alumnoId = null
+}) => {
+    const { data, error } = await supabase.rpc('rpc_verificar_alumno_duplicado', {
+        p_nombres: nombres?.trim() || '',
+        p_apellidos: apellidos?.trim() || '',
+        p_carnet_identidad: carnetIdentidad?.trim() || null,
+        p_alumno_id: alumnoId
+    });
+
+    if (error) {
+        console.error('Error al verificar alumno duplicado:', error);
+        throw new Error(MENSAJE_ERROR_VERIFICACION_DUPLICADO);
+    }
+
+    return data || { duplicado: false, archivado: false, motivo: null };
+};
+
 // Validar foto (máx 200 KB)
 export const validatePhoto = (file) => {
     return new Promise((resolve) => {
@@ -54,23 +107,8 @@ export const createAlumno = async (alumnoData, photoFile) => {
         .eq('id', user.id)
         .single();
 
-    // 2. Validación de duplicados (Carnet de Identidad)
-    if (alumnoData.carnet_identidad) {
-        const { data: existing, error: checkError } = await supabase
-            .from('alumnos')
-            .select('id, nombres, apellidos')
-            .eq('carnet_identidad', alumnoData.carnet_identidad)
-            .eq('escuela_id', escuelaId)
-            .limit(1);
-
-        if (checkError) console.error('Error al verificar duplicados:', checkError);
-
-        if (existing?.[0]) {
-            throw new Error(`El carnet ${alumnoData.carnet_identidad} ya está registrado para el alumno: ${existing[0].nombres} ${existing[0].apellidos}.`);
-        }
-    }
-
     let fotoUrl = null;
+    let fotoSubidaPath = null;
 
     // 3. Subir foto si existe
     if (photoFile) {
@@ -86,6 +124,8 @@ export const createAlumno = async (alumnoData, photoFile) => {
             });
 
         if (uploadError) throw new Error('Error al subir la foto: ' + uploadError.message);
+
+        fotoSubidaPath = filePath;
 
         const { data: { publicUrl } } = supabase.storage
             .from('avatars')
@@ -134,7 +174,31 @@ export const createAlumno = async (alumnoData, photoFile) => {
         .select()
         .single();
 
-    if (insertError) throw new Error('Error al guardar alumno: ' + insertError.message);
+    if (insertError) {
+        if (fotoSubidaPath) {
+            const { error: cleanupError } = await supabase.storage
+                .from('avatars')
+                .remove([fotoSubidaPath]);
+            if (cleanupError) {
+                console.error('No se pudo limpiar la foto del alta rechazada:', cleanupError);
+            }
+        }
+
+        const advertenciaDuplicado = obtenerAdvertenciaDuplicadoDesdeError(insertError);
+        if (advertenciaDuplicado) {
+            const errorDuplicado = Object.assign(
+                new Error(
+                    advertenciaDuplicado.archivado
+                        ? 'Este alumno tiene un registro archivado.'
+                        : 'Este alumno ya está registrado.'
+                ),
+                { advertenciaDuplicado }
+            );
+            throw errorDuplicado;
+        }
+
+        throw new Error('Error al guardar alumno: ' + insertError.message);
+    }
 
     // 5. Asignar Entrenador
     if (alumno && alumnoData.profesor_asignado_id) {
@@ -550,59 +614,6 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             asistencias_count: countN + countA
         };
     });
-};
-
-/**
- * Verifica si existen alumnos con la misma fecha de nacimiento y similitud en nombres/apellidos
- * @param {string} nombres - Nombres del nuevo alumno
- * @param {string} apellidos - Apellidos del nuevo alumno
- * @param {string} fechaNacimiento - Fecha de nacimiento (YYYY-MM-DD)
- * @returns {Promise<Array>} - Lista de posibles duplicados encontrados
- */
-export const checkPosiblesDuplicados = async (nombres, apellidos, fechaNacimiento) => {
-    try {
-        const escuelaId = await obtenerEscuelaId();
-
-        // 1. Buscar todos los alumnos activos en la escuela con la misma fecha de nacimiento
-        const { data: posibles, error } = await supabase
-            .from('alumnos')
-            .select('id, nombres, apellidos, fecha_nacimiento')
-            .eq('escuela_id', escuelaId)
-            .eq('fecha_nacimiento', fechaNacimiento)
-            .neq('estado', 'ELIMINADO SISTEMA');
-
-        if (error) throw error;
-        if (!posibles || posibles.length === 0) return [];
-
-        // 2. Normalizar el texto ingresado
-        const normalize = (str) => {
-            return str
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "") // Quitar tildes
-                .trim();
-        };
-
-        const inputNormalizado = normalize(`${nombres} ${apellidos}`);
-        const palabrasInput = inputNormalizado.split(/\s+/).filter(p => p.length > 2); // Solo palabras de +2 letras
-
-        // 3. Filtrar aquellos que tengan coincidencia de palabras
-        const duplicadosEncontrados = posibles.map(alumno => {
-            const alumnoNormalizado = normalize(`${alumno.nombres} ${alumno.apellidos}`);
-            const palabrasAlumno = alumnoNormalizado.split(/\s+/);
-
-            return {
-                ...alumno,
-                esCoincidenciaExacta: alumnoNormalizado === inputNormalizado,
-                esCoincidenciaPosible: palabrasInput.some(palabra => palabrasAlumno.includes(palabra))
-            };
-        }).filter(alumno => alumno.esCoincidenciaPosible);
-
-        return duplicadosEncontrados;
-    } catch (error) {
-        console.error("Error al buscar posibles duplicados:", error);
-        return []; // En caso de error, permitimos continuar sin bloquear
-    }
 };
 
 /**

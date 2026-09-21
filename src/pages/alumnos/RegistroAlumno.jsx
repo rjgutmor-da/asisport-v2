@@ -8,6 +8,7 @@ import FileInput from '../../components/ui/FileInput';
 import { useRegistroAlumno } from '../../features/alumnos/hooks/useRegistroAlumno';
 import { useAuth } from '../../context/AuthContext';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
+import AdvertenciaAlumnoDuplicado from '../../features/alumnos/components/AdvertenciaAlumnoDuplicado';
 
 const RegistroAlumno = () => {
     const navigate = useNavigate();
@@ -20,6 +21,9 @@ const RegistroAlumno = () => {
         submitting,
         formData,
         errors,
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
         maestros: { canchas, horarios, entrenadores, sucursales },
         handleChange,
         setPhotoFile,
@@ -81,6 +85,12 @@ const RegistroAlumno = () => {
                                 placeholder="Ej: Pérez Gómez"
                             />
                         </div>
+
+                        <AdvertenciaAlumnoDuplicado
+                            advertencia={advertenciaDuplicado}
+                            error={errorVerificacionDuplicado}
+                            verificando={verificandoDuplicado}
+                        />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
@@ -348,7 +358,7 @@ const RegistroAlumno = () => {
                             variant="primary"
                             className="w-full md:w-auto md:min-w-[200px] text-lg py-6"
                             isLoading={submitting}
-                            disabled={submitting}
+                            disabled={submitting || verificandoDuplicado || Boolean(advertenciaDuplicado)}
                         >
                             {submitting ? 'Guardando...' : 'Guardar Alumno'}
                         </Button>

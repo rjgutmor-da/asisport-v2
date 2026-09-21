@@ -4,7 +4,8 @@ import { useToast } from '../../../components/ui/Toast';
 import { useAuth } from '../../../context/AuthContext';
 import { getCanchas, getHorarios, getEntrenadores } from '../../../services/maestros';
 import { getSucursales } from '../../../services/sucursales';
-import { createAlumno, checkPosiblesDuplicados } from '../../../services/alumnos';
+import { createAlumno, obtenerAdvertenciaDuplicadoDesdeError } from '../../../services/alumnos';
+import { useAlumnoDuplicado } from './useAlumnoDuplicado';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../hooks/useMasterData';
 /**
@@ -53,6 +54,18 @@ export const useRegistroAlumno = (onSuccess) => {
 
     const [photoFile, setPhotoFile] = useState(null);
     const [errors, setErrors] = useState({});
+
+    const {
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
+        verificarAhora: verificarDuplicadoAhora,
+        mostrarAdvertenciaDesdeResultado
+    } = useAlumnoDuplicado({
+        nombres: formData.nombres,
+        apellidos: formData.apellidos,
+        carnetIdentidad: formData.carnet_identidad
+    });
 
     // Cargar datos maestros al iniciar
     useEffect(() => {
@@ -234,33 +247,15 @@ export const useRegistroAlumno = (onSuccess) => {
             const nombresNormalizados = formData.nombres.trim().replace(/\s+/g, ' ');
             const apellidosNormalizados = formData.apellidos.trim().replace(/\s+/g, ' ');
 
-            // Validación de posibles duplicados
-            const duplicados = await checkPosiblesDuplicados(
-                nombresNormalizados,
-                apellidosNormalizados,
-                formData.fecha_nacimiento
-            );
-
-            const duplicadoExacto = duplicados.find(duplicado => duplicado.esCoincidenciaExacta);
-            if (duplicadoExacto) {
+            const resultadoDuplicado = await verificarDuplicadoAhora();
+            if (resultadoDuplicado.duplicado) {
                 addToast(
-                    `No se puede registrar: ${duplicadoExacto.nombres} ${duplicadoExacto.apellidos} ya existe en esta escuela con la misma fecha de nacimiento.`,
+                    resultadoDuplicado.archivado
+                        ? 'Este alumno tiene un registro archivado.'
+                        : 'Este alumno ya está registrado.',
                     'error'
                 );
-                setSubmitting(false);
                 return;
-            }
-
-            if (duplicados.length > 0) {
-                const nombresDuplicados = duplicados.map(d => `${d.nombres} ${d.apellidos}`).join(', ');
-                const confirmar = window.confirm(
-                    `⚠️ Posible alumno duplicado detectado.\n\nYa existe(n) un alumno(s) en la escuela con nombre o apellido similar y la misma fecha de nacimiento:\n- ${nombresDuplicados}\n\n¿Estás seguro de que deseas registrar este alumno?`
-                );
-
-                if (!confirmar) {
-                    setSubmitting(false);
-                    return; // El usuario canceló el registro
-                }
             }
 
             const cleanFormData = {
@@ -276,6 +271,10 @@ export const useRegistroAlumno = (onSuccess) => {
             if (onSuccess) onSuccess(newAlumno);
         } catch (error) {
             console.error(error);
+            const advertencia = obtenerAdvertenciaDuplicadoDesdeError(error);
+            if (advertencia) {
+                mostrarAdvertenciaDesdeResultado(advertencia);
+            }
             addToast(error.message || 'No pudimos guardar. Intenta nuevamente.', 'error');
         } finally {
             setSubmitting(false);
@@ -288,6 +287,9 @@ export const useRegistroAlumno = (onSuccess) => {
         formData,
         errors,
         photoFile,
+        advertenciaDuplicado,
+        errorVerificacionDuplicado,
+        verificandoDuplicado,
         maestros: { canchas: canchasFiltradas, horarios: horariosFiltrados, entrenadores: entrenadorFiltrados, sucursales },
 
         handleChange,
