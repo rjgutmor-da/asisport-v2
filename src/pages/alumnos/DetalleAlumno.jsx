@@ -485,7 +485,15 @@ const DetalleAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 1. Entrenador (Profesor Asignado) */}
+                            <Select
+                                label="Grupo *"
+                                name="cancha_id"
+                                value={formData.cancha_id || ''}
+                                options={canchas}
+                                onChange={handleChange}
+                                disabled={!editing || isCoachOrGoalkeeperCoach}
+                                error={errors?.cancha_id}
+                            />
                             <Select
                                 label="Profesor Asignado"
                                 name="profesor_asignado_id"
@@ -495,8 +503,9 @@ const DetalleAlumno = () => {
                                 disabled={!editing || isCoachOrGoalkeeperCoach}
                                 placeholder="Seleccionar entrenador..."
                             />
+                        </div>
 
-                            {/* 2. Sucursal */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
@@ -509,26 +518,12 @@ const DetalleAlumno = () => {
                                         error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
-                                        Selecciona una sucursal para filtrar los grupos y horarios disponibles
+                                        Al seleccionar un grupo se completan su profesor, sucursal y horario
                                     </p>
                                 </div>
                             ) : (
                                 <div></div>
                             )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 3. Grupo */}
-                            <Select
-                                label="Grupo *"
-                                name="cancha_id"
-                                value={formData.cancha_id || ''}
-                                options={canchas}
-                                onChange={handleChange}
-                                disabled={!editing || isCoachOrGoalkeeperCoach}
-                                error={errors?.cancha_id}
-                            />
-                            {/* 4. Horario de Entrenamiento */}
                             <Select
                                 label="Horario de Entrenamiento *"
                                 name="horario_id"

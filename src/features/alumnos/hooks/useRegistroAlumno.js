@@ -194,6 +194,7 @@ export const useRegistroAlumno = (onSuccess) => {
             setFormData(prev => ({
                 ...prev,
                 cancha_id: value,
+                sucursal_id: canchaSeleccionada?.sucursal_id || '',
                 horario_id: newHorarioId,
                 profesor_asignado_id: newProfesorId
             }));

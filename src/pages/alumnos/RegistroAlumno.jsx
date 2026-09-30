@@ -268,7 +268,28 @@ const RegistroAlumno = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 1. Sucursal */}
+                            <Select
+                                label="Grupo *"
+                                name="cancha_id"
+                                value={formData.cancha_id}
+                                options={canchas}
+                                onChange={handleChange}
+                                error={errors.cancha_id}
+                                placeholder="Selecciona un grupo"
+                            />
+                            <Select
+                                label="Profesor Asignado"
+                                name="profesor_asignado_id"
+                                value={formData.profesor_asignado_id}
+                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                onChange={handleChange}
+                                error={errors.profesor_asignado_id}
+                                disabled={isAnyCoach}
+                                placeholder="Auto-asignado con el grupo"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {sucursales.length > 0 ? (
                                 <div className="flex flex-col justify-start">
                                     <Select
@@ -289,21 +310,6 @@ const RegistroAlumno = () => {
                             ) : (
                                 <div></div>
                             )}
-
-                            {/* 2. Grupo */}
-                            <Select
-                                label="Grupo *"
-                                name="cancha_id"
-                                value={formData.cancha_id}
-                                options={canchas}
-                                onChange={handleChange}
-                                error={errors.cancha_id}
-                                placeholder={formData.sucursal_id ? 'Selecciona un grupo' : 'Selecciona una sucursal primero'}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* 3. Horario asignado automáticamente por el grupo */}
                             <div className="flex flex-col justify-start">
                                 <Select
                                     label="Horario de Entrenamiento *"
@@ -319,18 +325,6 @@ const RegistroAlumno = () => {
                                     Asignado automáticamente según el grupo seleccionado
                                 </p>
                             </div>
-
-                            {/* 4. Profesor Asignado */}
-                            <Select
-                                label="Profesor Asignado"
-                                name="profesor_asignado_id"
-                                value={formData.profesor_asignado_id}
-                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
-                                onChange={handleChange}
-                                error={errors.profesor_asignado_id}
-                                disabled={isAnyCoach}
-                                placeholder="Auto-asignado con el grupo"
-                            />
                         </div>
 
                         <div className="flex flex-col mt-2">

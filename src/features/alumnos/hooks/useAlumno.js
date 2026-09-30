@@ -117,7 +117,13 @@ export const useAlumno = (id) => {
 
                 setAlumno(alumnoConTotales);
                 setFormData(alumnoConTotales);
-                setCanchas(canchasData.map(c => ({ value: c.id, label: c.nombre })));
+                setCanchas(canchasData.map(c => ({
+                    value: c.id,
+                    label: c.nombre,
+                    sucursal_id: c.sucursal_id,
+                    entrenador_id: c.entrenador_id,
+                    horario_ids: c.horario_ids
+                })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
                 // Solo entrenadores (ya filtrados en el servicio), no administradores
                 setEntrenadores(entrenadoresData.map(e => ({ value: e.id, label: `${e.nombres} ${e.apellidos}` })));
@@ -138,6 +144,24 @@ export const useAlumno = (id) => {
     // Manejo de cambios en inputs del formulario
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        if (name === 'cancha_id') {
+            const grupo = canchas.find(c => String(c.value) === String(value));
+            setFormData(prev => ({
+                ...prev,
+                cancha_id: value,
+                profesor_asignado_id: grupo?.entrenador_id || '',
+                sucursal_id: grupo?.sucursal_id || '',
+                horario_id: grupo?.horario_ids?.[0] || ''
+            }));
+            setErrors(prev => ({
+                ...prev,
+                cancha_id: null,
+                profesor_asignado_id: null,
+                sucursal_id: null,
+                horario_id: null
+            }));
+            return;
+        }
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
