@@ -13,7 +13,7 @@ import { queryKeys } from '../../../hooks/useMasterData';
  */
 export const useRegistroAlumno = (onSuccess) => {
     const { addToast } = useToast();
-    const { user, userProfile, isCoach, role } = useAuth();
+    const { userProfile, role } = useAuth();
     const queryClient = useQueryClient();
     const location = useLocation();
 
@@ -25,7 +25,7 @@ export const useRegistroAlumno = (onSuccess) => {
     const [canchas, setCanchas] = useState([]); // Todas las canchas (con sucursal_id)
     const [canchasRaw, setCanchasRaw] = useState([]); // Datos crudos para el filtro
     const [horarios, setHorarios] = useState([]);
-    // entrenadores: lista completa con sucursal_id incluido para poder filtrar
+    // El entrenador se muestra según la configuración del grupo.
     const [entrenadores, setEntrenadores] = useState([]);
     const [sucursales, setSucursales] = useState([]);
 
@@ -72,7 +72,7 @@ export const useRegistroAlumno = (onSuccess) => {
         const loadMaestros = async () => {
             try {
                 const [canchasData, horariosData, entrenadoresData, sucursalesData] = await Promise.all([
-                    getCanchas(),
+                    getCanchas({ fresh: true }),
                     getHorarios(),
                     getEntrenadores(),
                     getSucursales()
@@ -83,10 +83,12 @@ export const useRegistroAlumno = (onSuccess) => {
                     value: c.id,
                     label: c.nombre,
                     sucursal_id: c.sucursal_id,
-                    entrenador_id: c.entrenador_id
+                    entrenador_id: c.entrenador_id,
+                    entrenador_nombre: c.entrenador_nombre,
+                    horario_hora: c.horario_hora
                 })));
                 setHorarios(horariosData.map(h => ({ value: h.id, label: h.hora })));
-                // Se conserva sucursal_id en cada entrenador para utilizarlo en el filtro por sucursal
+                // La lista completa permite mostrar profesores de grupos de varias sucursales.
                 setEntrenadores(entrenadoresData.map(e => ({
                     value: e.id,
                     label: `${e.nombres} ${e.apellidos}`,
@@ -94,12 +96,11 @@ export const useRegistroAlumno = (onSuccess) => {
                 })));
                 setSucursales(sucursalesData.map(s => ({ value: s.id, label: s.nombre })));
 
-                // Si el usuario es entrenador, auto-asignar profesor y sucursal
+                // La sucursal inicial proviene del perfil; el profesor proviene del grupo.
                 const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
                 if (isAnyCoach && userProfile) {
                     setFormData(prev => ({
                         ...prev,
-                        profesor_asignado_id: userProfile.id || '',
                         sucursal_id: userProfile.sucursal_id || ''
                     }));
                 }
@@ -111,38 +112,7 @@ export const useRegistroAlumno = (onSuccess) => {
             }
         };
         loadMaestros();
-    }, [addToast, isCoach, role, userProfile]);
-
-    /**
-     * Canchas filtradas según sucursal y profesor seleccionado.
-     * Si se selecciona un grupo, sus datos de horario y entrenador se auto-vinculan.
-     */
-    const canchasFiltradas = useMemo(() => {
-        let list = canchas;
-        if (formData.sucursal_id) {
-            list = list.filter(c => !c.sucursal_id || String(c.sucursal_id) === String(formData.sucursal_id));
-        }
-        if (formData.profesor_asignado_id) {
-            const gruposDelProfe = canchasRaw.filter(c => String(c.entrenador_id) === String(formData.profesor_asignado_id));
-            if (gruposDelProfe.length > 0) {
-                list = list.filter(c => String(c.entrenador_id) === String(formData.profesor_asignado_id));
-            }
-        }
-        return list;
-    }, [formData.sucursal_id, formData.profesor_asignado_id, canchas, canchasRaw]);
-
-    /**
-     * Entrenadores filtrados según la sucursal seleccionada.
-     * Un entrenador sin sucursal asignada (sucursal_id === null) se muestra siempre,
-     * ya que se considera disponible para todas las sucursales.
-     * Si no hay sucursal seleccionada en el formulario, se muestran todos.
-     */
-    const entrenadorFiltrados = useMemo(() => {
-        if (!formData.sucursal_id) return entrenadores;
-        return entrenadores.filter(
-            e => !e.sucursal_id || String(e.sucursal_id) === String(formData.sucursal_id)
-        );
-    }, [formData.sucursal_id, entrenadores]);
+    }, [addToast, role, userProfile]);
 
     /**
      * Horario del grupo seleccionado, mostrado solo como referencia.
@@ -159,44 +129,19 @@ export const useRegistroAlumno = (onSuccess) => {
     // Manejo de cambios en inputs
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        if (name === 'horario_id' || name === 'profesor_asignado_id') return;
 
         // Restricción: Carnet de Identidad solo números
         if (name === 'carnet_identidad') {
             const onlyNums = value.replace(/[^0-9]/g, '');
             setFormData(prev => ({ ...prev, [name]: onlyNums }));
-        } else if (name === 'sucursal_id') {
-            // Al cambiar la sucursal, limpiar cancha y profesor para que el usuario reelija
-            setFormData(prev => ({
-                ...prev,
-                sucursal_id: value,
-                cancha_id: '',
-                horario_id: '',
-                // Solo limpiar el profesor si el usuario actual no es entrenador (en ese caso ya está auto-asignado)
-                ...(!(role === 'Entrenador' || role === 'Entrenarqueros') && { profesor_asignado_id: '' })
-            }));
         } else if (name === 'cancha_id') {
             const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(value));
-            let newHorarioId = '';
-            let newProfesorId = formData.profesor_asignado_id;
-
-            if (canchaSeleccionada) {
-                // Auto-asignar horario del grupo
-                if (canchaSeleccionada.horario_ids && canchaSeleccionada.horario_ids.length > 0) {
-                    newHorarioId = canchaSeleccionada.horario_ids[0];
-                }
-                // Auto-asignar profesor titular del grupo (si el usuario no es un entrenador)
-                const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
-                if (!isAnyCoach && canchaSeleccionada.entrenador_id) {
-                    newProfesorId = canchaSeleccionada.entrenador_id;
-                }
-            }
-
             setFormData(prev => ({
                 ...prev,
                 cancha_id: value,
-                sucursal_id: canchaSeleccionada?.sucursal_id || '',
-                horario_id: newHorarioId,
-                profesor_asignado_id: newProfesorId
+                horario_id: canchaSeleccionada?.horario_ids?.[0] || '',
+                profesor_asignado_id: canchaSeleccionada?.entrenador_id || ''
             }));
         } else {
             setFormData(prev => ({
@@ -220,7 +165,6 @@ export const useRegistroAlumno = (onSuccess) => {
         if (!formData.apellidos.trim()) newErrors.apellidos = 'Por favor, completa los apellidos';
         if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'Fecha de nacimiento es requerida';
         if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona una cancha';
-        if (!formData.horario_id) newErrors.horario_id = 'El grupo seleccionado no tiene un horario asignado';
         if (!formData.sucursal_id) newErrors.sucursal_id = 'Selecciona una sucursal';
 
         // Validación Representante Legal: solo el nombre es obligatorio, el teléfono es opcional
@@ -291,7 +235,7 @@ export const useRegistroAlumno = (onSuccess) => {
         advertenciaDuplicado,
         errorVerificacionDuplicado,
         verificandoDuplicado,
-        maestros: { canchas: canchasFiltradas, horarios: horariosFiltrados, entrenadores: entrenadorFiltrados, sucursales },
+        maestros: { canchas, horarios: horariosFiltrados, entrenadores, sucursales },
 
         handleChange,
         setPhotoFile,

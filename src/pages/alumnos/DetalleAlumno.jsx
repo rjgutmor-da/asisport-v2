@@ -498,10 +498,10 @@ const DetalleAlumno = () => {
                                 label="Profesor Asignado"
                                 name="profesor_asignado_id"
                                 value={formData.profesor_asignado_id || ''}
-                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                options={entrenadores}
                                 onChange={handleChange}
-                                disabled={!editing || isCoachOrGoalkeeperCoach}
-                                placeholder="Seleccionar entrenador..."
+                                disabled
+                                    placeholder="Sin asignar en el grupo"
                             />
                         </div>
 
@@ -518,20 +518,21 @@ const DetalleAlumno = () => {
                                         error={errors?.sucursal_id}
                                     />
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
-                                        Al seleccionar un grupo se completan su profesor, sucursal y horario
+                                        El grupo determina el profesor y el horario; la sucursal es independiente
                                     </p>
                                 </div>
                             ) : (
                                 <div></div>
                             )}
                             <Select
-                                label="Horario de Entrenamiento *"
+                                label="Horario de Entrenamiento"
                                 name="horario_id"
                                 value={formData.horario_id || ''}
                                 options={horarios}
                                 onChange={handleChange}
-                                disabled={!editing || isCoachOrGoalkeeperCoach}
+                                disabled
                                 error={errors?.horario_id}
+                                placeholder="Sin asignar en el grupo"
                             />
                         </div>
 

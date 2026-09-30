@@ -281,11 +281,11 @@ const RegistroAlumno = () => {
                                 label="Profesor Asignado"
                                 name="profesor_asignado_id"
                                 value={formData.profesor_asignado_id}
-                                options={[{ value: '', label: 'Sin asignar' }, ...entrenadores]}
+                                options={entrenadores}
                                 onChange={handleChange}
                                 error={errors.profesor_asignado_id}
-                                disabled={isAnyCoach}
-                                placeholder="Auto-asignado con el grupo"
+                                disabled
+                                placeholder="Sin asignar en el grupo"
                             />
                         </div>
 
@@ -304,7 +304,7 @@ const RegistroAlumno = () => {
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
                                         {isCoachWithFixedBranch
                                             ? 'Sucursal asignada a tu perfil'
-                                            : 'Selecciona una sucursal para filtrar los grupos disponibles'}
+                                            : 'La sucursal del alumno es independiente del grupo'}
                                     </p>
                                 </div>
                             ) : (
@@ -312,14 +312,14 @@ const RegistroAlumno = () => {
                             )}
                             <div className="flex flex-col justify-start">
                                 <Select
-                                    label="Horario de Entrenamiento *"
+                                    label="Horario de Entrenamiento"
                                     name="horario_id"
                                     value={formData.horario_id}
                                     options={horarios}
                                     onChange={handleChange}
                                     error={errors.horario_id}
                                     disabled
-                                    placeholder="Se asigna al seleccionar un grupo"
+                                    placeholder="Sin asignar en el grupo"
                                 />
                                 <p className="text-[11px] text-text-secondary mt-1 leading-tight">
                                     Asignado automáticamente según el grupo seleccionado

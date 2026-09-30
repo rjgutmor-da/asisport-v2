@@ -102,7 +102,7 @@ export const useAlumno = (id) => {
 
                 // Cargar datos maestros y verificar deuda en paralelo
                 const [canchasData, horariosData, entrenadoresData, sucursalesData, tieneDeuda] = await Promise.all([
-                    getCanchas(),
+                    getCanchas({ fresh: true }),
                     getHorarios(),
                     getEntrenadores(),
                     getSucursales(),
@@ -144,13 +144,13 @@ export const useAlumno = (id) => {
     // Manejo de cambios en inputs del formulario
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+        if (name === 'horario_id' || name === 'profesor_asignado_id') return;
         if (name === 'cancha_id') {
             const grupo = canchas.find(c => String(c.value) === String(value));
             setFormData(prev => ({
                 ...prev,
                 cancha_id: value,
                 profesor_asignado_id: grupo?.entrenador_id || '',
-                sucursal_id: grupo?.sucursal_id || '',
                 horario_id: grupo?.horario_ids?.[0] || ''
             }));
             setErrors(prev => ({
@@ -273,7 +273,6 @@ export const useAlumno = (id) => {
         if (!formData.apellidos?.trim()) newErrors.apellidos = 'El apellido es requerido';
         if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'La fecha de nacimiento es requerida';
         if (!formData.cancha_id) newErrors.cancha_id = 'Selecciona un grupo';
-        if (!formData.horario_id) newErrors.horario_id = 'Selecciona un horario';
         if (!formData.sucursal_id) newErrors.sucursal_id = 'Selecciona una sucursal';
 
         if (Object.keys(newErrors).length > 0) {

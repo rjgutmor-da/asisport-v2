@@ -3,9 +3,9 @@ import { obtenerEscuelaId } from '../lib/rpcHelper';
 import { cacheService } from '../lib/cacheService';
 import { getDataScope } from '../config/roles';
 
-export const getCanchas = async () => {
+export const getCanchas = async ({ fresh = false } = {}) => {
     // Verificar caché antes de consultar Supabase
-    const cached = cacheService.get('canchas_v5');
+    const cached = fresh ? null : cacheService.get('canchas_v6');
     if (cached) return cached;
 
     const escuelaId = await obtenerEscuelaId();
@@ -27,7 +27,9 @@ export const getCanchas = async () => {
                     nombre: c.nombre,
                     sucursal_id: c.sucursal_id,
                     horario_ids: c.horario_id ? [c.horario_id] : [],
-                    entrenador_id: c.entrenador_id || null
+                    entrenador_id: c.entrenador_id || null,
+                    entrenador_nombre: c.entrenador_nombre || null,
+                    horario_hora: c.horario_hora || null
                 });
             } else {
                 const existing = gruposMap.get(c.id);
@@ -43,7 +45,7 @@ export const getCanchas = async () => {
     const formatted = Array.from(gruposMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     // Guardar en caché (5 minutos por defecto)
-    cacheService.set('canchas_v5', formatted);
+    cacheService.set('canchas_v6', formatted);
     return formatted;
 };
 
