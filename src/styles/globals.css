@@ -131,6 +131,36 @@
     }
 }
 
+@layer components {
+    /* Mantener visible el contacto elegido incluso en la ficha de solo lectura. */
+    .contact-radio {
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+        border: 2px solid var(--color-text-secondary);
+        border-radius: 50%;
+        background-color: var(--color-surface);
+        cursor: pointer;
+    }
+
+    .contact-radio:checked {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary);
+        box-shadow: inset 0 0 0 3px var(--color-surface);
+    }
+
+    .contact-radio:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 3px;
+    }
+
+    .contact-radio:disabled {
+        cursor: default;
+        opacity: 1;
+    }
+}
+
 /* Clases de utilidad personalizadas */
 @layer utilities {
     .text-balance {

@@ -417,7 +417,7 @@ const DetalleAlumno = () => {
                                         checked={formData.whatsapp_preferido === 'padre'}
                                         onChange={handleChange}
                                         disabled={!editing}
-                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary disabled:opacity-50"
+                                        className="contact-radio"
                                     />
                                     <span className="text-sm text-white">Padre</span>
                                 </label>
@@ -429,7 +429,7 @@ const DetalleAlumno = () => {
                                         checked={formData.whatsapp_preferido === 'madre'}
                                         onChange={handleChange}
                                         disabled={!editing}
-                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary disabled:opacity-50"
+                                        className="contact-radio"
                                     />
                                     <span className="text-sm text-white">Madre</span>
                                 </label>

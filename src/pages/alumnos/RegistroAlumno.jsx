@@ -192,7 +192,7 @@ const RegistroAlumno = () => {
                                         value="padre"
                                         checked={formData.whatsapp_preferido === 'padre'}
                                         onChange={handleChange}
-                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary"
+                                        className="contact-radio"
                                     />
                                     <span className="text-sm text-white">Padre</span>
                                 </label>
@@ -203,7 +203,7 @@ const RegistroAlumno = () => {
                                         value="madre"
                                         checked={formData.whatsapp_preferido === 'madre'}
                                         onChange={handleChange}
-                                        className="w-4 h-4 text-primary bg-surface border-border focus:ring-primary"
+                                        className="contact-radio"
                                     />
                                     <span className="text-sm text-white">Madre</span>
                                 </label>
