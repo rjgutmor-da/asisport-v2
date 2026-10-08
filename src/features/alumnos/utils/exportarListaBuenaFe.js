@@ -40,15 +40,68 @@ const obtenerAnchosDesdeDatos = (filas) => {
     });
 };
 
-export const obtenerCategoriaListaBuenaFe = (alumnos) => {
-    const categorias = alumnos
-        .map(alumno => alumno.sub)
-        .filter(sub => sub !== null && sub !== undefined && sub !== '')
-        .map(Number)
-        .filter(Number.isFinite);
+/**
+ * Obtiene el o los nombres de grupo para la cabecera de la Lista de Buena Fe.
+ * Prioriza los grupos seleccionados en el filtro, y si no se filtró por grupo,
+ * toma los grupos reales a los que pertenecen los alumnos incluidos en el reporte.
+ *
+ * @param {Array} alumnos - Lista de alumnos a exportar.
+ * @param {Object} [opciones={}] - Opciones de filtrado.
+ * @param {string} [opciones.grupo] - Grupo forzado explícitamente.
+ * @param {Array<string>} [opciones.selectedCanchas] - IDs de grupos seleccionados.
+ * @param {Array<Object>} [opciones.canchas] - Catálogo de grupos disponibles.
+ * @returns {string} Nombre(s) de grupo formateado(s).
+ */
+export const obtenerGrupoListaBuenaFe = (alumnos, opciones = {}) => {
+    const {
+        grupo,
+        selectedCanchas = [],
+        canchas = []
+    } = opciones;
 
-    return categorias.length > 0 ? `Sub ${Math.max(...categorias)}` : VALOR_VACIO;
+    // 1. Grupo explícito si fue proporcionado
+    if (grupo && typeof grupo === 'string' && grupo.trim()) {
+        return grupo.trim();
+    }
+
+    // 2. Si el usuario filtró por canchas/grupos en la interfaz
+    if (Array.isArray(selectedCanchas) && selectedCanchas.length > 0) {
+        const mapaCanchas = new Map(
+            (canchas || []).map(c => [
+                String(c.value ?? c.id),
+                (c.nombre || c.label || '').replace(/\s*\(\d+\)\s*$/, '').trim()
+            ])
+        );
+
+        const nombresSeleccionados = [...new Set(
+            selectedCanchas
+                .map(id => mapaCanchas.get(String(id)))
+                .filter(Boolean)
+        )];
+
+        if (nombresSeleccionados.length > 0) {
+            return nombresSeleccionados.join(', ');
+        }
+    }
+
+    // 3. Obtener los grupos reales asignados a los alumnos exportados
+    if (Array.isArray(alumnos) && alumnos.length > 0) {
+        const gruposAlumnos = [...new Set(
+            alumnos
+                .map(a => (a.cancha_nombre || a.cancha?.nombre || '').trim())
+                .filter(Boolean)
+        )];
+
+        if (gruposAlumnos.length > 0) {
+            return gruposAlumnos.join(', ');
+        }
+    }
+
+    return VALOR_VACIO;
 };
+
+// Alias para mantener compatibilidad si se invoca con el nombre anterior
+export const obtenerCategoriaListaBuenaFe = obtenerGrupoListaBuenaFe;
 
 export const obtenerEntrenadoresListaBuenaFe = ({
     alumnos,
@@ -79,6 +132,10 @@ export const crearHojaListaBuenaFe = ({
     alumnos,
     nombreEscuela,
     nombresEntrenadores,
+    grupo,
+    categoria,
+    selectedCanchas,
+    canchas,
     fechaGeneracion = new Date()
 }) => {
     const filasAlumnos = alumnos.map(alumno => [
@@ -88,11 +145,16 @@ export const crearHojaListaBuenaFe = ({
         alumno.carnet_identidad || VALOR_VACIO
     ]);
 
+    const grupoFinal = grupo || categoria || obtenerGrupoListaBuenaFe(alumnos, {
+        selectedCanchas,
+        canchas
+    });
+
     const filas = [
         ['LISTA DE BUENA FE', nombreEscuela || VALOR_VACIO],
         ['Fecha:', fechaExcelDesdeDate(fechaGeneracion)],
         ['Entrenador:', nombresEntrenadores || VALOR_VACIO],
-        ['Categoria:', obtenerCategoriaListaBuenaFe(alumnos)],
+        ['Grupo:', grupoFinal],
         [],
         ['Nombres', 'Apellidos', 'Fecha Nacimiento', 'Carnet Identidad'],
         ...filasAlumnos

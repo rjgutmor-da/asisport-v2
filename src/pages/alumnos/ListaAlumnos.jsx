@@ -247,7 +247,9 @@ const ListaAlumnos = () => {
                                 exportarListaBuenaFe({
                                     alumnos: alumnosParaReporte,
                                     nombreEscuela: escuela.nombre,
-                                    nombresEntrenadores
+                                    nombresEntrenadores,
+                                    selectedCanchas: hayTiqueados ? [] : selectedCanchas,
+                                    canchas
                                 });
                             } catch (error) {
                                 console.error('Error al generar la Lista de Buena Fe:', error);
