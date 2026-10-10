@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Archive, RotateCcw, Users, Search, Merge } from 'lucide-react';
+import { ArrowLeft, Archive, Users, Search, Merge } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { getAlumnosArchivados, restaurarAlumno } from '../../services/alumnos';
 import { combinarAlumnos } from '../../services/combinarAlumnos';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
+import TablaAlumnosArchivados from '../../features/alumnos/components/TablaAlumnosArchivados';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
 
 const AlumnosArchivados = () => {
@@ -132,84 +133,13 @@ const AlumnosArchivados = () => {
                             </div>
                         </div>
 
-                        {/* Vista Tabla */}
-                        <div className="overflow-x-auto rounded-lg border border-border">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-surface border-b border-border">
-                                        <th className="text-left text-text-secondary font-semibold px-4 py-3">Nombre</th>
-                                        <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden sm:table-cell">Cancha</th>
-                                        <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden md:table-cell">Horario</th>
-                                        <th className="text-left text-text-secondary font-semibold px-4 py-3 hidden md:table-cell">Asistencias</th>
-                                        <th className="text-center text-text-secondary font-semibold px-4 py-3">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {alumnos
-                                        .filter(alumno => {
-                                            const fullSearch = `${alumno.nombres} ${alumno.apellidos}`.toLowerCase();
-                                            return fullSearch.includes(searchTerm.toLowerCase());
-                                        })
-                                        .map((alumno) => (
-                                        <tr
-                                            key={alumno.id}
-                                            className="border-b border-border/50 hover:bg-surface/50 transition-colors cursor-pointer"
-                                            onClick={() => navigate(`/alumnos/${alumno.id}`)}
-                                        >
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    {/* Foto o iniciales (miniatura) */}
-                                                    {alumno.foto_url ? (
-                                                        <img
-                                                            src={alumno.foto_url}
-                                                            alt={`${alumno.nombres} ${alumno.apellidos}`}
-                                                            className="w-8 h-8 rounded-full object-cover border border-border flex-shrink-0"
-                                                            loading="lazy"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-xs font-bold text-primary">
-                                                                {(alumno.nombres?.[0] || '')}{(alumno.apellidos?.[0] || '')}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    <div className="min-w-0">
-                                                        <p className="text-white font-medium truncate">
-                                                            {alumno.nombres} {alumno.apellidos}
-                                                        </p>
-                                                        {/* Info adicional visible solo en móvil */}
-                                                        <p className="text-text-secondary text-xs sm:hidden">
-                                                            {alumno.cancha?.nombre || 'Sin cancha'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">
-                                                {alumno.cancha?.nombre || '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-text-secondary hidden md:table-cell">
-                                                {alumno.horario?.hora || '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-text-secondary hidden md:table-cell">
-                                                {alumno.asistencias_count || 0}
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleRestaurar(alumno.id, `${alumno.nombres} ${alumno.apellidos}`);
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 bg-success text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-green-600 transition-colors"
-                                                >
-                                                    <RotateCcw size={14} />
-                                                    Restaurar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        {/* Vista Tabla Modular */}
+                        <TablaAlumnosArchivados
+                            alumnos={alumnos}
+                            searchTerm={searchTerm}
+                            onRestaurar={handleRestaurar}
+                            onSelectAlumno={(alumnoId) => navigate(`/alumnos/${alumnoId}`)}
+                        />
                     </>
                 )}
             </main>

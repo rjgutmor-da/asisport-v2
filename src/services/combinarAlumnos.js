@@ -189,9 +189,14 @@ export const combinarAlumnos = async (destinoId, origenId, { soloArchivados = fa
     }
 
 
+    const { data: authData } = await supabase.auth.getUser();
     const { error: errArchivar } = await supabase
         .from('alumnos')
-        .update({ archivado: true })
+        .update({ 
+            archivado: true,
+            archivado_at: new Date().toISOString(),
+            archivado_por: authData?.user?.id || null
+        })
         .eq('id', origenId);
 
     if (errArchivar) {

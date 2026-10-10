@@ -494,7 +494,11 @@ export const archivarAlumno = async (alumnoId) => {
 
     const { data, error } = await supabase
         .from('alumnos')
-        .update({ archivado: true })
+        .update({ 
+            archivado: true,
+            archivado_at: new Date().toISOString(),
+            archivado_por: user.id
+        })
         .eq('id', alumnoId)
         .select()
         .single();
@@ -513,7 +517,11 @@ export const restaurarAlumno = async (alumnoId) => {
 
     const { data, error } = await supabase
         .from('alumnos')
-        .update({ archivado: false })
+        .update({ 
+            archivado: false,
+            archivado_at: null,
+            archivado_por: null
+        })
         .eq('id', alumnoId)
         .select()
         .single();
@@ -562,8 +570,10 @@ export const getAlumnosArchivados = async (userRol, userId) => {
             telefono_madre,
             whatsapp_preferido,
             created_at,
+            archivado_at,
+            archivado_por,
             cancha:grupos!alumnos_cancha_id_fkey1(nombre),
-            horario:horarios(hora),
+            archivado_por_usuario:usuarios!alumnos_archivado_por_fkey(nombres, apellidos),
             asistencias_normales(count),
             asistencias_arqueros(count)
         `)
