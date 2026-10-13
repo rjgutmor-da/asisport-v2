@@ -1,9 +1,9 @@
 import React from 'react';
 
-const ModuleCard = ({ icon, label, onClick, disabled = false, size = 'default' }) => {
+const ModuleCard = ({ icon, label, onClick, disabled = false, size = 'default', badge }) => {
     const sizeClasses = {
-        default: 'min-h-[200px] p-xl',
-        compact: 'min-h-[160px] p-md',
+        default: badge ? 'min-h-[200px] px-xl pb-xl pt-10' : 'min-h-[200px] p-xl',
+        compact: badge ? 'min-h-[160px] px-md pb-md pt-10' : 'min-h-[160px] p-md',
     };
 
     return (
@@ -11,7 +11,7 @@ const ModuleCard = ({ icon, label, onClick, disabled = false, size = 'default' }
             onClick={onClick}
             disabled={disabled}
             className={`
-                bg-surface 
+                relative bg-surface
                 border-regular border-border 
                 rounded-md 
                 ${sizeClasses[size]}
@@ -24,6 +24,11 @@ const ModuleCard = ({ icon, label, onClick, disabled = false, size = 'default' }
                 }
             `}
         >
+            {badge && (
+                <span className="absolute top-2 right-2 rounded-full bg-primary px-2 py-1 text-xs font-bold leading-4 text-background whitespace-nowrap">
+                    {badge}
+                </span>
+            )}
             <div className="text-white">
                 {icon}
             </div>

@@ -10,9 +10,11 @@ import { getEscuelaActual } from '../services/escuelas';
 import { useState, useEffect } from 'react';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
 import { can } from '../config/roles';
+import { useCumpleanos } from '../features/alumnos/hooks/useCumpleanos';
 const Dashboard = () => {
     const navigate = useNavigate();
     const { role } = useAuth();
+    const { today, loading: loadingCumpleanos } = useCumpleanos();
     const [escuela, setEscuela] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -97,6 +99,7 @@ const Dashboard = () => {
                     <ModuleCard
                         icon={<Cake size={60} />}
                         label="Cumpleaños"
+                        badge={!loadingCumpleanos && today.length > 0 ? `🎉 ${today.length} hoy` : undefined}
                         onClick={() => navigate('/alumnos/cumpleanos')}
                         size="compact"
                     />
