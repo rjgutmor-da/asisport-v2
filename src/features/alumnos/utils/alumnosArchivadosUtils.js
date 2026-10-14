@@ -41,18 +41,17 @@ export const formatearFechaHoraDetallada = (fechaStr) => {
 };
 
 /**
- * Obtiene el nombre completo del usuario que archivó al alumno.
+ * Obtiene el nombre del usuario que archivó al alumno (sin apellido).
  * 
  * @param {Object} alumno - Objeto del alumno con la relación del usuario archivador.
- * @returns {string} Nombre y apellido o '—' si no está registrado.
+ * @returns {string} Nombre o '—' si no está registrado.
  */
 export const obtenerNombreUsuarioArchivador = (alumno) => {
     if (!alumno) return '—';
 
     const usuario = alumno.archivado_por_usuario;
-    if (usuario && (usuario.nombres || usuario.apellidos)) {
-        const nombreCompleto = `${usuario.nombres || ''} ${usuario.apellidos || ''}`.trim();
-        return nombreCompleto || '—';
+    if (usuario?.nombres) {
+        return usuario.nombres.trim();
     }
 
     return '—';

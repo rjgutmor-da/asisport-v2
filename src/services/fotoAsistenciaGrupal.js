@@ -135,6 +135,7 @@ export const subirFotoAsistenciaGrupal = async (file, { fecha, canchaId, horario
                 escuela_id: escuelaId,
                 fecha,
                 cancha_id: canchaId || null,
+                grupo_id: canchaId || null,
                 horario_id: horarioId || null,
                 entrenador_id: user.id,
                 foto_url: publicUrl,
@@ -172,7 +173,7 @@ export const obtenerFotoAsistenciaGrupal = async (fecha, canchaId, horarioId) =>
         .eq('fecha', fecha)
         .eq('entrenador_id', user.id);
 
-    if (canchaId) query = query.eq('cancha_id', canchaId);
+    if (canchaId) query = query.or(`cancha_id.eq.${canchaId},grupo_id.eq.${canchaId}`);
     if (horarioId) query = query.eq('horario_id', horarioId);
 
     const { data, error } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
