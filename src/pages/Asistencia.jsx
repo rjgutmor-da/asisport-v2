@@ -105,11 +105,25 @@ const Asistencia = () => {
 
     const capturarFoto = () => {
         if (!videoRef.current) return;
+        const video = videoRef.current;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
         const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+        // Si el stream viene en orientación vertical (vw < vh), rotamos 90° antihorario
+        // para que la imagen se guarde siempre en formato horizontal (paisaje) con los alumnos derechos.
+        if (vw < vh) {
+            canvas.width = vh;
+            canvas.height = vw;
+            ctx.translate(0, vw);
+            ctx.rotate(-Math.PI / 2);
+            ctx.drawImage(video, 0, 0);
+        } else {
+            canvas.width = vw;
+            canvas.height = vh;
+            ctx.drawImage(video, 0, 0);
+        }
 
         canvas.toBlob((blob) => {
             detenerCamara();
