@@ -137,12 +137,21 @@ export const useRegistroAlumno = (onSuccess) => {
             setFormData(prev => ({ ...prev, [name]: onlyNums }));
         } else if (name === 'cancha_id') {
             const canchaSeleccionada = canchasRaw.find(c => String(c.id) === String(value));
+            // La sucursal se hereda del grupo, excepto para entrenadores con sucursal fija en su perfil
+            const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
+            const sucursalFija = isAnyCoach && Boolean(userProfile?.sucursal_id);
             setFormData(prev => ({
                 ...prev,
                 cancha_id: value,
                 horario_id: canchaSeleccionada?.horario_ids?.[0] || '',
-                profesor_asignado_id: canchaSeleccionada?.entrenador_id || ''
+                profesor_asignado_id: canchaSeleccionada?.entrenador_id || '',
+                sucursal_id: !sucursalFija && canchaSeleccionada?.sucursal_id
+                    ? canchaSeleccionada.sucursal_id
+                    : prev.sucursal_id
             }));
+            if (errors.sucursal_id) {
+                setErrors(prev => ({ ...prev, sucursal_id: null }));
+            }
         } else {
             setFormData(prev => ({
                 ...prev,

@@ -304,7 +304,7 @@ const RegistroAlumno = () => {
                                     <p className="text-[11px] text-text-secondary mt-1 leading-tight">
                                         {isCoachWithFixedBranch
                                             ? 'Sucursal asignada a tu perfil'
-                                            : 'La sucursal del alumno es independiente del grupo'}
+                                            : 'Asignada automáticamente según el grupo seleccionado'}
                                     </p>
                                 </div>
                             ) : (

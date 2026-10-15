@@ -151,7 +151,9 @@ export const useAlumno = (id) => {
                 ...prev,
                 cancha_id: value,
                 profesor_asignado_id: grupo?.entrenador_id || '',
-                horario_id: grupo?.horario_ids?.[0] || ''
+                horario_id: grupo?.horario_ids?.[0] || '',
+                // La sucursal se hereda del grupo seleccionado
+                sucursal_id: grupo?.sucursal_id || prev.sucursal_id
             }));
             setErrors(prev => ({
                 ...prev,
