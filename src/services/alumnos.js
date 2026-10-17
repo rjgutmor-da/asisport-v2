@@ -587,7 +587,11 @@ export const getAlumnosArchivados = async (userRol, userId) => {
         }
     }
 
-    query = query.order('nombres', { ascending: true }).order('apellidos', { ascending: true });
+    // Ordenar del más nuevo al más antiguo según su última fecha de archivado
+    query = query
+        .order('archivado_at', { ascending: false, nullsFirst: false })
+        .order('nombres', { ascending: true })
+        .order('apellidos', { ascending: true });
 
     // Si es entrenador, solo ve sus alumnos archivados
     if (userRol === 'Entrenador') {

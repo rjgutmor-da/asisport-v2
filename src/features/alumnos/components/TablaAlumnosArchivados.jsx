@@ -1,10 +1,16 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { formatearFechaArchivo, formatearFechaHoraDetallada, obtenerNombreUsuarioArchivador } from '../utils/alumnosArchivadosUtils';
+import { 
+    formatearFechaArchivo, 
+    formatearFechaHoraDetallada, 
+    obtenerNombreUsuarioArchivador,
+    ordenarAlumnosArchivados 
+} from '../utils/alumnosArchivadosUtils';
 
 /**
  * Tabla para mostrar el listado de alumnos archivados,
  * incluyendo la fecha de archivo y el usuario que realizó la acción.
+ * Ordenados del más nuevo al más antiguo según su última fecha de archivado.
  */
 const TablaAlumnosArchivados = ({
     alumnos = [],
@@ -16,6 +22,8 @@ const TablaAlumnosArchivados = ({
         const fullSearch = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.toLowerCase();
         return fullSearch.includes(searchTerm.toLowerCase());
     });
+
+    const alumnosOrdenados = ordenarAlumnosArchivados(alumnosFiltrados);
 
     return (
         <div className="overflow-x-auto rounded-lg border border-border">
@@ -31,7 +39,7 @@ const TablaAlumnosArchivados = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {alumnosFiltrados.map((alumno) => {
+                    {alumnosOrdenados.map((alumno) => {
                         const usuarioArchivador = obtenerNombreUsuarioArchivador(alumno);
                         const fechaArchivo = formatearFechaArchivo(alumno.archivado_at);
                         const fechaDetalle = formatearFechaHoraDetallada(alumno.archivado_at);

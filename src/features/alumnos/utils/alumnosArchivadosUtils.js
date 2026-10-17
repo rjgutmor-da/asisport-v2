@@ -56,3 +56,32 @@ export const obtenerNombreUsuarioArchivador = (alumno) => {
 
     return '—';
 };
+
+/**
+ * Ordena la lista de alumnos archivados del más nuevo al más antiguo
+ * según su fecha de archivado (archivado_at). Si un alumno es restaurado y
+ * vuelto a archivar, esa última fecha de archivado es la que manda.
+ * En caso de empate o fechas nulas, se ordenan alfabéticamente por nombre.
+ * 
+ * @param {Array<Object>} alumnos - Lista de alumnos a ordenar.
+ * @returns {Array<Object>} Lista de alumnos ordenada del más nuevo al más antiguo.
+ */
+export const ordenarAlumnosArchivados = (alumnos = []) => {
+    if (!Array.isArray(alumnos)) return [];
+
+    return [...alumnos].sort((a, b) => {
+        const tiempoA = a?.archivado_at ? new Date(a.archivado_at).getTime() : 0;
+        const tiempoB = b?.archivado_at ? new Date(b.archivado_at).getTime() : 0;
+
+        // El más nuevo primero
+        if (tiempoB !== tiempoA) {
+            return tiempoB - tiempoA;
+        }
+
+        // Desempate alfabético en español
+        const nombreA = `${a?.nombres || ''} ${a?.apellidos || ''}`.trim();
+        const nombreB = `${b?.nombres || ''} ${b?.apellidos || ''}`.trim();
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    });
+};
+
