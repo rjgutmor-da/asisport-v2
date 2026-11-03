@@ -145,12 +145,16 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
                     <span className="text-primary">Sub {2026 - new Date(alumno.fecha_nacimiento).getUTCFullYear()}</span> {alumno.asistencias_count !== undefined && `• Asist. mes: ${alumno.asistencias_count}`}
                 </p>
 
-                {/* INFO NIVEL 3: Tutor y WhatsApp */}
+                {/* Grupo o tutor, teléfono y WhatsApp */}
                 <div className="mt-2 flex items-center justify-between bg-background/40 p-1.5 rounded-sm border border-border/30">
                     <div className="min-w-0 pr-2">
-                        {showTutor && (
+                        {showTutor ? (
                             <p className="text-[11px] text-text-secondary leading-tight truncate">
                                 Tutor: <span className="text-white font-medium">{representante.nombre || 'N/A'}</span>
+                            </p>
+                        ) : (
+                            <p className="text-[11px] text-text-secondary leading-tight truncate" title={alumno.cancha_nombre}>
+                                Grupo: <span className="text-white font-medium">{alumno.cancha_nombre || 'Sin asignar'}</span>
                             </p>
                         )}
                         <p className="text-[11px] text-primary font-bold leading-tight">
