@@ -7,7 +7,7 @@ import { formatWhatsAppPhone } from '../utils/phoneUtils';
  * Componente de tarjeta para mostrar información de un alumno
  * Diseño enfocado en contacto rápido vía WhatsApp
  */
-const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessage }) => {
+const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessage, showTutor = true }) => {
     // Generar iniciales para fallback de foto
     const getInitials = () => {
         const firstInitial = alumno.nombres?.[0] || '';
@@ -148,9 +148,11 @@ const AlumnoCard = ({ alumno, onClick, variant = 'default', customWhatsAppMessag
                 {/* INFO NIVEL 3: Tutor y WhatsApp */}
                 <div className="mt-2 flex items-center justify-between bg-background/40 p-1.5 rounded-sm border border-border/30">
                     <div className="min-w-0 pr-2">
-                        <p className="text-[11px] text-text-secondary leading-tight truncate">
-                            Tutor: <span className="text-white font-medium">{representante.nombre || 'N/A'}</span>
-                        </p>
+                        {showTutor && (
+                            <p className="text-[11px] text-text-secondary leading-tight truncate">
+                                Tutor: <span className="text-white font-medium">{representante.nombre || 'N/A'}</span>
+                            </p>
+                        )}
                         <p className="text-[11px] text-primary font-bold leading-tight">
                             {representante.telefono || 'Sin tel.'}
                         </p>

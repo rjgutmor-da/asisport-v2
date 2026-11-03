@@ -66,6 +66,7 @@ const Cumpleanos = () => {
                                     alumno={alumno}
                                     onClick={() => navigate(`/alumnos/${alumno.id}`)}
                                     variant="highlight"
+                                    showTutor={false}
                                     customWhatsAppMessage={birthdayMessage}
                                 />
                             ))}
@@ -95,6 +96,7 @@ const Cumpleanos = () => {
                                     alumno={alumno}
                                     onClick={() => navigate(`/alumnos/${alumno.id}`)}
                                     variant="muted"
+                                    showTutor={false}
                                     customWhatsAppMessage={birthdayMessage}
                                 />
                             ))}
@@ -121,6 +123,7 @@ const Cumpleanos = () => {
                                     alumno={alumno}
                                     onClick={() => navigate(`/alumnos/${alumno.id}`)}
                                     variant="default"
+                                    showTutor={false}
                                     customWhatsAppMessage={birthdayMessage}
                                 />
                             ))}
@@ -150,6 +153,7 @@ const Cumpleanos = () => {
                                         alumno={alumno}
                                         onClick={() => navigate(`/alumnos/${alumno.id}`)}
                                         variant="default"
+                                        showTutor={false}
                                         customWhatsAppMessage={birthdayMessage}
                                     />
                                     {/* Badge de días restantes */}
