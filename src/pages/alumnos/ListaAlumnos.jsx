@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, MessageCircle, Archive, Merge, ExternalLink, FileSpreadsheet, Home, ClipboardCheck, Cake, UserPlus, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Users, Search, FilterX, LayoutGrid, List, Archive, Merge, ExternalLink } from 'lucide-react';
 import AlumnoCard from '../../features/alumnos/components/AlumnoCard';
 import CombinarAlumnosModal from '../../features/alumnos/components/CombinarAlumnosModal';
 import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
@@ -9,48 +9,35 @@ import { useAuth } from '../../context/AuthContext';
 import { getCamposFaltantes } from '../../features/alumnos/utils/alumnoCompletitud';
 import TabBar from '../../components/dashboard/TabBar';
 import DesktopNavbar from '../../components/layout/DesktopNavbar';
-import { getEscuelaActual } from '../../services/escuelas';
 import { can } from '../../config/roles';
-import {
-    exportarListaBuenaFe,
-    obtenerEntrenadoresListaBuenaFe
-} from '../../features/alumnos/utils/exportarListaBuenaFe';
 
 /**
  * Página principal de la lista de alumnos.
  * Funcionalidades:
  *  - Vista cuadrícula y tabla con navegación al detalle
- *  - Búsqueda y filtros multi-selección: cancha y sub
- *  - Filtro inteligente para entrenadores (solo sus canchas)
+ *  - Búsqueda y filtros multi-selección: entrenador, grupo, categoría sub y horario
+ *  - Filtro inteligente para entrenadores (solo sus grupos)
  *  - Archivar alumno individual con confirmación
  *  - Combinar alumnos duplicados mediante modal
- *  - Selección múltiple para envío de WhatsApp
- *  - Aprobar alumnos pendientes en lote
  *  - Muestra asistencia de esta semana y sub del alumno
  */
 const ListaAlumnos = () => {
     const navigate = useNavigate();
-    const location = useLocation();
-    const { isAdmin, role, userProfile } = useAuth();
+    const { isAdmin, role } = useAuth();
 
     // Control del modal de combinar alumnos
     const [showCombinarModal, setShowCombinarModal] = React.useState(false);
-    const [isEditingMessage, setIsEditingMessage] = React.useState(false);
 
     const {
         loading,
         isFetching,
         alumnos,
-        todosLosAlumnosFiltrados,
         allAlumnos,
         activeFilter,
         searchTerm,
-        selectedAlumnos,
         viewMode,
         totalPages,
         currentPage,
-        asistenciaHistory,
-        esEntrenador,
         hayFiltrosActivos,
         filtrosMaestros: {
             canchas,
@@ -60,7 +47,6 @@ const ListaAlumnos = () => {
             horariosDisponibles,
             subs,
             subsDisponibles,
-            horarios,
             selectedCanchas,
             selectedEntrenadores,
             selectedSubs,
@@ -76,19 +62,12 @@ const ListaAlumnos = () => {
         handleFilterChange,
         handleSearchChange,
         handleClearFilters,
-        toggleAlumnoSelection,
-        handleSelectAll,
-        sendBulkWhatsApp,
         handleArchivarAlumno,
-        handleCombinarAlumnos,
-        introMessage,
-        setIntroMessage
+        handleCombinarAlumnos
     } = useAlumnos();
 
     // Usar el isAdmin del AuthContext (incluye SuperAdministrador, Administrador y Dueño)
     const esAdmin = isAdmin;
-
-
 
     // Nombres de meses para cabecera de tabla
     const nombresMeses = [
@@ -112,7 +91,6 @@ const ListaAlumnos = () => {
             await handleArchivarAlumno(alumno.id);
         }
     };
-
 
     // Loading Skeleton
     if (loading) {
@@ -189,154 +167,61 @@ const ListaAlumnos = () => {
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
             {/* Header */}
-        <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border flex flex-col">
-            {/* Barra de progreso sutil — visible solo durante recargas silenciosas (sin skeleton) */}
-            <div
-                className="w-full h-0.5 bg-primary/20 overflow-hidden transition-opacity duration-300"
-                style={{ opacity: isFetching ? 1 : 0 }}
-            >
-                <div className="h-full bg-primary animate-progress-bar" />
-            </div>
-            <div className="w-full p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <h1 className="text-xl font-bold text-white whitespace-nowrap">Lista de Alumnos</h1>
+            <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border flex flex-col">
+                {/* Barra de progreso sutil — visible solo durante recargas silenciosas (sin skeleton) */}
+                <div
+                    className="w-full h-0.5 bg-primary/20 overflow-hidden transition-opacity duration-300"
+                    style={{ opacity: isFetching ? 1 : 0 }}
+                >
+                    <div className="h-full bg-primary animate-progress-bar" />
                 </div>
-
-                {/* Menú de navegación superior para escritorio */}
-                <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
-                    <DesktopNavbar className="text-[18px]" />
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {/* Botón Combinar Alumnos (solo Admin) */}
-                    {esAdmin && (
-                        <button
-                            onClick={() => setShowCombinarModal(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 text-warning border border-warning/30 rounded-md text-sm font-bold hover:bg-warning/20 transition-colors"
-                            title="Combinar alumnos duplicados"
-                        >
-                            <Merge size={16} />
-                            <span className="hidden md:inline">Combinar</span>
+                <div className="w-full p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                        <button onClick={() => navigate(-1)} className="text-white hover:text-primary transition-colors">
+                            <ArrowLeft size={24} />
                         </button>
-                    )}
+                        <h1 className="text-xl font-bold text-white whitespace-nowrap">Lista de Alumnos</h1>
+                    </div>
 
-                    {/* Botón Lista de Buena Fe */}
-                    {/* Si hay alumnos tiqueados (convocados), el reporte incluye solo ellos.
-                        Si no hay tiqueados, usa todos los alumnos filtrados por los filtros generales. */}
-                    <button
-                        onClick={async () => {
-                            // Determinar qué alumnos incluir en el reporte
-                            const hayTiqueados = selectedAlumnos.length > 0;
-                            const alumnosParaReporte = hayTiqueados
-                                ? todosLosAlumnosFiltrados.filter(a => selectedAlumnos.includes(a.id))
-                                : todosLosAlumnosFiltrados;
+                    {/* Menú de navegación superior para escritorio */}
+                    <div className="hidden md:flex items-center gap-6 flex-grow justify-start pl-8">
+                        <DesktopNavbar className="text-[18px]" />
+                    </div>
 
-                            if (alumnosParaReporte.length === 0) return;
-
-                            try {
-                                const escuela = await getEscuelaActual();
-                                const nombresEntrenadores = obtenerEntrenadoresListaBuenaFe({
-                                    alumnos: alumnosParaReporte,
-                                    entrenadores,
-                                    usuarioActual: userProfile
-                                });
-
-                                exportarListaBuenaFe({
-                                    alumnos: alumnosParaReporte,
-                                    nombreEscuela: escuela.nombre,
-                                    nombresEntrenadores,
-                                    selectedCanchas: hayTiqueados ? [] : selectedCanchas,
-                                    canchas
-                                });
-                            } catch (error) {
-                                console.error('Error al generar la Lista de Buena Fe:', error);
-                                window.alert('No se pudo generar la Lista de Buena Fe. Intenta nuevamente.');
-                            }
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm font-bold transition-colors ${
-                            selectedAlumnos.length > 0
-                                ? 'bg-primary/15 text-primary border-primary/40 hover:bg-primary/25'
-                                : 'bg-success/10 text-success border-success/30 hover:bg-success/20'
-                        }`}
-                        title={
-                            selectedAlumnos.length > 0
-                                ? `Exportar ${selectedAlumnos.length} alumno(s) tiqueado(s)`
-                                : 'Exportar Lista de Buena Fe (todos los filtrados)'
-                        }
-                    >
-                        <FileSpreadsheet size={16} />
-                        <span className="hidden md:inline">
-                            Lista Buena Fe
-                            {selectedAlumnos.length > 0 && (
-                                <span className="ml-1 text-xs font-bold opacity-80">
-                                    ({selectedAlumnos.length})
-                                </span>
-                            )}
-                        </span>
-                    </button>
-
-                    {selectedAlumnos.length > 0 && (
-                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
+                    <div className="flex items-center gap-2">
+                        {/* Botón Combinar Alumnos (solo Admin) */}
+                        {esAdmin && (
                             <button
-                                onClick={() => setIsEditingMessage(!isEditingMessage)}
-                                className={`p-1.5 rounded-md border ${isEditingMessage ? 'bg-primary border-primary text-white' : 'bg-surface border-border text-text-secondary'} hover:border-primary transition-colors`}
-                                title="Editar mensaje de convocatoria"
+                                onClick={() => setShowCombinarModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 text-warning border border-warning/30 rounded-md text-sm font-bold hover:bg-warning/20 transition-colors"
+                                title="Combinar alumnos duplicados"
                             >
-                                <MessageCircle size={20} />
+                                <Merge size={16} />
+                                <span className="hidden md:inline">Combinar</span>
+                            </button>
+                        )}
+
+                        <div className="bg-surface border border-border rounded-md p-1 flex">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
+                                title="Vista Lista"
+                            >
+                                <List size={20} />
                             </button>
                             <button
-                                onClick={sendBulkWhatsApp}
-                                className="flex items-center gap-2 bg-success text-white px-3 py-1.5 rounded-md text-sm font-bold hover:bg-green-600 transition-all"
+                                onClick={() => setViewMode('grid')}
+                                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
+                                title="Vista Cuadrícula"
                             >
-                                WhatsApp ({selectedAlumnos.length})
+                                <LayoutGrid size={20} />
                             </button>
                         </div>
-                    )}
-                    <div className="bg-surface border border-border rounded-md p-1 flex">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
-                            title="Vista Lista"
-                        >
-                            <List size={20} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary text-white' : 'text-text-secondary hover:text-white'}`}
-                            title="Vista Cuadrícula"
-                        >
-                            <LayoutGrid size={20} />
-                        </button>
                     </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
             <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
-                {/* Editor de Mensaje de Convocatoria */}
-                {isEditingMessage && selectedAlumnos.length > 0 && (
-                    <div className="bg-surface border-2 border-primary rounded-md p-4 animate-in zoom-in-95 duration-200">
-                        <label className="block text-xs font-bold text-primary uppercase mb-2">Mensaje de Convocatoria</label>
-                        <textarea
-                            value={introMessage}
-                            onChange={(e) => setIntroMessage(e.target.value)}
-                            className="w-full bg-background border border-border rounded px-3 py-2 text-white text-sm focus:border-primary outline-none min-h-[80px] resize-none"
-                            placeholder="Escribe el mensaje que irá antes de la lista..."
-                        />
-                        <div className="flex justify-end mt-2">
-                            <button
-                                onClick={() => setIsEditingMessage(false)}
-                                className="text-xs font-bold text-text-secondary hover:text-white transition-colors"
-                            >
-                                Listo
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 {/* ── Fila 1: Filtros Multi-selección (primero, igual que SaaSport) ── */}
                 <div className={`grid gap-3 ${esAdmin ? 'grid-cols-1 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
                     {/* 1. Filtro Entrenador — solo para admins */}
@@ -351,7 +236,7 @@ const ListaAlumnos = () => {
                         />
                     )}
 
-                    {/* 2. Filtro Grupo (movido de la posición 5 a la 2) */}
+                    {/* 2. Filtro Grupo */}
                     <MultiSelectFilter
                         label="Grupo"
                         placeholder="Todos los Grupos"
@@ -378,7 +263,6 @@ const ListaAlumnos = () => {
                         selectedValues={selectedHorarios}
                         onChange={setSelectedHorarios}
                     />
-
                 </div>
 
                 {/* ── Fila 2: Buscador + Tabs de estado (debajo de los filtros) ── */}
@@ -443,8 +327,6 @@ const ListaAlumnos = () => {
                             Arqueros
                         </button>
 
-
-
                         {/* Limpiar Filtros */}
                         {hayFiltrosActivos && (
                             <button
@@ -469,51 +351,39 @@ const ListaAlumnos = () => {
                     viewMode === 'grid' ? (
                         /* Vista Cuadrícula (Cards) */
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {alumnos.map((alumno) => {
-                                const asistenciasCount = getAsistenciaResumen(alumno.id);
-                                return (
-                                    <div key={alumno.id} className="relative group">
-                                        <AlumnoCard
-                                            alumno={alumno}
-                                            onClick={() => handleAlumnoClick(alumno)}
-                                        />
-                                        {/* Botón archivar en la tarjeta (solo Admin) */}
-                                        {esAdmin && (
-                                            <button
-                                                onClick={(e) => handleArchivar(e, alumno)}
-                                                className="
-                                                    absolute top-2 right-2
-                                                    p-1.5 rounded-md
-                                                    bg-error/80 text-white
-                                                    opacity-0 group-hover:opacity-100
-                                                    hover:bg-error
-                                                    transition-all duration-200
-                                                    shadow-lg
-                                                "
-                                                title={`Archivar a ${alumno.nombres}`}
-                                            >
-                                                <Archive size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            {alumnos.map((alumno) => (
+                                <div key={alumno.id} className="relative group">
+                                    <AlumnoCard
+                                        alumno={alumno}
+                                        onClick={() => handleAlumnoClick(alumno)}
+                                    />
+                                    {/* Botón archivar en la tarjeta (solo Admin) */}
+                                    {esAdmin && (
+                                        <button
+                                            onClick={(e) => handleArchivar(e, alumno)}
+                                            className="
+                                                absolute top-2 right-2
+                                                p-1.5 rounded-md
+                                                bg-error/80 text-white
+                                                opacity-0 group-hover:opacity-100
+                                                hover:bg-error
+                                                transition-all duration-200
+                                                shadow-lg
+                                            "
+                                            title={`Archivar a ${alumno.nombres}`}
+                                        >
+                                            <Archive size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        /* Vista Lista (Tabla) */
                         /* Vista Lista (Tabla) */
                         <div className="bg-surface border border-border rounded-md overflow-x-auto">
                             <table className="w-full text-left border-collapse min-w-[320px]">
                                 <thead className="bg-background/50 border-b border-border">
                                     <tr>
-                                        <th className="p-2 md:p-3 w-8 md:w-10">
-                                            <input
-                                                type="checkbox"
-                                                onChange={() => handleSelectAll(alumnos)}
-                                                checked={alumnos.length > 0 && alumnos.every(a => selectedAlumnos.includes(a.id))}
-                                                className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
-                                            />
-                                        </th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase md:min-w-[200px]">Alumno</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-8 md:w-12" title="Asistencias en los últimos 7 días">7D</th>
                                         <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">{mesAnteriorStr.substring(0, 3)}</th>
@@ -536,16 +406,8 @@ const ListaAlumnos = () => {
                                                 className="border-b border-border/50 transition-colors hover:bg-primary/5 cursor-pointer"
                                                 onClick={() => handleAlumnoClick(alumno)}
                                             >
-                                                <td className="p-2 md:p-3" onClick={(e) => e.stopPropagation()}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedAlumnos.includes(alumno.id)}
-                                                        onChange={() => toggleAlumnoSelection(alumno.id)}
-                                                        className="rounded border-border text-primary focus:ring-primary bg-background w-4 h-4 cursor-pointer"
-                                                    />
-                                                </td>
                                                 <td className="p-2 md:p-3">
-                                                    <div className="flex items-center gap-2 md:gap-3 max-w-[140px] md:max-w-[400px]">
+                                                    <div className="flex items-center gap-2 md:gap-3 max-w-[160px] md:max-w-[400px]">
                                                         {alumno.foto_url ? (
                                                             <img src={alumno.foto_url} alt="" className="hidden sm:block w-8 h-8 rounded-full object-cover border border-primary/30" loading="lazy" />
                                                         ) : (

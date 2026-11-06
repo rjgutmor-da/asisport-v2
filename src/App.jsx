@@ -17,6 +17,7 @@ const AlumnosArchivados = lazy(() => import('./pages/alumnos/AlumnosArchivados')
 const Cumpleanos = lazy(() => import('./pages/alumnos/Cumpleanos'))
 const Estadisticas = lazy(() => import('./pages/Estadisticas'))
 const Asistencia = lazy(() => import('./pages/Asistencia'))
+const Convocatoria = lazy(() => import('./pages/Convocatoria'))
 const RegistroActividad = lazy(() => import('./pages/RegistroActividad'))
 
 import { useAlumnosRealtime } from './hooks/useAlumnosRealtime'
@@ -34,8 +35,6 @@ const PageLoader = () => (
 
 // Componente interno para gestionar suscripciones Realtime solo cuando el usuario está autenticado
 const RealtimeSubscriber = () => {
-    // Importamos useAuth aquí para evitar dependencias circulares si fuera necesario, 
-    // pero como está en el mismo archivo o contexto, usamos el hook estándar.
     const { user } = useAuth();
     
     // Solo activamos los hooks si hay un usuario real
@@ -72,6 +71,12 @@ function App() {
                             <Route path="/asistencia" element={
                                 <ProtectedRoute allowedRoles={ROLES.filter(r => r !== 'Medico')}>
                                     <Asistencia />
+                                </ProtectedRoute>
+                            } />
+
+                            <Route path="/convocatoria" element={
+                                <ProtectedRoute allowedRoles={ROLES.filter(r => r !== 'Medico')}>
+                                    <Convocatoria />
                                 </ProtectedRoute>
                             } />
 

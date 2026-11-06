@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School, Activity } from 'lucide-react';
-import HeroCard from '../components/dashboard/HeroCard';
+import { Settings, UserPlus, Users, Cake, ClipboardCheck, BarChart3, Archive, School, Activity, Trophy } from 'lucide-react';
 import ModuleCard from '../components/dashboard/ModuleCard';
 import TabBar from '../components/dashboard/TabBar';
 import { useAuth } from '../context/AuthContext';
@@ -41,15 +40,23 @@ const Dashboard = () => {
             {/* Contenedor principal Responsive - Se añade padding superior en PC para bajar las tarjetas */}
             <div className="px-4 space-y-10 md:space-y-0 md:px-8 md:grid md:grid-cols-2 md:gap-12 max-w-7xl mx-auto md:pt-16 pb-12">
 
-                {/* Columna Izquierda (Asistencia + Brand) - Ajustada para separar logo en móvil */}
+                {/* Columna Izquierda (Asistencia + Convocatoria + Brand) */}
                 <div className="flex flex-col items-center gap-10 md:gap-8 pt-0 w-full">
                     {role !== 'Medico' && (
-                        <HeroCard
-                            icon={<ClipboardCheck size={48} className="md:size-28" />}
-                            label="Asistencia"
-                            onClick={() => navigate('/asistencia')}
-                            className="min-h-[140px] md:min-h-[440px]"
-                        />
+                        <div className="grid grid-cols-2 gap-4 md:gap-6 w-full">
+                            <ModuleCard
+                                icon={<ClipboardCheck size={60} />}
+                                label="Asistencia"
+                                onClick={() => navigate('/asistencia')}
+                                size="compact"
+                            />
+                            <ModuleCard
+                                icon={<Trophy size={60} />}
+                                label="Convocatoria"
+                                onClick={() => navigate('/convocatoria')}
+                                size="compact"
+                            />
+                        </div>
                     )}
                     
                     {/* Brand Section: Logo + Phrase (Dynamic) */}

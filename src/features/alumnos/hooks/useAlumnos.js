@@ -8,7 +8,6 @@ import { getAsistenciasEstaSemana } from '../../../services/asistencias';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useCatalogosAsisport, queryKeys } from '../../../hooks/useMasterData';
 import { sanearSeleccionIncompatible } from '../utils/filtrosCruzados';
-import { generarMensajeWhatsAppListaBuenaFe } from '../utils/exportarListaBuenaFe';
 
 /** Clave de sessionStorage donde se persiste el estado de filtros de la lista de alumnos */
 const FILTROS_SESSION_KEY = 'asisport_lista_alumnos_filtros';
@@ -56,8 +55,6 @@ export const useAlumnos = () => {
     const [selectedHorarios, setSelectedHorarios] = useState(filtrosGuardados?.selectedHorarios ?? []);
     const [currentPage, setCurrentPage] = useState(filtrosGuardados?.currentPage ?? 1);
     const [viewMode, setViewMode] = useState(filtrosGuardados?.viewMode ?? 'list');
-    const [selectedAlumnos, setSelectedAlumnos] = useState([]);
-    const [introMessage, setIntroMessage] = useState('Esta es la lista de Convocados:');
     const [asistenciaHistory, setAsistenciaHistory] = useState({});
 
     const itemsPerPage = 30;
@@ -241,7 +238,6 @@ export const useAlumnos = () => {
     }, [catalogosData, opcionesFiltrosData, alumnosData?.facetas?.subs]);
 
     const filtrarOpcionesPorRelaciones = useCallback((opciones, campoPropio, filtros) => {
-        // Hasta recibir la matriz se mantienen los catálogos completos para no borrar una selección válida.
         if (!opcionesFiltrosData) return opciones;
 
         const coincide = (valor, seleccionados = []) => {
@@ -265,7 +261,6 @@ export const useAlumnos = () => {
         return opciones.filter(opcion => permitidos.has(String(opcion.value)));
     }, [opcionesFiltrosData]);
 
-    // Cada filtro se calcula con los otros tres criterios: relación bidireccional completa.
     const canchasDisponibles = useMemo(
         () => filtrarOpcionesPorRelaciones(dynamicOptions.canchas, 'cancha_id', {
             entrenadores: selectedEntrenadores,
@@ -299,7 +294,6 @@ export const useAlumnos = () => {
         [dynamicOptions.subs, filtrarOpcionesPorRelaciones, selectedCanchas, selectedEntrenadores, selectedHorarios]
     );
 
-    // Cuando otro criterio deja una selección sin resultados, se descarta una sola vez.
     useEffect(() => {
         if (!opcionesFiltrosData) return;
         setSelectedCanchas(prev => sanearSeleccionIncompatible(prev, canchasDisponibles));
@@ -307,6 +301,7 @@ export const useAlumnos = () => {
         setSelectedHorarios(prev => sanearSeleccionIncompatible(prev, horariosDisponibles));
         setSelectedSubs(prev => sanearSeleccionIncompatible(prev, subsDisponibles));
     }, [opcionesFiltrosData, canchasDisponibles, entrenadoresDisponibles, horariosDisponibles, subsDisponibles]);
+
     // Lista simplificada para el modal de combinar
     const allAlumnos = useMemo(() => {
         return alumnos.map(a => ({ id: a.id, nombres: a.nombres, apellidos: a.apellidos }));
@@ -327,7 +322,6 @@ export const useAlumnos = () => {
         setCurrentPage(1);
     };
 
-    // Al limpiar únicamente el texto, mantener intactos los demás filtros
     const handleClearSearchOnly = () => {
         setSearchTerm('');
         setCurrentPage(1);
@@ -341,54 +335,7 @@ export const useAlumnos = () => {
         setSelectedHorarios([]);
         setSearchTerm('');
         setCurrentPage(1);
-        setSelectedAlumnos([]);
         try { sessionStorage.removeItem(FILTROS_SESSION_KEY); } catch {}
-    };
-
-    const toggleAlumnoSelection = (id) => {
-        const history = asistenciaHistory[id] || {};
-        const asistencias = Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
-
-        setSelectedAlumnos(prev => {
-            const isSelected = prev.includes(id);
-            if (!isSelected && asistencias < 2) {
-                addToast('El alumno debe tener al menos 2 asistencias para ser convocado.', 'warning');
-                return prev;
-            }
-            return isSelected ? prev.filter(item => item !== id) : [...prev, id];
-        });
-    };
-
-    const handleSelectAll = (currentPageAlumnos) => {
-        const pageIds = currentPageAlumnos.filter(a => {
-            const history = asistenciaHistory[a.id] || {};
-            const asistencias = Object.values(history).filter(estado => estado === 'Presente' || estado === 'Licencia').length;
-            return asistencias >= 2;
-        }).map(a => a.id);
-
-        const allSelected = pageIds.length > 0 && pageIds.every(id => selectedAlumnos.includes(id));
-        if (allSelected) {
-            setSelectedAlumnos(prev => prev.filter(id => !pageIds.includes(id)));
-        } else {
-            setSelectedAlumnos(prev => [...new Set([...prev, ...pageIds])]);
-        }
-    };
-
-    const sendBulkWhatsApp = () => {
-        if (selectedAlumnos.length === 0) return;
-
-        const mapaAlumnos = new Map();
-        alumnos.forEach(a => {
-            if (a.id) mapaAlumnos.set(a.id, a);
-        });
-
-        const selectedData = selectedAlumnos
-            .map(id => mapaAlumnos.get(id))
-            .filter(Boolean);
-
-        const textoMensaje = generarMensajeWhatsAppListaBuenaFe(selectedData, introMessage);
-        const message = encodeURIComponent(textoMensaje);
-        window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
     const handleArchivarAlumno = async (alumnoId) => {
@@ -431,7 +378,6 @@ export const useAlumnos = () => {
         viewMode,
         activeFilter,
         searchTerm,
-        selectedAlumnos,
         hayFiltrosActivos,
         filtrosMaestros: {
             ...dynamicOptions,
@@ -455,12 +401,7 @@ export const useAlumnos = () => {
         handleSearchChange,
         handleClearSearchOnly,
         handleClearFilters,
-        toggleAlumnoSelection,
-        handleSelectAll,
-        sendBulkWhatsApp,
         handleArchivarAlumno,
-        handleCombinarAlumnos,
-        introMessage,
-        setIntroMessage
+        handleCombinarAlumnos
     };
 };
