@@ -65,7 +65,7 @@ export const useConvocatoria = () => {
         fecha: '',
         hora: '',
         direccion: '',
-        encabezado: 'Esta es la lista de Convocados:'
+        encabezado: 'Lista de Convocados'
     });
 
     const itemsPerPage = 30;
@@ -342,7 +342,6 @@ export const useConvocatoria = () => {
     };
 
     const handleClearFilters = () => {
-        setActiveFilter('todos');
         setSelectedCanchas([]);
         setSelectedEntrenadores([]);
         setSelectedSubs([]);
@@ -449,8 +448,7 @@ export const useConvocatoria = () => {
         window.open(`https://wa.me/?text=${message}`, '_blank');
     };
 
-    const hayFiltrosActivos = activeFilter !== 'todos'
-        || selectedCanchas.length > 0
+    const hayFiltrosActivos = selectedCanchas.length > 0
         || selectedEntrenadores.length > 0
         || selectedSubs.length > 0
         || selectedHorarios.length > 0

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Calendar, Clock, MapPin, MessageCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { Trophy, Calendar, Clock, MapPin, MessageCircle, Trash2 } from 'lucide-react';
 
 /**
  * Panel para completar los datos del partido (Torneo, Fecha, Hora y Dirección)
@@ -8,7 +8,6 @@ import { Trophy, Calendar, Clock, MapPin, MessageCircle, Trash2, AlertTriangle }
  */
 const PanelDatosConvocatoria = ({
     cantidadSeleccionados,
-    cantidadConBajaAsistencia,
     datosPartido,
     onChangeDato,
     onEnviarWhatsApp,
@@ -24,12 +23,6 @@ const PanelDatosConvocatoria = ({
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold border border-primary/30">
                         {cantidadSeleccionados} {cantidadSeleccionados === 1 ? 'jugador convocado' : 'jugadores convocados'}
                     </span>
-                    {cantidadConBajaAsistencia > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-warning/15 text-warning text-xs font-bold border border-warning/30">
-                            <AlertTriangle size={13} />
-                            {cantidadConBajaAsistencia} con &lt; 2 asistencias
-                        </span>
-                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -55,9 +48,14 @@ const PanelDatosConvocatoria = ({
 
             {/* Campos de datos del encuentro */}
             <div>
-                <p className="text-xs font-bold text-text-secondary uppercase mb-3">
-                    Datos del Encuentro para WhatsApp
-                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                    <p className="text-xs font-bold text-text-secondary uppercase">
+                        Datos del Encuentro para WhatsApp
+                    </p>
+                    <span className="text-xs text-text-secondary">
+                        Encabezado: <strong className="text-white font-semibold">*Lista de Convocados*</strong>
+                    </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Torneo */}
                     <div>
@@ -116,20 +114,6 @@ const PanelDatosConvocatoria = ({
                             className="w-full px-3 py-2 bg-background border border-border rounded-md text-white text-sm placeholder-text-secondary/60 focus:border-primary focus:outline-none transition-colors"
                         />
                     </div>
-                </div>
-
-                {/* Encabezado opcional editable */}
-                <div className="mt-3">
-                    <label className="block text-xs font-semibold text-text-secondary mb-1">
-                        Encabezado del mensaje
-                    </label>
-                    <input
-                        type="text"
-                        value={datosPartido.encabezado}
-                        onChange={(e) => onChangeDato('encabezado', e.target.value)}
-                        placeholder="Esta es la lista de Convocados:"
-                        className="w-full px-3 py-2 bg-background border border-border rounded-md text-white text-sm placeholder-text-secondary/60 focus:border-primary focus:outline-none transition-colors"
-                    />
                 </div>
             </div>
         </section>

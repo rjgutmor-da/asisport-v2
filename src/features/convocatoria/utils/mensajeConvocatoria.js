@@ -40,14 +40,14 @@ export const generarMensajeWhatsAppConvocatoria = (alumnos, datosPartido = {}) =
         fecha = '',
         hora = '',
         direccion = '',
-        encabezado = 'Esta es la lista de Convocados:'
+        encabezado = 'Lista de Convocados'
     } = datosPartido;
 
     const bloques = [];
 
-    const textoEncabezado = (encabezado || '').trim();
+    const textoEncabezado = (encabezado || 'Lista de Convocados').trim();
     if (textoEncabezado) {
-        bloques.push(`📋 *${textoEncabezado}*`);
+        bloques.push(`*${textoEncabezado}*`);
     }
 
     const lineasDetalles = [];

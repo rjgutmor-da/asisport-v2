@@ -41,7 +41,7 @@ const Dashboard = () => {
             <div className="px-4 space-y-10 md:space-y-0 md:px-8 md:grid md:grid-cols-2 md:gap-12 max-w-7xl mx-auto md:pt-16 pb-12">
 
                 {/* Columna Izquierda (Asistencia + Convocatoria + Brand) */}
-                <div className="flex flex-col items-center gap-10 md:gap-8 pt-0 w-full">
+                <div className="flex flex-col items-center justify-between gap-10 md:gap-0 pt-0 w-full md:h-full">
                     {role !== 'Medico' && (
                         <div className="grid grid-cols-2 gap-4 md:gap-6 w-full">
                             <ModuleCard
@@ -60,7 +60,7 @@ const Dashboard = () => {
                     )}
                     
                     {/* Brand Section: Logo + Phrase (Dynamic) */}
-                    <div className="flex flex-col items-center text-center">
+                    <div className="flex flex-col items-center text-center md:mt-auto">
                         {loading ? (
                             <div className="w-44 h-24 md:w-[340px] md:h-[210px] bg-white/5 animate-pulse rounded-xl flex items-center justify-center">
                                 {/* Contenedor transparente de carga para evitar saltos bruscos */}

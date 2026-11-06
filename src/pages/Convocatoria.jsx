@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Search, FilterX, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Users, Search, FilterX, FileSpreadsheet } from 'lucide-react';
 import MultiSelectFilter from '../components/ui/MultiSelectFilter';
 import TabBar from '../components/dashboard/TabBar';
 import DesktopNavbar from '../components/layout/DesktopNavbar';
@@ -34,10 +34,8 @@ const Convocatoria = () => {
         listaAlumnosSeleccionados,
         totalPages,
         currentPage,
-        activeFilter,
         searchTerm,
         selectedAlumnos,
-        cantidadConBajaAsistencia,
         datosPartido,
         hayFiltrosActivos,
         filtrosMaestros: {
@@ -59,7 +57,6 @@ const Convocatoria = () => {
         setSelectedSubs,
         setSelectedHorarios,
         getAsistenciaResumen,
-        handleFilterChange,
         handleSearchChange,
         handleClearFilters,
         toggleAlumnoSelection,
@@ -68,16 +65,6 @@ const Convocatoria = () => {
         actualizarDatoPartido,
         sendBulkWhatsApp
     } = useConvocatoria();
-
-    // Nombres de meses para las columnas de referencia en la tabla
-    const nombresMeses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    const fechaHoy = new Date();
-    const mesActualStr = nombresMeses[fechaHoy.getMonth()];
-    const fechaHoyAnt = new Date(fechaHoy.getFullYear(), fechaHoy.getMonth() - 1, 1);
-    const mesAnteriorStr = nombresMeses[fechaHoyAnt.getMonth()];
 
     // Verificar si todos los alumnos elegibles (>= 2 asistencias) de la página están marcados
     const alumnosElegiblesPagina = alumnos.filter(a => getAsistenciaResumen(a.id) >= 2);
@@ -230,9 +217,9 @@ const Convocatoria = () => {
                     />
                 </div>
 
-                {/* Fila 2: Buscador + Tabs de filtro rápido */}
-                <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
-                    <div className="relative flex-grow w-full md:w-auto">
+                {/* Fila 2: Buscador */}
+                <div className="flex gap-3 items-center">
+                    <div className="relative flex-grow">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
                         <input
                             type="text"
@@ -250,62 +237,20 @@ const Convocatoria = () => {
                         />
                     </div>
 
-                    <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 flex-shrink-0">
+                    {hayFiltrosActivos && (
                         <button
-                            onClick={() => handleFilterChange('todos')}
-                            className={`
-                                px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                ${activeFilter === 'todos'
-                                    ? 'bg-primary text-white'
-                                    : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                }
-                            `}
+                            onClick={handleClearFilters}
+                            className="px-4 py-2.5 rounded-md font-medium text-sm whitespace-nowrap bg-error/10 text-error border border-error/20 hover:bg-error/20 transition-colors flex items-center gap-2 flex-shrink-0"
                         >
-                            Todos
+                            <FilterX size={16} />
+                            Limpiar
                         </button>
-                        {esAdmin && (
-                            <button
-                                onClick={() => handleFilterChange('pendientes')}
-                                className={`
-                                    px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                    ${activeFilter === 'pendientes'
-                                        ? 'bg-primary text-white'
-                                        : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                    }
-                                `}
-                            >
-                                Pendientes
-                            </button>
-                        )}
-                        <button
-                            onClick={() => handleFilterChange('arqueros')}
-                            className={`
-                                px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors
-                                ${activeFilter === 'arqueros'
-                                    ? 'bg-primary text-white'
-                                    : 'bg-surface text-text-secondary border border-border hover:border-primary'
-                                }
-                            `}
-                        >
-                            Arqueros
-                        </button>
-
-                        {hayFiltrosActivos && (
-                            <button
-                                onClick={handleClearFilters}
-                                className="px-4 py-2 rounded-md font-medium text-sm whitespace-nowrap bg-error/10 text-error border border-error/20 hover:bg-error/20 transition-colors flex items-center gap-2"
-                            >
-                                <FilterX size={16} />
-                                Limpiar
-                            </button>
-                        )}
-                    </div>
+                    )}
                 </div>
 
                 {/* Panel de Torneo, Fecha, Hora y Dirección (aparece arriba de la lista al seleccionar jugadores) */}
                 <PanelDatosConvocatoria
                     cantidadSeleccionados={selectedAlumnos.length}
-                    cantidadConBajaAsistencia={cantidadConBajaAsistencia}
                     datosPartido={datosPartido}
                     onChangeDato={actualizarDatoPartido}
                     onEnviarWhatsApp={sendBulkWhatsApp}
@@ -340,23 +285,12 @@ const Convocatoria = () => {
                                     <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-16 md:w-24" title="Asistencias en los últimos 7 días">
                                         7D
                                     </th>
-                                    <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">
-                                        {mesAnteriorStr.substring(0, 3)}
-                                    </th>
-                                    <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-12 md:w-16">
-                                        {mesActualStr.substring(0, 3)}
-                                    </th>
-                                    <th className="p-2 md:p-3 text-[10px] md:text-xs font-bold text-text-secondary uppercase text-center w-10 md:w-14">
-                                        Sub
-                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {alumnos.map((alumno) => {
                                     const asistencias = getAsistenciaResumen(alumno.id);
-                                    const bajaAsistencia = asistencias < 2;
                                     const estaSeleccionado = selectedAlumnos.includes(alumno.id);
-                                    const subAnio = alumno.sub;
 
                                     return (
                                         <tr
@@ -364,9 +298,7 @@ const Convocatoria = () => {
                                             onClick={() => toggleAlumnoSelection(alumno)}
                                             className={`border-b border-border/50 transition-colors cursor-pointer select-none ${
                                                 estaSeleccionado
-                                                    ? bajaAsistencia
-                                                        ? 'bg-warning/10 hover:bg-warning/15'
-                                                        : 'bg-primary/10 hover:bg-primary/15'
+                                                    ? 'bg-primary/10 hover:bg-primary/15'
                                                     : 'hover:bg-primary/5'
                                             }`}
                                         >
@@ -379,7 +311,7 @@ const Convocatoria = () => {
                                                 />
                                             </td>
                                             <td className="p-2 md:p-3">
-                                                <div className="flex items-center gap-2 md:gap-3 max-w-[180px] sm:max-w-[260px] md:max-w-[420px]">
+                                                <div className="flex items-center gap-2 md:gap-3 max-w-[220px] sm:max-w-[340px] md:max-w-[500px]">
                                                     {alumno.foto_url ? (
                                                         <img
                                                             src={alumno.foto_url}
@@ -394,24 +326,9 @@ const Convocatoria = () => {
                                                             </span>
                                                         </div>
                                                     )}
-                                                    <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                                        <span className="font-medium text-white text-sm md:text-base truncate block">
-                                                            {alumno.nombres} {alumno.apellidos}
-                                                        </span>
-                                                        {bajaAsistencia && (
-                                                            <span
-                                                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border w-fit ${
-                                                                    estaSeleccionado
-                                                                        ? 'bg-warning/20 text-warning border-warning/40'
-                                                                        : 'bg-warning/10 text-warning/80 border-warning/20'
-                                                                }`}
-                                                                title="Este jugador tiene menos de 2 asistencias en los últimos 7 días"
-                                                            >
-                                                                <AlertTriangle size={11} />
-                                                                &lt; 2 asist.
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                    <span className="font-medium text-white text-sm md:text-base truncate block">
+                                                        {alumno.nombres} {alumno.apellidos}
+                                                    </span>
                                                 </div>
                                             </td>
                                             {/* Asistencia en los últimos 7 días */}
@@ -427,30 +344,6 @@ const Convocatoria = () => {
                                                 >
                                                     {asistencias}
                                                 </span>
-                                            </td>
-                                            {/* Asistencia Mes Anterior */}
-                                            <td className="p-2 md:p-3 text-center">
-                                                <span
-                                                    className={`text-sm md:text-base font-bold ${
-                                                        alumno.asistencias_mes_anterior >= 1 ? 'text-success' : 'text-text-secondary'
-                                                    }`}
-                                                >
-                                                    {alumno.asistencias_mes_anterior || 0}
-                                                </span>
-                                            </td>
-                                            {/* Asistencia Mes Actual */}
-                                            <td className="p-2 md:p-3 text-center">
-                                                <span
-                                                    className={`text-sm md:text-base font-bold ${
-                                                        alumno.asistencias_mes_actual >= 1 ? 'text-success' : 'text-text-secondary'
-                                                    }`}
-                                                >
-                                                    {alumno.asistencias_mes_actual || 0}
-                                                </span>
-                                            </td>
-                                            {/* Sub */}
-                                            <td className="p-2 md:p-3 text-center text-primary font-bold text-sm">
-                                                {subAnio}
                                             </td>
                                         </tr>
                                     );
