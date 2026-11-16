@@ -3,28 +3,19 @@ import { RotateCcw } from 'lucide-react';
 import { 
     formatearFechaArchivo, 
     formatearFechaHoraDetallada, 
-    obtenerNombreUsuarioArchivador,
-    ordenarAlumnosArchivados 
+    obtenerNombreUsuarioArchivador
 } from '../utils/alumnosArchivadosUtils';
 
 /**
  * Tabla para mostrar el listado de alumnos archivados,
  * incluyendo la fecha de archivo y el usuario que realizó la acción.
- * Ordenados del más nuevo al más antiguo según su última fecha de archivado.
+ * Recibe la página ya filtrada y ordenada por última fecha de archivado.
  */
 const TablaAlumnosArchivados = ({
     alumnos = [],
-    searchTerm = '',
     onRestaurar,
     onSelectAlumno
 }) => {
-    const alumnosFiltrados = alumnos.filter(alumno => {
-        const fullSearch = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.toLowerCase();
-        return fullSearch.includes(searchTerm.toLowerCase());
-    });
-
-    const alumnosOrdenados = ordenarAlumnosArchivados(alumnosFiltrados);
-
     return (
         <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm">
@@ -39,7 +30,7 @@ const TablaAlumnosArchivados = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {alumnosOrdenados.map((alumno) => {
+                    {alumnos.map((alumno) => {
                         const usuarioArchivador = obtenerNombreUsuarioArchivador(alumno);
                         const fechaArchivo = formatearFechaArchivo(alumno.archivado_at);
                         const fechaDetalle = formatearFechaHoraDetallada(alumno.archivado_at);
@@ -96,7 +87,9 @@ const TablaAlumnosArchivados = ({
                                     {usuarioArchivador}
                                 </td>
                                 <td className="px-4 py-3 text-text-secondary hidden lg:table-cell">
-                                    {alumno.asistencias_count || 0}
+                                    <span aria-label={alumno.asistencias_count == null ? 'Asistencias pendientes de cargar' : undefined}>
+                                        {alumno.asistencias_count ?? '—'}
+                                    </span>
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                     <button

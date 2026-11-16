@@ -539,81 +539,90 @@ export const restaurarAlumno = async (alumnoId) => {
  * Regla #16: Entrenadores ven solo sus alumnos archivados
  *            Admin/SuperAdmin ven todos los archivados de la escuela
  */
-export const getAlumnosArchivados = async (userRol, userId) => {
+const obtenerContextoArchivados = async (userId, options) => {
+    // El perfil proviene de AuthContext; RLS sigue validando cada consulta.
+    if (options.perfil?.id === userId && options.perfil?.escuela_id) {
+        return options.perfil;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
 
-    const escuelaId = await obtenerEscuelaId();
+    const [escuelaId, { data: perfil, error }] = await Promise.all([
+        obtenerEscuelaId(),
+        supabase.from('usuarios').select('sucursal_id').eq('id', user.id).single()
+    ]);
+    if (error) throw new Error('No pudimos verificar la sucursal del usuario.');
+    return { ...perfil, escuela_id: escuelaId };
+};
 
-    const { data: userProfile } = await supabase
-        .from('usuarios')
-        .select('sucursal_id')
-        .eq('id', user.id)
-        .single();
-
-    let query = supabase
-        .from('alumnos')
-        .select(`
-            id,
-            nombres,
-            apellidos,
-            fecha_nacimiento,
-            carnet_identidad,
-            foto_url,
-            estado,
-            es_arquero,
-            cancha_id,
-            horario_id,
-            nombre_padre,
-            telefono_padre,
-            nombre_madre,
-            telefono_madre,
-            whatsapp_preferido,
-            created_at,
-            archivado_at,
-            archivado_por,
-            cancha:grupos!alumnos_cancha_id_fkey1(nombre),
-            archivado_por_usuario:usuarios!alumnos_archivado_por_fkey(nombres, apellidos),
-            asistencias_normales(count),
-            asistencias_arqueros(count)
-        `)
-        .eq('escuela_id', escuelaId)
+const filtrarArchivados = (query, perfil, userRol, userId) => {
+    query = query.eq('escuela_id', perfil.escuela_id)
         .eq('archivado', true)
         .neq('estado', 'ELIMINADO SISTEMA');
-
-    if (userRol !== 'SuperAdministrador') {
-        if (userProfile?.sucursal_id) {
-            query = query.eq('sucursal_id', userProfile.sucursal_id);
-        }
+    if (userRol !== 'SuperAdministrador' && perfil.sucursal_id) {
+        query = query.eq('sucursal_id', perfil.sucursal_id);
     }
-
-    // Ordenar del más nuevo al más antiguo según su última fecha de archivado
-    query = query
-        .order('archivado_at', { ascending: false, nullsFirst: false })
-        .order('nombres', { ascending: true })
-        .order('apellidos', { ascending: true });
-
-    // Si es entrenador, solo ve sus alumnos archivados
     if (userRol === 'Entrenador') {
         query = query.eq('profesor_asignado_id', userId);
     }
+    return query;
+};
 
-    const { data, error } = await query;
-
-    if (error) {
-        console.error('Error al cargar alumnos archivados:', error);
-        throw new Error('No pudimos cargar los alumnos archivados.');
+/** Lista ligera: los totales históricos se consultan aparte para la página visible. */
+export const getAlumnosArchivados = async (userRol, userId, options = {}) => {
+    const perfil = await obtenerContextoArchivados(userId, options);
+    const alumnos = [];
+    const batchSize = 1000;
+    // Evitar el truncamiento de PostgREST cuando la escuela supera 1000 archivados.
+    for (let offset = 0; ; offset += batchSize) {
+        let query = supabase
+            .from('alumnos')
+            .select(`
+                id,
+                nombres,
+                apellidos,
+                foto_url,
+                archivado_at,
+                cancha:grupos!alumnos_cancha_id_fkey1(nombre),
+                archivado_por_usuario:usuarios!alumnos_archivado_por_fkey(nombres)
+            `);
+        query = filtrarArchivados(query, perfil, userRol, userId)
+            .order('archivado_at', { ascending: false, nullsFirst: false })
+            .order('nombres', { ascending: true })
+            .order('apellidos', { ascending: true })
+            .order('id', { ascending: true })
+            .range(offset, offset + batchSize - 1);
+        if (options.signal) query = query.abortSignal(options.signal);
+        const { data, error } = await query;
+        if (error) {
+            if (options.signal?.aborted) throw error;
+            console.error('Error al cargar alumnos archivados:', error);
+            throw new Error('No pudimos cargar los alumnos archivados.');
+        }
+        alumnos.push(...(data || []));
+        if (!data || data.length < batchSize) break;
     }
+    return alumnos;
+};
 
-    // Calcular totales de asistencias usando count (sin descargar IDs completos)
-    return data.map(alumno => {
-        const countN = alumno.asistencias_normales?.[0]?.count || 0;
-        const countA = alumno.asistencias_arqueros?.[0]?.count || 0;
-        return {
-            ...alumno,
-            asistencias_count: countN + countA
-        };
-    });
+/** Cuenta en la base de datos sin descargar el historial ni bloquear la lista. */
+export const getAsistenciasArchivados = async (userRol, userId, alumnoIds, options = {}) => {
+    if (!alumnoIds.length) return {};
+    const perfil = await obtenerContextoArchivados(userId, options);
+    let query = filtrarArchivados(supabase.from('alumnos')
+        .select('id, asistencias_normales(count), asistencias_arqueros(count)'), perfil, userRol, userId)
+        .in('id', alumnoIds);
+    if (options.signal) query = query.abortSignal(options.signal);
+    const { data, error } = await query;
+    if (error) {
+        if (options.signal?.aborted) throw error;
+        throw new Error('No pudimos cargar las asistencias de los alumnos archivados.');
+    }
+    return Object.fromEntries((data || []).map(alumno => [alumno.id,
+        (alumno.asistencias_normales?.[0]?.count || 0)
+        + (alumno.asistencias_arqueros?.[0]?.count || 0)
+    ]));
 };
 
 /**
