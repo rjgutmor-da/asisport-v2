@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import MensualidadIngresoModal from '../../features/alumnos/components/MensualidadIngresoModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Archive, Users, Search, Merge } from 'lucide-react';
@@ -18,6 +19,7 @@ const AlumnosArchivados = () => {
     const queryClient = useQueryClient();
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [alumnoRestaurado, setAlumnoRestaurado] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [showCombinarModal, setShowCombinarModal] = useState(false);
     const pageSize = 30;
@@ -64,7 +66,8 @@ const AlumnosArchivados = () => {
         }
 
         try {
-            await restaurarAlumno(alumnoId);
+            const alumno = await restaurarAlumno(alumnoId);
+            setAlumnoRestaurado(alumno);
             addToast('Alumno restaurado correctamente', 'success');
             quitarAlumnoRestaurado(alumnoId);
         } catch (error) {
@@ -93,6 +96,9 @@ const AlumnosArchivados = () => {
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-10">
+            {alumnoRestaurado && <MensualidadIngresoModal alumno={alumnoRestaurado}
+                editable={role === 'Administrador' || role === 'SuperAdministrador'}
+                onCerrar={() => setAlumnoRestaurado(null)} />}
             {/* Header */}
             <header className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b border-border p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4 flex-shrink-0">

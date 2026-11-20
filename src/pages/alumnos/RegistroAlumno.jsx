@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import MensualidadIngresoModal from '../../features/alumnos/components/MensualidadIngresoModal';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Input from '../../components/ui/Input';
@@ -12,6 +13,7 @@ import AdvertenciaAlumnoDuplicado from '../../features/alumnos/components/Advert
 
 const RegistroAlumno = () => {
     const navigate = useNavigate();
+    const [alumnoInscrito, setAlumnoInscrito] = useState(null);
     const { role, userProfile } = useAuth();
     const isAnyCoach = role === 'Entrenador' || role === 'Entrenarqueros';
     const isCoachWithFixedBranch = isAnyCoach && Boolean(userProfile?.sucursal_id);
@@ -28,10 +30,7 @@ const RegistroAlumno = () => {
         handleChange,
         setPhotoFile,
         handleSubmit
-    } = useRegistroAlumno(() => {
-        // Al éxito, navegar a la lista
-        navigate('/alumnos');
-    });
+    } = useRegistroAlumno(setAlumnoInscrito);
 
     if (loadingMaestros) {
         return (
@@ -57,6 +56,10 @@ const RegistroAlumno = () => {
                     <DesktopNavbar className="text-[18px]" />
                 </div>
             </header>
+
+            {alumnoInscrito && <MensualidadIngresoModal alumno={alumnoInscrito}
+                editable={role === 'Administrador' || role === 'SuperAdministrador'}
+                onCerrar={() => navigate('/alumnos')} />}
 
             <main className="max-w-2xl mx-auto p-4 md:p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
