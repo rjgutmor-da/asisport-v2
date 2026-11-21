@@ -1,7 +1,7 @@
 {
     "name": "AsiSport - Gestión Deportiva",
     "short_name": "AsiSport",
-    "description": "Sistema de gestión para escuelas de fútbol y deportes.",
+    "description": "Asistencia y seguimiento de alumnos.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0A0A0A",
