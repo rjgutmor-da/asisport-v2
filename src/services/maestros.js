@@ -161,8 +161,7 @@ export const getHorariosParaEntrenador = async (userId = null, userRole = null) 
 };
 
 export const getEntrenadores = async () => {
-    // Se usa 'entrenadores_v2' como clave de caché para forzar recarga fresca
-    // que incluya el campo sucursal_id (nuevo desde el filtrado por sucursal)
+    // Los administradores aparecen como profesores al tener una titularidad activa.
     const cached = cacheService.get('entrenadores_v2');
     if (cached) return cached;
 
@@ -171,10 +170,12 @@ export const getEntrenadores = async () => {
     // Se incluye sucursal_id para poder filtrar entrenadores por sucursal en el formulario de registro
     const { data, error } = await supabase
         .from('usuarios')
-        .select('id, nombres, apellidos, sucursal_id')
+        .select('id, nombres, apellidos, sucursal_id, titular:entrenadores_grupos!entrenadores_grupos_entrenador_id_fkey()')
         .eq('escuela_id', escuelaId)
-        .eq('rol', 'Entrenador')
-        .eq('activo', true);
+        .eq('activo', true)
+        .in('rol', ['Entrenador', 'Administrador'])
+        .eq('titular.estado', 'activa')
+        .or('rol.eq.Entrenador,titular.not.is.null');
 
     if (error) throw error;
 
