@@ -111,16 +111,7 @@ const RegistroAlumno = () => {
                                 onChange={handleChange}
                                 placeholder="Opcional"
                             />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FileInput
-                                label="Foto del Alumno"
-                                name="foto"
-                                onChange={setPhotoFile}
-                                error={errors.foto}
-                            />
-                            <div className="flex items-center space-x-2 h-full pt-8">
+                            <div className="flex items-center space-x-2">
                                 <input
                                     type="checkbox"
                                     id="es_arquero"
@@ -345,6 +336,15 @@ const RegistroAlumno = () => {
                                     {formData.observaciones?.length || 0}/30 caracteres
                                 </span>
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FileInput
+                                label="Foto del Alumno"
+                                name="foto"
+                                onChange={setPhotoFile}
+                                error={errors.foto}
+                            />
                         </div>
                     </section>
 
